@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!--<link rel="shortcut icon" href="../../assets/ico/favicon.ico">-->
+    <link rel="shortcut icon" href="images/openrad.png">
+
+    <title>openradiation.org</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="lib/bootstrap-3.1.1-dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy this line! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+
+    <link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
+
+    <link rel="stylesheet" href="css/openradiation.css">
+    <link rel="stylesheet" href="lib/slider/css/slider.css">
+    
+    
+  </head>
+
+  <body>
+
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Openradiation.org</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <form class="navbar-form navbar-right" role="form">
+            <div class="form-group">
+              <input type="text" placeholder="Email" class="form-control">
+            </div>
+            <div class="form-group">
+              <input type="password" placeholder="Password" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-success">Sign in</button>
+          </form>
+        </div><!--/.navbar-collapse -->
+      </div>
+    </div>
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron">
+      <div class="container">
+        <h1>Openradiation project</h1>
+        <p>Turn your smart phone or tablet into a sophisticated geiger counter
+           <a class="btn btn-primary btn-lg" role="button">Learn more &raquo;</a></p>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-8">
+          <!--<h2>Map of radiation measurements</h2>-->
+          <div id="openradiation_map"></div>  
+        </div>
+        <div class="col-md-4">
+          <!--<h2>Filter the measurements</h2>-->
+          <div class="well">
+            Filter by time interval: <br><br>
+	    <input id="timeslider" type="text" class="span2" value="" data-slider-min="10" data-slider-max="1000" data-slider-step="5" data-slider-value="[250,450]"> 
+          </div>
+          <div class="btn btn-default" id="export" role="button">Export csv</div>
+       </div>
+      </div>
+
+      <hr>
+      
+      <footer>
+        <p>&copy; Company 2014</p>
+      </footer>
+    </div> <!-- /container -->
+
+    
+    <!-- JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="lib/slider/js/bootstrap-slider.js"></script>
+    <script src="lib/bootstrap-3.1.1-dist/js/bootstrap.min.js"></script>
+       
+     
+    <script src="js/openradiation.js"></script>
+    <script type="text/javascript">
+        var openradiation_map;
+        var openradiation_items; 
+        var openradiation_listMarkers;        
+        openradiation_init(false);
+        openradiation_getItems();
+       // openradiation_refreshData();
+        
+        
+    </script>
+
+    <script src="lib/Blob.js-master/Blob.js"></script>
+    <script src="lib/FileSaver.js-master/FileSaver.js"></script>
+    <script>
+
+    (function (view){
+        document = view.document;
+        
+       // try {
+       //     var isFileSaverSupported = !!new Blob();
+       // } catch (e) {
+       //     alert("export function not supported");
+       //     document.getElementById('export').style.display = 'none';
+       // }
+    
+        document.getElementById('export').onclick = function(){
+            get_blob = function() {
+                return view.Blob;
+            }
+
+           var bb = get_blob();
+           var CSVtext = exportCSV();
+           var blob = new bb([CSVtext], {type: "text/plain;charset=" + document.characterSet});
+           saveAs(blob, "export.csv");
+        }
+        
+    }(self));
+</script>
+
+
+  </body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!--<link rel="shortcut icon" href="../../assets/ico/favicon.ico">-->
+   <!-- <link rel="shortcut icon" href="images/openrad.png">
+
+    <title>openradiation.org</title-->
+
+    <link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
+    <link rel="stylesheet" href="../../../../../../css/openradiation_embedded.css">
+     
+  </head>
+
+  <body>  
+    <div id="openradiation_map"></div>  
+        
+    <!-- JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script> 
+    <script src="../../../../../../js/openradiation.js"></script>
+    <script type="text/javascript">
+        var openradiation_map;
+        var openradiation_items; 
+        var openradiation_listMarkers;  
+        
+        <!-- init variables with EJS -->
+        var latMin = <%= latMin %>;
+        var lonMin = <%= lonMin %>;
+        var latMax = <%= latMax %>;
+        var lonMax = <%= lonMax %>;
+        var timeMin = <%= timeMin %>;
+        var timeMax = <%= timeMax %>;
+     
+        openradiation_initWithBounds(latMin, lonMin, latMax, lonMax);
+        openradiation_getItemsWithBounds(latMin, lonMin, latMax, lonMax, timeMin, timeMax);
+        
+        //openradiation_initWithBounds(44.3, 2.15, 50.80, 2.55);
+        //openradiation_getItemsWithBounds(44.3, 2.15, 50.80, 2.55, 1400601455949, 1400839617167);
+        //openradiation_refreshData();
+        
+        
+    </script>
+
+
+  </body>
+</html>
