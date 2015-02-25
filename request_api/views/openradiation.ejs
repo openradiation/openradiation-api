@@ -34,7 +34,7 @@
 
   <body>
 
-    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <!--<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -55,16 +55,16 @@
             </div>
             <button type="submit" class="btn btn-success">Sign in</button>
           </form>
-        </div><!--/.navbar-collapse -->
+        </div>
       </div>
-    </div>
+    </div>-->
 
     <!-- Main jumbotron for a primary marketing message or call to action -->
-    <div class="jumbotron">
+    <div class="well">
       <div class="container">
-        <h1>Openradiation project</h1>
-        <p>Turn your smart phone or tablet into a sophisticated geiger counter
-           <a class="btn btn-primary btn-lg" role="button">Learn more &raquo;</a></p>
+        <h3>Openradiation</h3>
+        <!--<p>Turn your smart phone or tablet into a sophisticated geiger counter
+           <a class="btn btn-primary btn-lg" role="button">Learn more &raquo;</a></p>-->
       </div>
     </div>
 
@@ -78,17 +78,20 @@
         <div class="col-md-4">
           <!--<h2>Filter the measurements</h2>-->
           <div class="well">
-            Filter by time interval: <br><br>
-	    <input id="timeslider" type="text" class="span2" value="" data-slider-min="10" data-slider-max="1000" data-slider-step="5" data-slider-value="[250,450]"> 
-          </div>
-          <div class="btn btn-default" id="export" role="button">Export csv</div>
+            
+            <div style="margin-bottom:10px">Filtre par intervalle de temps: </div>
+            <input style="margin-bottom:10px" id="timeslider" type="text" class="span2" value="" data-slider-min="10" data-slider-max="1000" data-slider-step="5" data-slider-value="[250,450]"> 
+            <div style="margin-bottom:10px" class="btn btn-primary" id="export" role="button">Exporter les données visualisées en csv</div>
+            <div style="margin-bottom:10px" data-toggle="tooltip" data-placement="top" title="Et oui" class="btn btn-primary" id="export" role="button">Importer un fichier de données</div>
+       </div>
+       
        </div>
       </div>
 
       <hr>
       
       <footer>
-        <p>&copy; Company 2014</p>
+        <p>&copy; OpenRadiation 2015</p>
       </footer>
     </div> <!-- /container -->
 

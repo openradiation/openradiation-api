@@ -1,0 +1,10 @@
+{
+    "name": "request_api",
+    "version": "0.1.0",
+    "dependencies": {
+        "pg": "~4.2.0",
+        "express": "~3.5.3",
+        "body-parser": "~1.10.1",
+        "ejs": "~1.0.0"
+    }
+}

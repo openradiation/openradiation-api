@@ -11,8 +11,9 @@
 var pg = require('pg');
 var express = require('express');
 var bodyParser = require('body-parser');
+var properties = require('./properties.js');
 
-var conStr = "postgres://opengeiger@localhost/opengeiger";
+var conStr = "postgres://openradiation:openradiation@localhost/openradiation";
 var app = express();
 
 app.use(express.static(__dirname + '/public'));
@@ -131,4 +132,6 @@ app.get('/', function (req, res, next) { // Deprecated !
     });
 });
 
-app.listen(process.env.PORT);
+app.listen(properties.port);
+console.log(new Date().toISOString() + " - *** OpenRadiation request API started ***");
+console.log(new Date().toISOString() + " - Listen successfully on port " + properties.port);
