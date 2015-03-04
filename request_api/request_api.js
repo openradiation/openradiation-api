@@ -13,7 +13,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var properties = require('./properties.js');
 
-var conStr = "postgres://openradiation:openradiation@localhost/openradiation";
+var conStr = "postgres://" + properties.login + ":" + properties.password "@" + properties.host + "/openradiation";
 var app = express();
 
 app.use(express.static(__dirname + '/public'));
@@ -51,6 +51,18 @@ app.put('/add', function(req, res, next) {
     }
     res.send("ok");
 });
+
+/* see http://jsonapi.org/format/ */
+
+app.get('/:key/measurements/:reportUUID', function (req, res, next) {
+    var result = {};
+    result.error = "GET /:key/measurements/:reportUUID - invalid" + req.params.reportUUID;
+    res.json(err);
+    
+    
+}
+
+GET /key/measurements/:reportUUID
 
 app.get('/mesures/:latMin/:lonMin/:latMax/:lonMax/:timeMin/:timeMax', function (req, res, next) {
     pg.connect(conStr, function(err, db, done) {
@@ -133,5 +145,6 @@ app.get('/', function (req, res, next) { // Deprecated !
 });
 
 app.listen(properties.port);
+
 console.log(new Date().toISOString() + " - *** OpenRadiation request API started ***");
 console.log(new Date().toISOString() + " - Listen successfully on port " + properties.port);
