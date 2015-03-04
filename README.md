@@ -10,24 +10,12 @@ For only a few tests, you're allowed to use the following key : BDE8EBC61CB089B8
 
 ## Structure of the data
 
-Description                                                             | Mandatory    | API Name 	         |  Type     | API request
----------------------------------------------------------------------------------------|---------------------|-----------|------------ 
-Unique sensor identifier                                                |              | ApparatusID         |  String   | 
-Sensor firmware version                                                 |              | ApparatusVersion    |  String   | 
-Sensor type : geiger / photodiode                                       |              | ApparatusSensorType |  String   | 
-Tube identification (only if ApparatusSensorType = geiger)              |              | ApparatusTubeType   |  String   | 
-Temperature (°C)                                                        |              | Temperature         |  Integer  | 	X
-*Value (µSv/h)*                                                         |      X       | Value               |  Integer  | 	
-Hits Number                                                             |              | HitsNumber          |  Integer  | 		
-Date of the beginning of the measurement (ISO GMT)                      |      X       | StartTime           | Timestamp |   		
-Date of the end of the measurement (ISO GMT)                            |              | EndTime             | Timestamp |   	 
-Latitude                                                                |      X       | Latitude            | Real      |   
-Longitude                                                               |      X       | Longitude           | Real      |   
-Position accuracy                                                       |              | Accuracy            | Real      |   
-Height above sea in meters                                              |              | Height              | Integer   |   
-Height accuracy                                                         |              | HeightAccuracy      | Real      |   
-Smartphone device UUID  (see http://plugins.cordova.io/#/package/org.apache.cordova.device)  |  | DeviceUUID | String    |   
-Smartphone platform                                                     |              | DevicePlatform      | String    |   
+<table>
+<tr><th>Description</th><th>Mandatory</th><th>API Name</th><th>Type</th><th>API request</th></tr>
+<tr><td>Unique sensor identifier</td><td> </td><td>ApparatusID</td><td>String</td><td> </td></tr>
+<tr><td>Sensor firmware version</td><td> </td><td>ApparatusVersion</td><td>String</td><td> </td></tr>
+<tr><td>Smartphone device UUID  (see http://plugins.cordova.io/#/package/org.apache.cordova.device)</td><td> </td><td>DeviceUUID</td><td>String</td><td> </td></tr>
+</table>
 
 
 
