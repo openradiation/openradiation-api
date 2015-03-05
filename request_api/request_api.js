@@ -54,15 +54,19 @@ app.put('/add', function(req, res, next) {
 
 /* see http://jsonapi.org/format/ */
 
-app.get('/:key/measurements/:reportUUID', function (req, res, next) {
+GET /measurements/reportUUID&filter[author]=12
+app.get('/measurements/:reportUUID', function (req, res, next) {
     var result = {};
+    result.error = 
     result.error = "GET /:key/measurements/:reportUUID - invalid" + req.params.reportUUID;
     res.json(err);
-    
+req.query.key 
     
 }
 
-GET /key/measurements/:reportUUID
+GET /measurements/reportUUID?APIKey=key&Response=Large
+
+
 
 app.get('/mesures/:latMin/:lonMin/:latMax/:lonMax/:timeMin/:timeMax', function (req, res, next) {
     pg.connect(conStr, function(err, db, done) {
