@@ -73,7 +73,9 @@ To get a multiple measurements having the UserID (ReportUUID should already exis
     GET /measurements?APIKey=`APIKey`&UserID=`userid`&Response=complete
     GET /measurements?APIKey=`APIKey`&UserID=`userid`&Response=complete&MaxNumber=`MaxNumber`&EnclosedObject=no
 
-To get a multiple measurements with combined complex criterias Value, Startime, Latitude, Longitude, Reliability, Qualification, Tag:
+To get a multiple measurements with combined complex criterias : 
+- with min/max bounds : Value, Startime, Latitude, Longitude, Reliability (sample : minValue/maxValue)
+- with an unique criteria : Qualification, Tag
 
     GET /measurements?APIKey=`APIKey`&minValue=`Value`&minStartime=`Startime`&maxReliability=`Reliability`&Tag=`Tag`&Response=complete&MaxNumber=`MaxNumber`&EnclosedObject=no
     GET /measurements?APIKey=`APIKey`&minStartime=`Startime`&maxStartime=`Startime`&Qualification=`Qualification`
@@ -148,7 +150,47 @@ or
     
 ### Restricted access to the API
 
-Todo ...
+*This restricted access is only available for openradiation.org website, with a secret key different from the API Key*
+
+To get the all the measurements in one specific day based on DateAndTimeOfCreation criteria (for this request there is no default MaxNumber limit :
+
+    GET /measurements?APIPrivateKey=`APIPrivateKey`&DateOfCreation=`Date`
+    GET /measurements?APIPrivateKey=`APIPrivateKey`&DateOfCreation=`Date`&EnclosedObject=no&MaxNumber=`MaxNumber`
+
+    Response will look like : 
+    
+    {
+        "data": [
+            {
+                "ReportUUID": "`ReportUUID`",
+                "Latitude": `Latitude`,
+                "Longitude": `Longitude`,
+                "Value": `Value`,
+                "StartTime": "`StartTime`",
+                "Qualification": "`Qualification`",
+                "Reliability": `Reliability`
+            }, 
+            {
+                "ReportUUID": "`ReportUUID`",
+                "Latitude": `Latitude`,
+                "Longitude": `Longitude`,
+                "Value": `Value`,
+                "StartTime": "`StartTime`",
+                "Qualification": "`Qualification`",
+                "Reliability": `Reliability`
+            },
+            ...
+        ]
+    }
+    
+    or 
+    
+    {
+        "error": {
+            "code": "`An application-specific error code, expressed as a string value`",
+            "title": "`A short, human-readable summary of the problem`"
+        }
+    }
 
 ## Anatomy of the submit API
 
@@ -189,4 +231,60 @@ or
     
 ### Restricted access to the API
 
-Todo ...
+*This restricted access is only available for openradiation.org website, with a secret key different from the API Key*
+
+To communicate the list of users  :
+
+    PUT /users
+    Content-Type: application/vnd.api+json
+    Accept: application/vnd.api+json
+    {
+        "APIPrivateKey": `APIPrivateKey`,
+        "data": [{
+            "UserID": "`UserID`",
+            "UserPwd": "`UserPwd`"
+            },{ 
+                ....
+            }
+        ]
+    }
+  
+Response will look like : 
+    
+    {}
+    
+or 
+    
+    {
+        "error": {
+            "code": "`An application-specific error code, expressed as a string value`",
+            "title": "`A short, human-readable summary of the problem`"
+        }
+    }    
+    
+To update the Qualification criteria for a unique measurement :
+
+    POST /measurements/`ReportUUID`
+    Content-Type: application/vnd.api+json
+    Accept: application/vnd.api+json
+    {
+        "APIPrivateKey": `APIPrivateKey`,
+        "data": {
+            "Qualification": "`Qualification`",
+            "QualificationVotesNumber": `QualificationVotesNumber`
+        }
+    }
+  
+Response will look like : 
+    
+    {}
+    
+or 
+    
+    {
+        "error": {
+            "code": "`An application-specific error code, expressed as a string value`",
+            "title": "`A short, human-readable summary of the problem`"
+        }
+    }    
+    
