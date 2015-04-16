@@ -42,9 +42,10 @@ For only a few tests, you're allowed to use the following key : BDE8EBC61CB089B8
 <tr><td>UserPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org MD5 password (mandatory if UserID is specified)</td></tr>
 <tr><td>MeasurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement Environment : countryside, city, ontheroad, inside</td></tr>
 <tr><td>DateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
-<tr><td>Qualification</td><td>String</td><td>*</td><td>No, determinated by the website</td><td>Qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
-<tr><td>QualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the website</td><td>Qualification Votes Number</td></tr>
-<tr><td>Reliability</td><td>Integer</td><td>*</td><td>No, but always determinated by the API</td><td>Estimated reliability that the measurement is a truth environmental measurement. Calculated when submitted to the API as following : +1 for each filled field, + min(30,HitsNumber) if HitsNumber not null, +10 if UserID not null, +20 if ManualReporting=false, +20 if MeasurementEnvironment=countryside / +10 if MeasurementEnvironment=city, +20 if MeasurementHeight=1, +100 if Value < 0.2 (but we should compare value with a local reference ...). Expecting > 200</td></tr>
+<tr><td>Qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>Qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
+<tr><td>QualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the API or the website</td><td>Qualification Votes Number</td></tr>
+<tr><td>Reliability</td><td>Integer</td><td></td><td>No, but always determinated by the API and never modified</td><td>Estimated reliability that the measurement is correct. Calculated when submitted to the API as following : +1 for each filled field, + min(30,HitsNumber) if HitsNumber not null, +10 if UserID not null, +20 if ManualReporting=false, +20 if MeasurementEnvironment=countryside / +10 if MeasurementEnvironment=city, +20 if MeasurementHeight=1. Expecting > 100 (if not Qualification is set to mustbeverified and QualificationVotesNumber is set to 0)</td></tr>
+<tr><td>Atypical</td><td>Boolean</td><td>*</td><td>No, but always determinated by the API and never modified</td><td>Atypical if value is not representative of an environnemental measure. No if value < 0.2 (but we should compare value to an estimated local reference ...), yes otherwise</td></tr>
 </table>
 
 ## Anatomy of the request API
@@ -67,17 +68,11 @@ To get the last measurements all over the world :
     GET /measurements?APIKey=`APIKey`
     sample : http://requestapi.openradiation.net/measurements?APIKey=BDE8EBC61CB089B8CC997DD7A0D0A434
 
-To get a multiple measurements having the UserID (ReportUUID should already exist in the database):
-
-    GET /measurements?APIKey=`APIKey`&UserID=`userid`
-    GET /measurements?APIKey=`APIKey`&UserID=`userid`&Response=complete
-    GET /measurements?APIKey=`APIKey`&UserID=`userid`&Response=complete&MaxNumber=`MaxNumber`&EnclosedObject=no
-
 To get a multiple measurements with combined complex criterias : 
-- with min/max bounds : Value, Startime, Latitude, Longitude, Reliability (sample : minValue/maxValue)
-- with an unique criteria : Qualification, Tag
+- with min/max bounds : Value, Startime, Latitude, Longitude (sample : minValue/maxValue)
+- with an unique criteria : UserID, Qualification, Tag, Atypical
 
-    GET /measurements?APIKey=`APIKey`&minValue=`Value`&minStartime=`Startime`&maxReliability=`Reliability`&Tag=`Tag`&Response=complete&MaxNumber=`MaxNumber`&EnclosedObject=no
+    GET /measurements?APIKey=`APIKey`&minValue=`Value`&UserID=`userid`&minStartime=`Startime`&Tag=`Tag`&Response=complete&MaxNumber=`MaxNumber`&EnclosedObject=no
     GET /measurements?APIKey=`APIKey`&minStartime=`Startime`&maxStartime=`Startime`&Qualification=`Qualification`
 
 Response will look like : 
@@ -92,7 +87,7 @@ Response will look like :
                 "Value": `Value`,
                 "StartTime": "`StartTime`",
                 "Qualification": "`Qualification`",
-                "Reliability": `Reliability`
+                "Atypical": `Atypical`
             }, 
             {
                 "ReportUUID": "`ReportUUID`",
@@ -101,7 +96,7 @@ Response will look like :
                 "Value": `Value`,
                 "StartTime": "`StartTime`",
                 "Qualification": "`Qualification`",
-                "Reliability": `Reliability`
+                "Atypical": `Atypical`
             },
             ...
         ]
@@ -135,7 +130,7 @@ Response will look like :
             "Value": `Value`,
             "StartTime": "`StartTime`",
             "Qualification": "`Qualification`",
-            "Reliability": `Reliability`  
+            "Atypical": `Atypical`  
         }
     }
     
@@ -152,7 +147,7 @@ or
 
 *This restricted access is only available for openradiation.org website, with a secret key different from the API Key*
 
-To get the all the measurements in one specific day based on DateAndTimeOfCreation criteria (for this request there is no default MaxNumber limit :
+To get the all the measurements in one specific day based on DateAndTimeOfCreation criteria (for this request there is no default MaxNumber limit) :
 
     GET /measurements?APIPrivateKey=`APIPrivateKey`&DateOfCreation=`Date`
     GET /measurements?APIPrivateKey=`APIPrivateKey`&DateOfCreation=`Date`&EnclosedObject=no&MaxNumber=`MaxNumber`
@@ -168,7 +163,7 @@ To get the all the measurements in one specific day based on DateAndTimeOfCreati
                 "Value": `Value`,
                 "StartTime": "`StartTime`",
                 "Qualification": "`Qualification`",
-                "Reliability": `Reliability`
+                "Atypical": `Atypical`
             }, 
             {
                 "ReportUUID": "`ReportUUID`",
@@ -177,7 +172,7 @@ To get the all the measurements in one specific day based on DateAndTimeOfCreati
                 "Value": `Value`,
                 "StartTime": "`StartTime`",
                 "Qualification": "`Qualification`",
-                "Reliability": `Reliability`
+                "Atypical": `Atypical`
             },
             ...
         ]
