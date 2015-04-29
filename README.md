@@ -1,232 +1,216 @@
 # OpenRadiation
 ## Abstract
-This project aims to develop a database to store environmental radioactivity measurements. It's shared in 3 parts : 
+This project aims to develop a database to store environmental radioactivity measurements. It's shared in 2 parts : 
 * backend : the postgresql backend database
-* request_api : a JSON Rest-like API developed in node.js to request the database
-* submit_api : a JSON Rest-like API developed in node.js to submit data to the database
+* api : a JSON Rest-like API developed in node.js to request the database
 
 First at all, to use the API you need a key. Please ask by sending an email to [dev@openradiation.net](mailto:dev@openradiation.net)
-For only a few tests, you're allowed to use the following key : BDE8EBC61CB089B8CC997DD7A0D0A434
+For only a few tests, you're allowed to use the following key : bde8ebc61cb089b8cc997dd7a0d0a434
+
+This project is self-sufficient, but it is designed to work with the openradiation.org website.
+There is restricted access for this website to give informations about users and qualifications.
+The API is designed to be installed in two parts : the submit api and the request api.
 
 ## Structure of the data
 
 <table>
 <tr><th>API Name</th><th>Type</th><th>Available for request API</th><th>Available for submit API</th><th>Description</th></tr>
-<tr><td>ApparatusID</td><td>String</td><td></td><td></td><td>Unique sensor identifier</td></tr>
-<tr><td>ApparatusVersion</td><td>String</td><td> </td><td> </td><td>Sensor firmware version</td></tr>
-<tr><td>ApparatusSensorType</td><td>String</td><td> </td><td> </td><td>Sensor type : geiger, photodiode</td></tr>
-<tr><td>ApparatusTubeType</td><td>String</td><td> </td><td> </td><td>Tube identification (only if ApparatusSensorType = geiger)</td></tr>
-<tr><td>Temperature</td><td>Integer</td><td></td><td></td><td>Temperature (°C) </td></tr>
-<tr><td>Value</td><td>Real</td><td>*</td><td>Mandatory</td><td>Value (µSv/h)</td></tr>
-<tr><td>HitsNumber</td><td>Integer</td><td></td><td></td><td>Hits Number</td></tr>
-<tr><td>StartTime</td><td>Timestamp</td><td>*</td><td>Mandatory</td><td>Date of the beginning of the measurement (ISO GMT)</td></tr>
-<tr><td>EndTime</td><td>Timestamp</td><td></td><td> </td><td>Date of the end of the measurement (ISO GMT)</td></tr>
-<tr><td>Latitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>Latitude</td></tr>
-<tr><td>Longitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>Longitude</td></tr>
-<tr><td>Accuracy</td><td>Real</td><td></td><td> </td><td>Position accuracy</td></tr>
-<tr><td>Height</td><td>Integer</td><td></td><td> </td><td>Height above sea in meters</td></tr>
-<tr><td>HeightAccuracy</td><td>Real</td><td></td><td> </td><td>Height accuracy</td></tr>
-<tr><td>DeviceUUID</td><td>String</td><td></td><td> </td><td>Smartphone device UUID  (see http://plugins.cordova.io/#/package/org.apache.cordova.device)</td></tr>
-<tr><td>DevicePlatform</td><td>String</td><td></td><td> </td><td>Smartphone device platform</td></tr>
-<tr><td>DeviceVersion</td><td>String</td><td></td><td> </td><td>Smartphone device OS version</td></tr>
-<tr><td>DeviceModel</td><td>String</td><td></td><td> </td><td>Smartphone device model</td></tr>
-<tr><td>ReportUUID</td><td>String</td><td>*</td><td>Mandatory</td><td>Unique measurement UUID (UUIDv4 format) client-side generated</td></tr>
-<tr><td>ManualReporting</td><td>Boolean</td><td></td><td></td><td>Manual Reporting : true, false (default:true). False if the data is not entered by a human being</td></tr>
-<tr><td>OrganisationReporting</td><td>String</td><td></td><td></td><td>Software version (sample:openradiation_v1)</td></tr>
-<tr><td>ReportContext</td><td>String</td><td>Never</td><td></td><td>Report context : emergency, routine, exercise, test (default:test). test:data are not registrated but you can test api use, emergency and exercise:not used,routine:you should use this one !</td></tr>
-<tr><td>Description</td><td>String</td><td></td><td></td><td>Free description</td></tr>
-<tr><td>MeasurementHeight</td><td>Integer</td><td></td><td></td><td>Measurement height above the ground (in meters)</td></tr>
-<tr><td>Tags</td><td>String Array</td><td></td><td></td><td>Free tags list [tag1 ; tag2]</td></tr>
-<tr><td>EnclosedObject</td><td>Binary</td><td></td><td></td><td>Photograph</td></tr>
-<tr><td>UserID</td><td>String</td><td></td><td></td><td>Openradiation.org user id</td></tr>
-<tr><td>UserPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org MD5 password (mandatory if UserID is specified)</td></tr>
-<tr><td>MeasurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement Environment : countryside, city, ontheroad, inside</td></tr>
-<tr><td>DateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
-<tr><td>Qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>Qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
-<tr><td>QualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the API or the website</td><td>Qualification Votes Number</td></tr>
-<tr><td>Reliability</td><td>Integer</td><td></td><td>No, but always determinated by the API and never modified</td><td>Estimated reliability that the measurement is correct. Calculated when submitted to the API as following : +1 for each filled field, + min(30,HitsNumber) if HitsNumber not null, +10 if UserID not null, +20 if ManualReporting=false, +20 if MeasurementEnvironment=countryside / +10 if MeasurementEnvironment=city, +20 if MeasurementHeight=1. Expecting > 100 (if not Qualification is set to mustbeverified and QualificationVotesNumber is set to 0)</td></tr>
-<tr><td>Atypical</td><td>Boolean</td><td>*</td><td>No, but always determinated by the API and never modified</td><td>Atypical if value is not representative of an environnemental measure. No if value < 0.2 (but we should compare value to an estimated local reference ...), yes otherwise</td></tr>
+<tr><td>apparatusID</td><td>String</td><td></td><td></td><td>Unique sensor identifier</td></tr>
+<tr><td>apparatusVersion</td><td>String</td><td> </td><td> </td><td>Sensor firmware version</td></tr>
+<tr><td>apparatusSensorType</td><td>String</td><td> </td><td> </td><td>Sensor type : geiger, photodiode</td></tr>
+<tr><td>apparatusTubeType</td><td>String</td><td> </td><td> </td><td>Tube identification (only if ApparatusSensorType = geiger)</td></tr>
+<tr><td>temperature</td><td>Integer</td><td></td><td></td><td>Temperature (°C) </td></tr>
+<tr><td>value</td><td>Real</td><td>*</td><td>Mandatory</td><td>value (µSv/h)</td></tr>
+<tr><td>hitsNumber</td><td>Integer</td><td></td><td></td><td>Hits Number</td></tr>
+<tr><td>startTime</td><td>Timestamp</td><td>*</td><td>Mandatory</td><td>Date of the beginning of the measurement (ISO GMT)</td></tr>
+<tr><td>endTime</td><td>Timestamp</td><td></td><td> </td><td>Date of the end of the measurement (ISO GMT)</td></tr>
+<tr><td>latitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>latitude</td></tr>
+<tr><td>longitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>longitude</td></tr>
+<tr><td>accuracy</td><td>Real</td><td></td><td> </td><td>Position accuracy</td></tr>
+<tr><td>height</td><td>Integer</td><td></td><td> </td><td>Height above sea in meters</td></tr>
+<tr><td>heightAccuracy</td><td>Real</td><td></td><td> </td><td>Height accuracy</td></tr>
+<tr><td>deviceUuid</td><td>String</td><td></td><td> </td><td>Smartphone device UUID  (see http://plugins.cordova.io/#/package/org.apache.cordova.device)</td></tr>
+<tr><td>devicePlatform</td><td>String</td><td></td><td> </td><td>Smartphone device platform</td></tr>
+<tr><td>deviceVersion</td><td>String</td><td></td><td> </td><td>Smartphone device OS version</td></tr>
+<tr><td>deviceModel</td><td>String</td><td></td><td> </td><td>Smartphone device model</td></tr>
+<tr><td>reportUuid</td><td>String</td><td>*</td><td>Mandatory</td><td>Unique measurement UUID (UUIDv4 format) client-side generated</td></tr>
+<tr><td>manualReporting</td><td>Boolean</td><td></td><td></td><td>Manual Reporting : true, false (default:true). False if the data is not entered by a human being</td></tr>
+<tr><td>organisationReporting</td><td>String</td><td></td><td></td><td>Software version (sample:openradiation_v1)</td></tr>
+<tr><td>reportContext</td><td>String</td><td>Never</td><td></td><td>Report context : emergency, routine, exercise, test (default:test). test:data are not registrated but you can test api use, emergency and exercise:not used,routine:you should use this one !</td></tr>
+<tr><td>description</td><td>String</td><td></td><td></td><td>Free description</td></tr>
+<tr><td>measurementHeight</td><td>Integer</td><td></td><td></td><td>Measurement height above the ground (in meters)</td></tr>
+<tr><td>tags</td><td>String Array</td><td></td><td></td><td>Free tags list [tag1 ; tag2]</td></tr>
+<tr><td>enclosedObject</td><td>Binary</td><td></td><td></td><td>Photograph</td></tr>
+<tr><td>userId</td><td>String</td><td></td><td></td><td>Openradiation.org user id</td></tr>
+<tr><td>userPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org MD5 password (mandatory if userId is specified)</td></tr>
+<tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement Environment : countryside, city, ontheroad, inside</td></tr>
+<tr><td>dateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
+<tr><td>qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
+<tr><td>qualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the API or the website</td><td>qualification Votes Number</td></tr>
+<tr><td>reliability</td><td>Integer</td><td></td><td>No, but always determinated by the API and never modified</td><td>Estimated reliability that the measurement is correct. Calculated when submitted to the API as following : +1 for each filled field, + min(30,HitsNumber) if HitsNumber not null, +10 if userId not null, +20 if ManualReporting=false, +20 if MeasurementEnvironment=countryside / +10 if MeasurementEnvironment=city, +20 if MeasurementHeight=1. Expecting > 100 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)</td></tr>
+<tr><td>atypical</td><td>Boolean</td><td>*</td><td>No, but always determinated by the API and never modified</td><td>atypical if value is not representative of an environnemental measure. No if value < 0.2 (but we should compare value to an estimated local reference ...), yes otherwise</td></tr>
 </table>
 
-## Anatomy of the request API
+## Anatomy of the OpenRadiation API
 
-The endpoint for request API is http://requestapi.openradiation.net/. 
+### Error codes & responses
 
-By default, all requests will be limited to the 1000 last measurements within the criterias (considering StartTime). 
-This max number is in the responseGroup and defined in the properties file.
+The OpenRadiation API attempts to return appropriate HTTP status codes for ever request
 
-General fields in the query strings : 
+<table>
+<tr><th>HTTP status code</th><th>Text</th><th>Description</th></tr>
+<tr><td>200</td><td>OK</td><td>API requested with success, the API will return a JSON object described as below</td>
+<tr><td>201</td><td>Created</td><td>API submitted with success and ressource created</td>
+<tr><td>400</td><td>Bad Request</td><td>The request is invalid. An error message is returned (described as below)</td>
+<tr><td>401</td><td>Unauthorized</td><td>apiKey is incorrect. An error message is returned (described as below)</td>
+<tr><td>403</td><td>Forbidden</td><td>The request is understood, but it has been refused. An error message is returned (described as below)</td>
+<tr><td>404</td><td>Not Found</td><td>The URI requested is invalid</td>
+<tr><td>500</td><td>Internal Server Error</td><td>Something is broken. You can send an mail to dev@openradiation.net so that we can investigate</td>
+</table>
 
-* Response=complete : render all fields and not only stared fields (see "Available for request API" column above), available for all requests.
-* EnclosedObject=no : the EnclosedObject will not be in the response group (due to length spare considerations), available for all requests.
-* MaxNumber=`MaxNumber` : limit the number of measurements in the response to MaxNumber instead of default, only available for bulk requests. This number cannot be upper than the default MaxNumber limit.
+Error message response will look like : 
 
-### Bulk requests
-
-To get the last measurements all over the world :
-    
-    GET /measurements?APIKey=`APIKey`
-    sample : http://requestapi.openradiation.net/measurements?APIKey=BDE8EBC61CB089B8CC997DD7A0D0A434
-
-To get a multiple measurements with combined complex criterias : 
-- with min/max bounds : Value, Startime, Latitude, Longitude (sample : minValue/maxValue)
-- with an unique criteria : UserID, Qualification, Tag, Atypical
-
-    GET /measurements?APIKey=`APIKey`&minValue=`Value`&UserID=`userid`&minStartime=`Startime`&Tag=`Tag`&Response=complete&MaxNumber=`MaxNumber`&EnclosedObject=no
-    GET /measurements?APIKey=`APIKey`&minStartime=`Startime`&maxStartime=`Startime`&Qualification=`Qualification`
-
-Response will look like : 
-    
-    {
-        "maxnumber":`MaxNumber`,
-        "data": [
-            {
-                "ReportUUID": "`ReportUUID`",
-                "Latitude": `Latitude`,
-                "Longitude": `Longitude`,
-                "Value": `Value`,
-                "StartTime": "`StartTime`",
-                "Qualification": "`Qualification`",
-                "Atypical": `Atypical`
-            }, 
-            {
-                "ReportUUID": "`ReportUUID`",
-                "Latitude": `Latitude`,
-                "Longitude": `Longitude`,
-                "Value": `Value`,
-                "StartTime": "`StartTime`",
-                "Qualification": "`Qualification`",
-                "Atypical": `Atypical`
-            },
-            ...
-        ]
-    }
-    
-    or 
-    
     {
         "error": {
             "code": "`An application-specific error code, expressed as a string value`",
-            "title": "`A short, human-readable summary of the problem`"
+            "message": "`A short, human-readable summary of the problem`"
         }
     }
-    
 
-### Simple request
+### Requesting the API
 
-To get a unique measurement having the ReportUUID (ReportUUID should already exist in the database): 
+The endpoint for request API is https://requestapi.openradiation.net/
+
+By default, all requests will be limited to the 1000 last measurements within the criterias (considering startTime). 
+This max number is in the response group and defined in the properties file.
+
+General fields in the query strings : 
+* response=complete : render all fields and not only stared fields (see "Available for request API" column above), available for all requests.
+* withEnclosedObject=no : the enclosedObject will not be in the response group (due to length spare considerations), available for all requests.
+* maxNumber=`maxNumber` : limit the number of measurements in the response to maxNumber instead of default, only available for bulk requests. This number cannot be upper than the default maxNumber limit.
+
+#### Simple request
+
+To get a unique measurement having the reportUuid (reportUuid should already exist in the database): 
     
-    GET /measurements/`ReportUUID`?APIKey=`APIKey`   
-    GET /measurements/`ReportUUID`?APIKey=`APIKey`&Response=complete
-    GET /measurements/`ReportUUID`?APIKey=`APIKey`&Response=complete&EnclosedObject=no
+    GET /measurements/`reportUuid`?apiKey=`apiKey`   
+    GET /measurements/`reportUuid`?apiKey=`apiKey`&response=complete
+    GET /measurements/`reportUuid`?apiKey=`apiKey`&response=complete&withEnclosedObject=no
 
 Response will look like : 
     
     {
         "data": {
-            "ReportUUID": "`ReportUUID`",
-            "Latitude": `Latitude`,
-            "Longitude": `Longitude`,
-            "Value": `Value`,
-            "StartTime": "`StartTime`",
-            "Qualification": "`Qualification`",
-            "Atypical": `Atypical`  
+            "reportUuid": "`reportUuid`",
+            "latitude": `latitude`,
+            "longitude": `longitude`,
+            "value": `value`,
+            "startTime": "`startTime`",
+            "qualification": "`qualification`",
+            "atypical": `atypical`  
         }
     }
     
-or 
+#### Bulk requests
+
+To get the last measurements all over the world :
+    
+    GET /measurements?apiKey=`apiKey`
+    sample : http://requestapi.openradiation.net/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434
+
+To get a multiple measurements with combined complex criterias : 
+- with min/max bounds : value, Startime, latitude, longitude (sample : minValue/maxValue)
+- with an unique criteria : userId, qualification, Tag, atypical
+
+    GET /measurements?apiKey=`apiKey`&minValue=`value`&userId=`userId`&minStartime=`Startime`&Tag=`Tag`&response=complete&maxNumber=`maxNumber`&withEnclosedObject=no
+    GET /measurements?apiKey=`apiKey`&minStartime=`Startime`&maxStartime=`Startime`&qualification=`qualification`
+
+Response will look like : 
     
     {
-        "error": {
-            "code": "`An application-specific error code, expressed as a string value`",
-            "title": "`A short, human-readable summary of the problem`"
-        }
+        "maxNumber":`maxNumber`,
+        "data": [
+            {
+                "reportUuid": "`reportUuid`",
+                "latitude": `latitude`,
+                "longitude": `longitude`,
+                "value": `value`,
+                "startTime": "`startTime`",
+                "qualification": "`qualification`",
+                "atypical": `atypical`
+            }, 
+            {
+                "reportUuid": "`reportUuid`",
+                "latitude": `latitude`,
+                "longitude": `longitude`,
+                "value": `value`,
+                "startTime": "`startTime`",
+                "qualification": "`qualification`",
+                "atypical": `atypical`
+            },
+            ...
+        ]
     }
-    
-### Restricted access to the API
+        
+#### Restricted access to the API
 
-*This restricted access is only available for openradiation.org website, with a secret key different from the API Key*
+*This restricted access is only available for openradiation.org website with a special secret key*
 
-To get the all the measurements in one specific day based on DateAndTimeOfCreation criteria (for this request there is no default MaxNumber limit) :
+To get the all the measurements in one specific day based on DateAndTimeOfCreation criteria (for this request there is no default maxNumber limit) :
 
-    GET /measurements?APIPrivateKey=`APIPrivateKey`&DateOfCreation=`Date`
-    GET /measurements?APIPrivateKey=`APIPrivateKey`&DateOfCreation=`Date`&EnclosedObject=no&MaxNumber=`MaxNumber`
+    GET /measurements?apiKey=`apiKey`&dateOfCreation=`date`
+    GET /measurements?apiKey=`apiKey`&dateOfCreation=`date`&withEnclosedObject=no&maxNumber=`maxNumber`
 
     Response will look like : 
     
     {
         "data": [
             {
-                "ReportUUID": "`ReportUUID`",
-                "Latitude": `Latitude`,
-                "Longitude": `Longitude`,
-                "Value": `Value`,
-                "StartTime": "`StartTime`",
-                "Qualification": "`Qualification`",
-                "Atypical": `Atypical`
+                "reportUuid": "`reportUuid`",
+                "latitude": `latitude`,
+                "longitude": `longitude`,
+                "value": `value`,
+                "startTime": "`startTime`",
+                "qualification": "`qualification`",
+                "atypical": `atypical`
             }, 
             {
-                "ReportUUID": "`ReportUUID`",
-                "Latitude": `Latitude`,
-                "Longitude": `Longitude`,
-                "Value": `Value`,
-                "StartTime": "`StartTime`",
-                "Qualification": "`Qualification`",
-                "Atypical": `Atypical`
+                "reportUuid": "`reportUuid`",
+                "latitude": `latitude`,
+                "longitude": `longitude`,
+                "value": `value`,
+                "startTime": "`startTime`",
+                "qualification": "`qualification`",
+                "atypical": `atypical`
             },
             ...
         ]
     }
     
-    or 
-    
-    {
-        "error": {
-            "code": "`An application-specific error code, expressed as a string value`",
-            "title": "`A short, human-readable summary of the problem`"
-        }
-    }
+### Submitting data to the API
 
-## Anatomy of the submit API
+The endpoint for submit API is https://submitapi.openradiation.net/. 
 
-The endpoint for request API is https://submitapi.openradiation.net/. 
-
-By default, all requests will be limited to the 1000 last measurements within the criterias (considering StartTime). 
-This max number is in the responseGroup and defined in the properties file.
-
-### To submit a measurement
+#### To submit a measurement
 
     POST /measurements 
     Content-Type: application/vnd.api+json
     Accept: application/vnd.api+json
     {
-        "APIKey": `APIKey`,
+        "apiKey": "`apiKey`",
         "data": {
-            "ReportUUID": "`ReportUUID`",
-            "Latitude": `Latitude`,
-            "Longitude": `Longitude`,
-            "Value": `Value`,
-            "StartTime": "`StartTime`"
+            "reportUuid": "`reportUuid`",
+            "latitude": `latitude`,
+            "longitude": `longitude`,
+            "value": `value`,
+            "startTime": "`startTime`"
             ....
         }
     }
-  
-Response will look like : 
     
-    {}
-    
-or 
-    
-    {
-        "error": {
-            "code": "`An application-specific error code, expressed as a string value`",
-            "title": "`A short, human-readable summary of the problem`"
-        }
-    }
-    
-### Restricted access to the API
+#### Restricted access to the API
 
-*This restricted access is only available for openradiation.org website, with a secret key different from the API Key*
+*This restricted access is only available for openradiation.org website with a special secret key*
 
 To communicate the list of users  :
 
@@ -234,52 +218,27 @@ To communicate the list of users  :
     Content-Type: application/vnd.api+json
     Accept: application/vnd.api+json
     {
-        "APIPrivateKey": `APIPrivateKey`,
+        "apiKey": "`apiKey`",
         "data": [{
-            "UserID": "`UserID`",
-            "UserPwd": "`UserPwd`"
+            "userId": "`userId`",
+            "userPwd": "`userPwd`"
             },{ 
                 ....
             }
         ]
     }
-  
-Response will look like : 
-    
-    {}
-    
-or 
-    
-    {
-        "error": {
-            "code": "`An application-specific error code, expressed as a string value`",
-            "title": "`A short, human-readable summary of the problem`"
-        }
-    }    
-    
-To update the Qualification criteria for a unique measurement :
+     
+To update the qualification criteria for a unique measurement :
 
-    POST /measurements/`ReportUUID`
+    POST /measurements/`reportUuid`
     Content-Type: application/vnd.api+json
     Accept: application/vnd.api+json
     {
-        "APIPrivateKey": `APIPrivateKey`,
+        "apiKey": "`apiKey`",
         "data": {
-            "Qualification": "`Qualification`",
-            "QualificationVotesNumber": `QualificationVotesNumber`
+            "qualification": "`qualification`",
+            "qualificationVotesNumber": `qualificationVotesNumber`
         }
     }
-  
-Response will look like : 
-    
-    {}
-    
-or 
-    
-    {
-        "error": {
-            "code": "`An application-specific error code, expressed as a string value`",
-            "title": "`A short, human-readable summary of the problem`"
-        }
-    }    
+      
     

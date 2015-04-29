@@ -1,0 +1,12 @@
+{
+    "name": "submit_api",
+    "version": "0.1.0",
+    "dependencies": {
+        "async": "~0.9",
+        "body-parser": "~1.12",
+        "multer": "~0.1",
+        "ejs": "~2.3",
+        "pg": "~4.3",
+        "express": "~4.12"
+    }
+}
