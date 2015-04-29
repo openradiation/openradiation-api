@@ -120,9 +120,10 @@ To get the last measurements all over the world :
 
 To get a multiple measurements with combined complex criterias : 
 - with min/max bounds : value, Startime, latitude, longitude (sample : minValue/maxValue)
-- with an unique criteria : userId, qualification, Tag, atypical
+- with an unique criteria : userId, qualification, tag, atypical
 
-    GET /measurements?apiKey=`apiKey`&minValue=`value`&userId=`userId`&minStartime=`Startime`&Tag=`Tag`&response=complete&maxNumber=`maxNumber`&withEnclosedObject=no
+
+    GET /measurements?apiKey=`apiKey`&minValue=`value`&userId=`userId`&minStartime=`Startime`&tag=`tag`&response=complete&maxNumber=`maxNumber`&withEnclosedObject=no
     GET /measurements?apiKey=`apiKey`&minStartime=`Startime`&maxStartime=`Startime`&qualification=`qualification`
 
 Response will look like : 
