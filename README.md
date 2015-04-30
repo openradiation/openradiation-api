@@ -114,15 +114,19 @@ Response will look like :
 #### Bulk requests
 
 To get a multiple measurements with combined complex criterias : 
-- with min/max bounds : value, startTime, latitude, longitude (sample : minValue/maxValue)
-- with an unique criteria : userId, qualification, tag, atypical
+
+* with min/max bounds : value, startTime, latitude, longitude (sample : minValue/maxValue)
+* with an unique criteria : userId, qualification, tag, atypical
+
 All these criterias can be combined :
 
     GET /measurements?apiKey=`apiKey`
     GET /measurements?apiKey=`apiKey`&minValue=`value`&userId=`userId`&minstartTime=`startTime`&tag=`tag`&response=complete&maxNumber=`maxNumber`&withEnclosedObject=no
     GET /measurements?apiKey=`apiKey`&minStartTime=`startTime`&maxStartTime=`startTime`&qualification=`qualification`
     
-Sample to get the last measurements all over the world : http://requestapi.openradiation.net/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434
+Sample : to get the last measurements all over the world
+
+    http://requestapi.openradiation.net/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434
     
 Response will look like : 
     

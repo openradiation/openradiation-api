@@ -1,2 +1,11 @@
 request_api/node_modules/*
 request_api/properties.js
+api/node_modules/*
+openradiation
+openradiation.7z
+api/install.bat
+api/node_modules
+api/public/bootstrap-3.3.4-dist.zip
+api/public/test.js
+api/views/test.ejs
+
