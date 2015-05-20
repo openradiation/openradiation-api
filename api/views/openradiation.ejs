@@ -11,36 +11,36 @@
 
     <title>openradiation.org</title-->
 
-    <link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
-    <link rel="stylesheet" href="../../../../../../css/openradiation_embedded.css">
-     
+    <!--<link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />-->
+    <link rel="stylesheet" href="leaflet.css">
+    <link rel="stylesheet" href="openradiation_embedded.css">   
   </head>
 
   <body>  
-    <div id="openradiation_map"></div>  
-        
+
+    <div id="openradiation_map">
+        <div id="openradiation_map_title"><span>Les citoyens mesurent la radioactivité</span></div>
+        <div id="openradiation_map_filters"><input type="text" placeholder="# Your tag"></input></div>
+    </div> 
+     
     <!-- JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script> 
-    <script src="../../../../../../js/openradiation.js"></script>
+    <!--<script src="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>-->
+    <script src="leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>    
+    <script src="openradiation.js"></script>
     <script type="text/javascript">
         var openradiation_map;
         var openradiation_items; 
         var openradiation_listMarkers;  
         
-        <!-- init variables with EJS -->
-        var latMin = <%= latMin %>;
-        var lonMin = <%= lonMin %>;
-        var latMax = <%= latMax %>;
-        var lonMax = <%= lonMax %>;
-        var timeMin = <%= timeMin %>;
-        var timeMax = <%= timeMax %>;
+       openradiation_init(true);
+       openradiation_getItems();
      
-        openradiation_initWithBounds(latMin, lonMin, latMax, lonMax);
-        openradiation_getItemsWithBounds(latMin, lonMin, latMax, lonMax, timeMin, timeMax);
-        
+        //openradiation_initWithBounds(latMin, lonMin, latMax, lonMax);
+        //openradiation_getItemsWithBounds(latMin, lonMin, latMax, lonMax, timeMin, timeMax);
+       
         //openradiation_initWithBounds(44.3, 2.15, 50.80, 2.55);
         //openradiation_getItemsWithBounds(44.3, 2.15, 50.80, 2.55, 1400601455949, 1400839617167);
         //openradiation_refreshData();

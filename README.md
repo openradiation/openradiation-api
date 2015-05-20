@@ -39,8 +39,8 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>reportContext</td><td>String</td><td>Never</td><td></td><td>Report context : emergency, routine, exercise, test (default:test). test:data are not registrated but you can test api use, emergency and exercise:not used,routine:you should use this one !</td></tr>
 <tr><td>description</td><td>String</td><td></td><td></td><td>Free description</td></tr>
 <tr><td>measurementHeight</td><td>Integer</td><td></td><td></td><td>Measurement height above the ground (in meters)</td></tr>
-<tr><td>tags</td><td>String Array</td><td></td><td></td><td>Free tags list [tag1 ; tag2]</td></tr>
-<tr><td>enclosedObject</td><td>Binary</td><td></td><td></td><td>Photograph</td></tr>
+<tr><td>tags</td><td>Json array of string</td><td></td><td></td><td>Free tags list [tag1 ; tag2]</td></tr>
+<tr><td>enclosedObject</td><td>String</td><td></td><td></td><td>Base64 encoded Image. The size shoudn't exceeded 1mb and format should be closed from 600*800 pixels (width * height). The value should be a data URI scheme 'data:image/<subtype>;base64,<data>'</td></tr>
 <tr><td>userId</td><td>String</td><td></td><td></td><td>Openradiation.org user id</td></tr>
 <tr><td>userPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org MD5 password (mandatory if userId is specified)</td></tr>
 <tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement Environment : countryside, city, ontheroad, inside</td></tr>
@@ -65,6 +65,7 @@ The OpenRadiation API attempts to return appropriate HTTP status codes for ever 
 <tr><td>401</td><td>Unauthorized</td><td>apiKey is incorrect. An error message is returned (described as below)</td>
 <tr><td>403</td><td>Forbidden</td><td>The request is understood, but it has been refused. An error message is returned (described as below)</td>
 <tr><td>404</td><td>Not Found</td><td>The URI requested is invalid</td>
+<tr><td>413</td><td>Request Entity Too Large</td><td>The request entity is too large</td>
 <tr><td>500</td><td>Internal Server Error</td><td>Something is broken. You can send an mail to dev@openradiation.net so that we can investigate</td>
 </table>
 

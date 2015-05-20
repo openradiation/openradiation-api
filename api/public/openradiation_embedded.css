@@ -1,0 +1,4 @@
+#openradiation_map { height: 500px; }
+#openradiation_map_title { position:absolute; height:15px; padding-top:5px; padding-bottom:5px; padding-left:50px; padding-right:20px; z-index:1; opacity:0.8; background-color:white; color:blue;}
+#openradiation_map_filters { position:absolute; left:0px;  right:0px; height:50px; bottom:0px; z-index:1 ; opacity:0.8; background-color:white; color:blue;}
+

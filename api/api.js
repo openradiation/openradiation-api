@@ -12,9 +12,9 @@ var async = require('async');
 
 var conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
 var app = express();
-app.use(bodyParser.json({strict: true}));
+app.use(bodyParser.json({strict: true, limit: '2mb'})); // enclosedObject shouldn't exceeded 1mb, but total space is higher with the base64 encoding
 app.use(bodyParser.urlencoded({ extended: true })); 
-app.use(multer({ dest: __dirname + '/uploads/'})); //pour multipart/form-data
+app.use(multer({ dest: __dirname + '/uploads/'})); //multipart/form-data
 
 app.use(express.static(__dirname + '/public'));
 app.set('views', __dirname + '/views');
@@ -37,12 +37,13 @@ app.get('/openradiation', function (req, res, next) {
     res.render('openradiation.ejs');
 });
 
-
 //3. load apiKeys every ten minutes
 var apiKeys = [];
 
+var apiKeyTestCounter = 0;
+var apiKeyTestDate;
+
 getAPI = function() {
-    console.log("getAPI");
     pg.connect(conStr, function(err, client, done) {
         if (err) {
             done();
@@ -62,13 +63,12 @@ getAPI = function() {
 };
 
 getAPI();
-setInterval(getAPI, 600*1000); //every ten minutes
+setInterval(getAPI, properties.getAPIInterval); //every ten minutes
 
 //4. load userId, userPwd every ten minutes
 var users = [];
 
 getUsers = function() {
-    console.log("getUsers");
     pg.connect(conStr, function(err, client, done) {
         if (err) {
             done();
@@ -81,7 +81,6 @@ getUsers = function() {
                     console.error("Error while running query " + sql, err);
                 else {
                     users = result.rows;
-                    console.dir(users);
                 }
             });
         }
@@ -89,7 +88,7 @@ getUsers = function() {
 };
 
 getUsers();
-setInterval(getUsers, 600*1000); //every ten minutes
+setInterval(getUsers, properties.getUsersInterval); //every ten minutes
     
 //5. common functions
 verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
@@ -103,8 +102,27 @@ verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
                 res.status(401).json({ error: {code:"103", message:"apiKey is not valid for this restricted access"}});
                 return false;
             }
-            //todo : test if apiKey = test is called more often
+            
             apiKey_.role = apiKeys[i].role;
+            
+            //test if apiKey = test is called more often
+            if (apiKeys[i].role == "test") {
+                var maintenant = new Date();
+                if (apiKeyTestDate == null || (apiKeyTestDate.getTime() + properties.APIKeyTestInterval) < maintenant.getTime())
+                {
+                    apiKeyTestCounter = 1;
+                    apiKeyTestDate = maintenant;
+                }
+                else
+                {
+                    apiKeyTestCounter+= 1;
+                    if (apiKeyTestCounter > properties.APIKeyTestMaxCounter)
+                    {
+                        res.status(401).json({ error: {code:"103", message:"Too much calls for the test apiKey ... Retry later"}});
+                        return false;
+                    }
+                }
+            }
             
             pg.connect(conStr, function(err, client, done) {
                 if (err)
@@ -212,6 +230,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                     return false;
                 }
                 break;
+            case "dateOfCreation":
             case "minStartTime":
             case "maxStartTime":
             case "startTime":
@@ -291,10 +310,10 @@ verifyData = function(res, json, isMandatory, dataName) {
                     return false;
                 }
                 break;                 
-            case "reportUuid": //110e8400-e29b-11d4-a716-446655440000
-                if (typeof(json[dataName]) != "string" || json[dataName].length != 36 || json[dataName].toLowerCase() != json[dataName]) //todo more control
+            case "reportUuid": //sample 110e8400-e29b-11d4-a716-446655440000
+                if (typeof(json[dataName]) != "string" || json[dataName].length != 36 || /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/.test( json[dataName]) == false) 
                 {
-                    res.status(400).json({ error: {code:"102", message:dataName + " should be have Uuid format like '110e8400-e29b-11d4-a716-446655440000'" }});
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a UUID format" }});
                     return false;
                 }                
                 break;
@@ -334,6 +353,13 @@ verifyData = function(res, json, isMandatory, dataName) {
                     return false;
                 }
                 break;
+            case "tag":
+                if (typeof(json[dataName]) != "string" || json[dataName].length > 100)
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
+                    return false;
+                }
+                break;       
             case "tags":
                 if (! (json[dataName] instanceof Array) || json[dataName].length > 10)
                 {
@@ -358,9 +384,17 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break;
             case "enclosedObject":
-                if (typeof(json[dataName]) != "object")
+                console.log(json[dataName].substr(0,50));
+                if (typeof(json[dataName]) != "string" || /data:image\/.*;base64,.*/.test( json[dataName].substr(0,50)) == false) //data:image/<subtype>;base64,
                 {
-                    res.status(400).json({ error: {code:"102", message:dataName + " is not an object"}}); //todo 
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a data URI scheme with base64 encoded image"}});  
+                    return false;
+                }
+                break;
+            case "userId_request": 
+                if (typeof(json["userId"]) != "string" || json["userId"].length > 100)
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
                     return false;
                 }
                 break;
@@ -442,6 +476,13 @@ verifyData = function(res, json, isMandatory, dataName) {
                     return false;                
                 }
                 break;
+            case "atypical":
+                if (typeof(json[dataName]) != "string" || (json[dataName] != "true" && json[dataName] != "false"))
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a boolean"}});
+                    return false;
+                }
+                break; 
             default:
             {
                 console.error("Internal error in verifyValue");
@@ -776,9 +817,9 @@ app.post('/measurements/:reportUuid', function (req, res, next) {
                     var sql = 'UPDATE MEASUREMENTS SET "qualification"=$1,"qualificationVotesNumber"=$2 WHERE "reportUuid"=$3';
                     var values = [ req.body.data.qualification, req.body.data.qualificationVotesNumber, req.params.reportUuid];
                     client.query(sql, values, function(err, result) {
+                        done();
                         if (err)
                         {
-                            done();
                             console.error("Error while running query " + sql, err);
                             res.status(500).end();
                         }
@@ -833,9 +874,9 @@ app.get('/measurements/:reportUuid', function (req, res, next) {
                    
                     var values = [ req.params.reportUuid];
                     client.query(sql, values, function(err, result) {
+                        done();
                         if (err)
                         {
-                            done();
                             console.error("Error while running query " + sql + values, err);
                             res.status(500).end();
                         }
@@ -886,7 +927,8 @@ app.get('/measurements', function (req, res, next) {
     }
     else {
         var apiKey = { "role":""};
-        if (verifyApiKey(res, req.query.apiKey, false, apiKey, false)
+        if ( (typeof(req.query.dateOfCreation) == "undefined"
+         && verifyApiKey(res, req.query.apiKey, false, apiKey, false)
          && verifyData(res, req.query, false, "minValue")
          && verifyData(res, req.query, false, "maxValue")
          && verifyData(res, req.query, false, "minStartTime")
@@ -895,13 +937,31 @@ app.get('/measurements', function (req, res, next) {
          && verifyData(res, req.query, false, "maxLatitude")
          && verifyData(res, req.query, false, "minLongitude")
          && verifyData(res, req.query, false, "maxLongitude")
-         && verifyData(res, req.query, false, "userId")
+         && verifyData(res, req.query, false, "userId_request")
          && verifyData(res, req.query, false, "qualification")
          && verifyData(res, req.query, false, "tag")
          && verifyData(res, req.query, false, "atypical")    
          && verifyData(res, req.query, false, "response")
          && verifyData(res, req.query, false, "withEnclosedObject")
-         && verifyData(res, req.query, false, "maxNumber"))
+         && verifyData(res, req.query, false, "maxNumber")) 
+       ||   (typeof(req.query.dateOfCreation) != "undefined"
+         && verifyApiKey(res, req.query.apiKey, true, apiKey, false)
+         && verifyData(res, req.query, false, "dateOfCreation") 
+         && verifyData(res, req.query, false, "minValue")
+         && verifyData(res, req.query, false, "maxValue")
+         && verifyData(res, req.query, false, "minStartTime")
+         && verifyData(res, req.query, false, "maxStartTime")
+         && verifyData(res, req.query, false, "minLatitude")
+         && verifyData(res, req.query, false, "maxLatitude")
+         && verifyData(res, req.query, false, "minLongitude")
+         && verifyData(res, req.query, false, "maxLongitude")
+         && verifyData(res, req.query, false, "userId_request")
+         && verifyData(res, req.query, false, "qualification")
+         && verifyData(res, req.query, false, "tag")
+         && verifyData(res, req.query, false, "atypical")
+         && verifyData(res, req.query, false, "response")
+         && verifyData(res, req.query, false, "withEnclosedObject")
+         && verifyData(res, req.query, false, "maxNumber") ) )
         {
             pg.connect(conStr, function(err, client, done) {
                 if (err) {
@@ -915,53 +975,179 @@ app.get('/measurements', function (req, res, next) {
                         limit = parseInt(req.query.maxNumber);
                     
                     if (typeof(req.query.response) == "undefined")
-                        sql = 'SELECT "value", "startTime", "latitude", "longitude", "reportUuid", "qualification", "atypical" FROM MEASUREMENTS'; // WHERE "reportUuid"=$1';
+                        sql = 'SELECT "value", "startTime", "latitude", "longitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
                     else if (typeof(req.query.withEnclosedObject) == "undefined")
                         sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
                               "endTime","latitude","longitude","accuracy","height","heightAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
-                              MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag","enclosedObject", "userId", \
-                              "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
-                              FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; // WHERE MEASUREMENTS."reportUuid" = $1';
+                              MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
+                              "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                     else
                         sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
                               "endTime","latitude","longitude","accuracy","height","heightAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
-                              MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag", "userId", \
-                              "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
-                              FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; // WHERE MEASUREMENTS."reportUuid" = $1'; //todo limit 1000 pas corecte
-                    
+                              MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","userId", \
+                              "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                              
+                    if (typeof(req.query.tag) == "undefined")
+                        sql += ' FROM MEASUREMENTS';
+                    else
+                        sql += ' FROM MEASUREMENTS,TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
+                        
                     var where = '';
+                    var values = [ ]; 
                     if (typeof(req.query.minLatitude) != "undefined")
-                        where += ' AND MEASUREMENTS."latitude" >= ' + req.query.minLatitude;
+                    {
+                        values.push(req.query.minLatitude);
+                        where += ' AND MEASUREMENTS."latitude" >= $' + values.length;
+                    }
                     if (typeof(req.query.maxLatitude) != "undefined")
-                        where += ' AND MEASUREMENTS."latitude" <= ' + req.query.maxLatitude;
+                    {
+                        values.push(req.query.maxLatitude);
+                        where += ' AND MEASUREMENTS."latitude" <= $' + values.length;
+                    }
                     if (typeof(req.query.minLongitude) != "undefined")
-                        where += ' AND MEASUREMENTS."longitude" >= ' + req.query.minLongitude;
+                    {
+                        values.push(req.query.minLongitude);
+                        where += ' AND MEASUREMENTS."longitude" >= $' + values.length;
+                    }
                     if (typeof(req.query.maxLongitude) != "undefined")
-                        where += ' AND MEASUREMENTS."longitude" <= ' + req.query.maxLongitude;
-                    if (where != '')
+                    {
+                        values.push(req.query.maxLongitude);
+                        where += ' AND MEASUREMENTS."longitude" <= $' + values.length;
+                    }
+                    if (typeof(req.query.minStartTime) != "undefined")
+                    {
+                        values.push(req.query.minStartTime);
+                        where += ' AND MEASUREMENTS."startTime" >= $' + values.length;
+                    }
+                    if (typeof(req.query.maxStartTime) != "undefined")
+                    {
+                        values.push(req.query.maxStartTime);
+                        where += ' AND MEASUREMENTS."startTime" <= $' + values.length;
+                    }
+                    if (typeof(req.query.minValue) != "undefined")
+                    {
+                        values.push(req.query.minValue);
+                        where += ' AND MEASUREMENTS."value" >= $' + values.length;
+                    }
+                    if (typeof(req.query.maxValue) != "undefined")
+                    {
+                        values.push(req.query.maxValue);
+                        where += ' AND MEASUREMENTS."value" <= $' + values.length;
+                    }
+                    if (typeof(req.query.userId) != "undefined")
+                    {
+                        values.push(req.query.userId);
+                        where += ' AND MEASUREMENTS."userId" = $' + values.length;
+                    }
+                    if (typeof(req.query.qualification) != "undefined")
+                    {
+                        values.push(req.query.qualification);
+                        where += ' AND MEASUREMENTS."qualification" = $' + values.length;
+                    }
+                    if (typeof(req.query.tag) != "undefined")
+                    {
+                        values.push(req.query.tag);
+                        where += ' AND TAGS."tag" = $' + values.length;
+                    }
+                    if (typeof(req.query.atypical) != "undefined")
+                    {
+                        values.push(req.query.atypical);
+                        where += ' AND MEASUREMENTS."atypical" = $' + values.length;
+                    }
+                    if (typeof(req.query.dateOfCreation) != "undefined")
+                    {
+                        var date = new Date(req.query.dateOfCreation);
+                        var date1 = new Date(date.toDateString());
+                        var date2 = new Date(date1);
+                        date2.setDate(date1.getDate() + 1);
+                        values.push(date1);
+                        where += ' AND MEASUREMENTS."dateAndTimeOfCreation" >= $' + values.length;
+                        values.push(date2);
+                        where += ' AND MEASUREMENTS."dateAndTimeOfCreation" < $' + values.length;
+                    }
+                    
+                    if (typeof(req.query.tag) == "undefined")
                         where = where.replace('AND', 'WHERE');
                     
                     sql += where;
-                    sql += ' ORDER BY "startTime" desc, "reportUuid"'; 
-                    sql += ' LIMIT ' + limit;
-                    console.log(sql);
-                    var values = [ ];
-                    console.log("yo");
+                    sql += ' ORDER BY "startTime" desc, MEASUREMENTS."reportUuid"';
+                    
+                    if (typeof(req.query.dateOfCreation) == "undefined")
+                        sql += ' LIMIT ' + limit;
+                    else
+                        limit = -1;
+                        
                     client.query(sql, values, function(err, result) {
-                        console.log("yo1");
                         if (err)
                         {
-                            console.log("yo2");
                             done();
                             console.error("Error while running query " + sql + values, err);
                             res.status(500).end();
                         }
                         else
                         {
-                            console.log("yo3");
                             var data = [];
-                            var lastReportUuid = "";
                             
+                            //methode 1 : with where
+                            if (typeof(req.query.response) == "undefined" || result.rows.length == 0) // no need to retrieve tags
+                            {
+                                done();
+                                for (r = 0; r < result.rows.length; r++)
+                                {
+                                    data.push(result.rows[r]);
+                                    
+                                    for (i in data[data.length - 1])
+                                    {
+                                        if (data[data.length - 1][i] == null)
+                                            delete data[data.length - 1][i];
+                                    }
+                                }
+                                res.json( { maxNumber:limit, data:data} );
+                            } else { // here we do an other request to retrieve tags
+                                var sql = 'select "reportUuid", "tag" FROM TAGS WHERE "reportUuid" IN (';
+                                for (r = 0; r < result.rows.length; r++)
+                                {
+                                    if (r == 0)
+                                        sql += "'" + result.rows[r].reportUuid + "'";
+                                    else
+                                        sql += ",'" + result.rows[r].reportUuid + "'";
+                                }
+                                sql += ') ORDER BY "reportUuid"';
+                                client.query(sql, [], function(err, result2) {
+                                    done();
+                                    if (err)
+                                    {
+                                        console.error("Error while running query " + sql, err);
+                                        res.status(500).end();
+                                    } else {
+                                        //var t = 0;
+                                        var tmp_tags = {};
+                                        for (t = 0; t < result2.rows.length; t++)
+                                        {
+                                            if (typeof (tmp_tags[result2.rows[t].reportUuid]) == "undefined")
+                                                tmp_tags[result2.rows[t].reportUuid] = [];
+                                            tmp_tags[result2.rows[t].reportUuid].push(result2.rows[t].tag);
+                                        }
+                                        
+                                        for (r = 0; r < result.rows.length; r++)
+                                        {
+                                            data.push(result.rows[r]);
+                                            if (typeof (tmp_tags[result.rows[r].reportUuid]) != "undefined")
+                                               data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
+                                                
+                                            for (i in data[data.length - 1])
+                                            {
+                                                if (data[data.length - 1][i] == null)
+                                                    delete data[data.length - 1][i];
+                                            }
+                                        }
+                                        res.json( { maxNumber:limit, data:data} );
+                                    }
+                                });
+                            }
+                            /*
+                            // methode 2 : with left join
+                            var lastReportUuid = "";
                             for (r = 0; r < result.rows.length; r++)
                             {
                                 if (result.rows[r].reportUuid != lastReportUuid)
@@ -980,7 +1166,10 @@ app.get('/measurements', function (req, res, next) {
                                 }
                                 lastReportUuid = result.rows[r].reportUuid;
                             }
-                            res.json( { maxNumber:limit, data:data} );
+                            res.json( { maxNumber:limit, data:data} );*/
+                            
+                            
+                            
                         }
                     });
                 }
@@ -989,78 +1178,11 @@ app.get('/measurements', function (req, res, next) {
     }
 });
 
-/*
-
-app.put('/add', function(req, res, next) {
-    var b = req.body;
-    if (typeof b.nb_coups != 'undefined' && typeof b.latitude != 'undefined' && typeof b.longitude != 'undefined' && typeof b.altitude != 'undefined' && typeof b.timestamp != 'undefined') {
-        var sql = "INSERT INTO mesures_test (nb_coups, latitude, longitude, altitude, timestamp) VALUES ($1, $2, $3, $4, $5)";
-        pg.connect(conStr, function(err, db, done) {
-            if (err) {
-                return console.error("Could not connect to PostgreSQL", err);
-            }
-            db.query(sql, [b.nb_coups, b.latitude, b.longitude, b.altitude, b.timestamp], function(err, result) {
-                done();
-                if (err) {
-                    return console.error("Error while running insert query", err);
-                }
-                console.log("Measure inserted : "+JSON.stringify(b));
-            });
-        });
-    } else {
-        console.log("Invalid JSON");
-    }
-    res.send("ok");
-});*/
-
-/* see http://jsonapi.org/format/ */
-
-
-
-/*
-
-app.get('/mesures/:latMin/:lonMin/:latMax/:lonMax/:timeMin/:timeMax', function (req, res, next) {
-    pg.connect(conStr, function(err, db, done) {
-        if (err) {
-           return console.error("Could not connect to PostgreSQL", err);
-        }
-        db.query("SELECT * FROM mesures_test WHERE latitude >= $1 AND latitude <= $2 AND longitude >= $3 AND longitude <= $4 AND timestamp >= $5 AND timestamp <= $6 LIMIT 1000",
-            [req.params.latMin, req.params.latMax, req.params.lonMin, req.params.lonMax, req.params.timeMin, req.params.timeMax],
-            function(err, result) {
-               done();
-               if (err) {
-                   return console.error("Error while running select query", err);
-               }
-               res.json(result.rows);
-            }
-        );
-    });
-});
-
-
-
-//sample : https://open_geiger-c9-chsimon.c9.io/openradiation_embedded/48.6/2.30/49.0/2.40/1400601455949/1400839617167
-app.get('/openradiation_embedded/:latMin/:lonMin/:latMax/:lonMax/:timeMin/:timeMax', function (req, res, next) {
-    res.render('openradiation_embedded.ejs', {latMin: req.params.latMin, lonMin: req.params.lonMin, latMax: req.params.latMax, lonMax: req.params.lonMax, timeMin: req.params.timeMin, timeMax: req.params.timeMax}); 
-});
-
-app.get('/', function (req, res, next) { // Deprecated !
-    pg.connect(conStr, function(err, db, done) {
-        if (err) {
-           return console.error("Could not connect to PostgreSQL", err);
-        }
-        db.query("SELECT * FROM mesures_test", function(err, result) {
-           done(); // Release db back to the pool
-           if (err) {
-               return console.error("Error while running select query", err);
-           }
-           res.json(result.rows);
-        });
-    });
-});*/
-
-app.use(function(req, res, next){
-    res.status(404).end();
+app.use(function(err, req, res, next){
+    if (err)
+        res.status(err.status).end();
+    else
+        res.status(404).end();
 });
 
 app.listen(properties.port);
