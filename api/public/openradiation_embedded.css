@@ -1,4 +1,106 @@
-#openradiation_map { height: 500px; }
-#openradiation_map_title { position:absolute; height:15px; padding-top:5px; padding-bottom:5px; padding-left:50px; padding-right:20px; z-index:1; opacity:0.8; background-color:white; color:blue;}
-#openradiation_map_filters { position:absolute; left:0px;  right:0px; height:50px; bottom:0px; z-index:1 ; opacity:0.8; background-color:white; color:blue;}
 
+/* #openradiation_map_title { position:absolute; height:15px; padding-top:5px; padding-bottom:5px; padding-left:50px; padding-right:20px; z-index:1; opacity:0.8; background-color:white;} */
+/* #openradiation_map_filters { position:absolute; left:0px;  right:0px; height:50px; bottom:0px; z-index:1 ; opacity:0.8; background-color:white; color:blue;} */
+/* #openradiation_map_filters { position:absolute; left:0px;  right:0px; height:50px; top:755px; z-index:1 ; opacity:0.8; background-color:white; color:blue;} */
+/* #openradiation_map_filters { left:0px;  right:0px; padding-top:-50px; height:50px; z-index:1 ; opacity:0.8; background-color:white; color:blue;} */
+
+/* full screen */
+#openradiation_map { height: 100%; width: 100%;}
+body {
+    padding: 0;
+    margin: 0;
+    
+}
+html, body {
+    height: 100%;
+    width: 100%;
+}
+
+#timeslider { width: 200px; }
+
+/*#openradiation_map_filters div  { float:left; margin:10px;} */
+
+
+/*background-color:#A9CCEB;*/
+
+.input { background-color:rgba(169, 204, 235, 0.8); border-radius: 8px; margin-bottom:5px; border-width:0px; padding:2px; width:140px; color:white; font-weight:bold;}
+
+strong, span { color:#2446AB; }
+
+.openradiation_img {width:40px;}
+
+.openradiation_filters div {
+    float:left;
+    margin:5px;
+    width:270px;
+}
+
+
+
+select { border:none; outline:none; color:#2446AB; font-weight:bold; width:240px; margin-bottom:5px; appearance:none;
+-moz-appearance:none; /* Firefox */
+-webkit-appearance:none; /* Safari and Chrome */ }
+
+
+
+/* overload leaflet CSS to change margin fr these controls */
+.leaflet-bottom { right:0px; } /* all the width and not just in the corner */
+.leaflet-bottom .openradiation_filters {
+    margin: 0px;
+    padding: 10px;
+    left:0px;
+    right:0px;
+    width:100%; 
+    min-height:80px;
+    background-color: rgba(240, 240, 240, 0.8);
+}
+
+@media only screen and (max-width:800px) {
+    .leaflet-bottom .openradiation_filters {
+        display:none;
+    }
+}
+
+.leaflet-top .openradiation_title {
+    margin-top:0px;
+    margin-left:0px;
+    opacity:0.8; 
+    padding:7px 30px 7px 30px; 
+    background-color:white;
+}
+
+
+#slider-range  {border-style:none; margin-top:10px; border-radius: 0px; background: white url(images/time_slider.png) ; width:186px; height:10px;}
+ 
+#slider_minvalue { display:block; float:left; color:blue; font-weight:bold;}
+#slider_text { position:absolute; display:block; margin-left:53px; color:black; font-weight:bold; font-size:90%; }
+#slider_maxvalue { position:absolute; display:block; margin-left:160px; color:red; font-weight:bold;}
+
+.ui-slider-range { background:transparent; }
+
+.ui-slider .ui-slider-handle {
+    width:18px; 
+    height:30px; 
+    background:yellow;
+    background:url(images/marker-icon_bleu.png) no-repeat; overflow: hidden; 
+    position:absolute;
+    top: -20px;
+    border-style:none; 
+}
+
+
+/* placeholder sould be white despite opacity */
+::-webkit-input-placeholder { /* WebKit browsers */
+    color:   white;
+}
+:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+   color:    white;
+   opacity:  1;
+}
+::-moz-placeholder { /* Mozilla Firefox 19+ */
+   color:    white;
+   opacity:  1;
+}
+:-ms-input-placeholder { /* Internet Explorer 10+ */
+   color:    white;
+}

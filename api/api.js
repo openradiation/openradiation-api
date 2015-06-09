@@ -29,7 +29,6 @@ app.all('*', function(req, res, next) {
 
 //2. render test page
 app.get('/test', function (req, res, next) {
-    console.log("GET /test");
     res.render('test.ejs');
 });
 
@@ -154,13 +153,16 @@ verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
 
 verifyData = function(res, json, isMandatory, dataName) {
        
-    if (isMandatory && (typeof(json[dataName]) == "undefined" || json[dataName] == ""))
+    if (json[dataName] != null && json[dataName] == "")
+        json[dataName] = null;
+    
+    if (isMandatory && json[dataName] == null)
     {
         res.status(400).json({ error: {code:"101", message:dataName + " is mandatory but undefined"}});
         return false;
     }
-    
-    if (typeof(json[dataName]) != "undefined" && json[dataName] != "")
+
+    if (json[dataName] != null)
     {
         switch (dataName) {
             case "apparatusId":
@@ -268,14 +270,14 @@ verifyData = function(res, json, isMandatory, dataName) {
                     return false;
                 }
                 break;   
-            case "height":
+            case "altitude":
                 if (typeof(json[dataName]) != "number" || parseFloat(json[dataName]) != parseInt(json[dataName]))
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not an integer"}});
                     return false;
                 }
                 break; 
-            case "heightAccuracy":
+            case "altitudeAccuracy":
                 if (typeof(json[dataName]) != "number")
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a number"}});
@@ -384,7 +386,6 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break;
             case "enclosedObject":
-                console.log(json[dataName].substr(0,50));
                 if (typeof(json[dataName]) != "string" || /data:image\/.*;base64,.*/.test( json[dataName].substr(0,50)) == false) //data:image/<subtype>;base64,
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a data URI scheme with base64 encoded image"}});  
@@ -404,7 +405,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
                     return false;
                 }
-                if (typeof(json["userPwd"]) == "undefined")
+                if (json["userPwd"] == null)
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " can be defined only if userPwd is defined"}});
                     return false;
@@ -416,7 +417,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
                     return false;
                 }
-                if (typeof(json["userId"]) == "undefined")
+                if (json["userId"] == null)
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " can be defined only if userId is defined"}});
                     return false;
@@ -497,10 +498,7 @@ verifyData = function(res, json, isMandatory, dataName) {
 //6. Post measurements
 app.post('/measurements', function (req, res, next) {
    
-    console.log("POST /measurements");
-    console.dir(req.body);
-   
-    if (typeof(req.body) == "undefined" || typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
+    if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
     {
         res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
     }
@@ -520,8 +518,8 @@ app.post('/measurements', function (req, res, next) {
          && verifyData(res, req.body.data, true, "latitude") 
          && verifyData(res, req.body.data, true, "longitude")
          && verifyData(res, req.body.data, false, "accuracy")
-         && verifyData(res, req.body.data, false, "height")
-         && verifyData(res, req.body.data, false, "heightAccuracy")
+         && verifyData(res, req.body.data, false, "altitude")
+         && verifyData(res, req.body.data, false, "altitudeAccuracy")
          && verifyData(res, req.body.data, false, "deviceUuid")
          && verifyData(res, req.body.data, false, "devicePlatform")
          && verifyData(res, req.body.data, false, "deviceVersion")
@@ -538,7 +536,7 @@ app.post('/measurements', function (req, res, next) {
          && verifyData(res, req.body.data, false, "userPwd")
          && verifyData(res, req.body.data, false, "measurementEnvironment"))
         {
-            if (apiKey.role != "test" && typeof(req.body.data.reportContext) != "undefined" && req.body.data.reportContext == "routine")
+            if (apiKey.role != "test" && req.body.data.reportContext != null && req.body.data.reportContext == "routine")
             {
                 pg.connect(conStr, function(err, client, done) {
                     if (err) {
@@ -547,74 +545,74 @@ app.post('/measurements', function (req, res, next) {
                         res.status(500).end();
                     } else {
                         var sql = 'INSERT INTO MEASUREMENTS ("apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime","endTime", \
-                                   "latitude","longitude","accuracy","height","heightAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel","reportUuid","manualReporting", \
+                                   "latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel","reportUuid","manualReporting", \
                                    "organisationReporting","reportContext","description","measurementHeight","enclosedObject","userId","measurementEnvironment","dateAndTimeOfCreation", \
                                    "qualification","qualificationVotesNumber","reliability","atypical") VALUES \
                                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)';
                         
-                        var manualReporting = typeof(req.body.data.manualReporting) == "undefined" ? true : req.body.data.manualReporting;
+                        var manualReporting = req.body.data.manualReporting == null ? true : req.body.data.manualReporting;
                         var reliability = 0;
                         //+1 for each filled field
-                        if (typeof(req.body.data.apparatusId) != "undefined") 
+                        if (req.body.data.apparatusId != null) 
                             reliability += 1;
-                        if (typeof(req.body.data.apparatusVersion) != "undefined")
+                        if (req.body.data.apparatusVersion != null)
                             reliability +=1;
-                        if (typeof(req.body.data.apparatusSensorType) != "undefined")
+                        if (req.body.data.apparatusSensorType != null)
                             reliability +=1;
-                        if (typeof(req.body.data.apparatusTubeType) != "undefined")
+                        if (req.body.data.apparatusTubeType != null)
                             reliability +=1;
-                        if (typeof(req.body.data.temperature) != "undefined")
+                        if (req.body.data.temperature != null)
                             reliability +=1;
-                        if (typeof(req.body.data.value) != "undefined")
+                        if (req.body.data.value != null)
                             reliability +=1;
-                        if (typeof(req.body.data.hitsNumber) != "undefined")
+                        if (req.body.data.hitsNumber != null)
                             reliability +=1; 
-                        if (typeof(req.body.data.startTime) != "undefined")
+                        if (req.body.data.startTime != null)
                             reliability +=1;
-                        if (typeof(req.body.data.endTime) != "undefined")
+                        if (req.body.data.endTime != null)
                             reliability +=1;     
-                        if (typeof(req.body.data.latitude) != "undefined")
+                        if (req.body.data.latitude != null)
                             reliability +=1; 
-                        if (typeof(req.body.data.longitude) != "undefined")
+                        if (req.body.data.longitude != null)
                             reliability +=1;
-                        if (typeof(req.body.data.accuracy) != "undefined")
+                        if (req.body.data.accuracy != null)
                             reliability +=1;
-                        if (typeof(req.body.data.height) != "undefined")
+                        if (req.body.data.altitude != null)
                             reliability +=1;
-                        if (typeof(req.body.data.heightAccuracy) != "undefined")
+                        if (req.body.data.altitudeAccuracy != null)
                             reliability +=1;
-                        if (typeof(req.body.data.deviceUuid) != "undefined")
+                        if (req.body.data.deviceUuid != null)
                             reliability +=1;
-                        if (typeof(req.body.data.devicePlatform) != "undefined")
+                        if (req.body.data.devicePlatform != null)
                             reliability +=1;
-                        if (typeof(req.body.data.deviceVersion) != "undefined")
+                        if (req.body.data.deviceVersion != null)
                             reliability +=1;
-                        if (typeof(req.body.data.deviceModel) != "undefined")
+                        if (req.body.data.deviceModel != null)
                             reliability +=1;
-                        if (typeof(req.body.data.reportUuid) != "undefined")
+                        if (req.body.data.reportUuid != null)
                             reliability +=1;
-                        if (typeof(req.body.data.manualReporting) != "undefined")
+                        if (req.body.data.manualReporting != null)
                             reliability +=1;
-                        if (typeof(req.body.data.organisationReporting) != "undefined")
+                        if (req.body.data.organisationReporting != null)
                             reliability +=1;
-                        if (typeof(req.body.data.reportContext) != "undefined")
+                        if (req.body.data.reportContext != null)
                             reliability +=1;
-                        if (typeof(req.body.data.description) != "undefined")
+                        if (req.body.data.description != null)
                             reliability +=1;
-                        if (typeof(req.body.data.measurementHeight) != "undefined")
+                        if (req.body.data.measurementHeight != null)
                             reliability +=1;
-                        if (typeof(req.body.data.tags) != "undefined")
+                        if (req.body.data.tags != null)
                             reliability +=1;  
-                        if (typeof(req.body.data.enclosedObject) != "undefined")
+                        if (req.body.data.enclosedObject != null)
                             reliability +=1;
-                        if (typeof(req.body.data.userId) != "undefined")
+                        if (req.body.data.userId != null)
                             reliability +=1;
-                        if (typeof(req.body.data.userPwd) != "undefined")
+                        if (req.body.data.userPwd != null)
                             reliability +=1;
-                        if (typeof(req.body.data.measurementEnvironment) != "undefined")
+                        if (req.body.data.measurementEnvironment != null)
                             reliability +=1;
                         // + min(30,hitsNumber) if hitsNumber not null, 
-                        if (typeof(req.body.data.hitsNumber) != "undefined")
+                        if (req.body.data.hitsNumber != null)
                         {
                             if (req.body.data.hitsNumber > 30)
                                 reliability += 30;
@@ -622,13 +620,13 @@ app.post('/measurements', function (req, res, next) {
                                 reliability += req.body.data.hitsNumber;
                         }
                         //+10 if userId not null
-                        if (typeof(req.body.data.userId) != "undefined")
+                        if (req.body.data.userId != null)
                             reliability += 10;
                         //+20 if manualReporting=false
                         if (manualReporting == false)
                             reliability += 20;
                         //+20 if measurementEnvironment=countryside / +10 if measurementEnvironment=city 
-                        if (typeof(req.body.data.measurementEnvironment) != "undefined")
+                        if (req.body.data.measurementEnvironment != null)
                         {
                             if (req.body.data.measurementEnvironment == "countryside")
                                 reliability += 20;
@@ -636,7 +634,7 @@ app.post('/measurements', function (req, res, next) {
                                 reliability += 10;
                         }
                         //+20 if measurementHeight=1 
-                        if (typeof(req.body.data.measurementHeight) != "undefined" && req.body.data.measurementHeight == 1)
+                        if (req.body.data.measurementHeight != null && req.body.data.measurementHeight == 1)
                             reliability += 20;
 
                         // Expecting > 100 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)
@@ -655,7 +653,7 @@ app.post('/measurements', function (req, res, next) {
                         var values = [ req.body.data.apparatusId, req.body.data.apparatusVersion, req.body.data.apparatusSensorType, req.body.data.apparatusTubeType, 
                                        req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, req.body.data.startTime, 
                                        req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, req.body.data.accuracy,
-                                       req.body.data.height, req.body.data.heightAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
+                                       req.body.data.altitude, req.body.data.altitudeAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
                                        req.body.data.deviceVersion, req.body.data.deviceModel, req.body.data.reportUuid, manualReporting,
                                        req.body.data.organisationReporting, req.body.data.reportContext, req.body.data.description, req.body.data.measurementHeight,
                                        req.body.data.enclosedObject, req.body.data.userId, req.body.data.measurementEnvironment, dateAndTimeOfCreation,
@@ -675,23 +673,30 @@ app.post('/measurements', function (req, res, next) {
                             }
                             else
                             {
-                                async.forEach(req.body.data.tags, function(tag, callback) { //The second argument (callback) is the "task callback" for a specific task
-                                        var sql = 'INSERT INTO TAGS ("reportUuid", "tag") VALUES ($1, $2)';
-                                        var values = [ req.body.data.reportUuid, tag.toLowerCase() ];
-                                        client.query(sql, values, function(err, result) {
-                                            if (err) {
-                                                console.error("Error while running query " + sql + values, err);
-                                                callback(err);
-                                            } else
-                                                callback();
-                                        });
-                                }, function(err) {
-                                    done();
-                                    if (err) 
-                                        res.status(500).end();
-                                    else
-                                        res.status(201).end();
-                                });
+                                if (req.body.data.tags != null)
+                                {
+                                    async.forEach(req.body.data.tags, function(tag, callback) { //The second argument (callback) is the "task callback" for a specific task
+                                            var sql = 'INSERT INTO TAGS ("reportUuid", "tag") VALUES ($1, $2)';
+                                            var values = [ req.body.data.reportUuid, tag.toLowerCase() ];
+                                            client.query(sql, values, function(err, result) {
+                                                if (err) {
+                                                    console.error("Error while running query " + sql + values, err);
+                                                    callback(err);
+                                                } else
+                                                    callback();
+                                            });
+                                    }, function(err) {
+                                        done();
+                                        if (err) 
+                                            res.status(500).end();
+                                        else
+                                            res.status(201).end();
+                                    });
+                                }
+                                else {
+                                   done(); 
+                                   res.status(201).end();
+                                }
                             }
                         });
                     }
@@ -708,10 +713,7 @@ app.post('/measurements', function (req, res, next) {
 //7. PUT users
 app.put('/users', function (req, res, next) {
    
-    console.log("PUT /users");
-    console.dir(req.body);
-   
-    if (typeof(req.body) == "undefined" || typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
+    if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
     {
         res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
     }
@@ -797,7 +799,7 @@ app.put('/users', function (req, res, next) {
 //8. POST /measurements/:reportUuid
 app.post('/measurements/:reportUuid', function (req, res, next) {
    
-    if (typeof(req.body) == "undefined" || typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
+    if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
     {
         res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
     }
@@ -857,17 +859,17 @@ app.get('/measurements/:reportUuid', function (req, res, next) {
                     res.status(500).end();
                 } else {
                     var sql;
-                    if (typeof(req.query.response) == "undefined")
+                    if (req.query.response == null)
                         sql = 'SELECT "value", "startTime", "latitude", "longitude", "reportUuid", "qualification", "atypical" FROM MEASUREMENTS WHERE "reportUuid"=$1';
-                    else if (typeof(req.query.withEnclosedObject) == "undefined")
+                    else if (req.query.withEnclosedObject == null)
                         sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
-                              "endTime","latitude","longitude","accuracy","height","heightAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                              "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                               MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag","enclosedObject", "userId", \
                               "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
                               FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" WHERE MEASUREMENTS."reportUuid" = $1';
                     else
                         sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
-                              "endTime","latitude","longitude","accuracy","height","heightAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                              "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                               MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag", "userId", \
                               "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
                               FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" WHERE MEASUREMENTS."reportUuid" = $1';
@@ -877,7 +879,7 @@ app.get('/measurements/:reportUuid', function (req, res, next) {
                         done();
                         if (err)
                         {
-                            console.error("Error while running query " + sql + values, err);
+                            console.console.error("Error while running query " + sql + values, err);
                             res.status(500).end();
                         }
                         else
@@ -888,12 +890,12 @@ app.get('/measurements/:reportUuid', function (req, res, next) {
                             {
                                 var data = result.rows[0];
 
-                                if (typeof(req.query.response) != "undefined")
+                                if (req.query.response != null)
                                 {
                                     data.tags = [];
                                     for (i = 0; i < result.rows.length; i++)
                                     {
-                                        if (typeof(result.rows[i].tag) != "undefined")
+                                        if (result.rows[i].tag != null)
                                             data.tags.push(result.rows[i].tag)
                                     }
                                     if (data.tags.length == 0)
@@ -927,7 +929,7 @@ app.get('/measurements', function (req, res, next) {
     }
     else {
         var apiKey = { "role":""};
-        if ( (typeof(req.query.dateOfCreation) == "undefined"
+        if ( (req.query.dateOfCreation == null
          && verifyApiKey(res, req.query.apiKey, false, apiKey, false)
          && verifyData(res, req.query, false, "minValue")
          && verifyData(res, req.query, false, "maxValue")
@@ -944,7 +946,7 @@ app.get('/measurements', function (req, res, next) {
          && verifyData(res, req.query, false, "response")
          && verifyData(res, req.query, false, "withEnclosedObject")
          && verifyData(res, req.query, false, "maxNumber")) 
-       ||   (typeof(req.query.dateOfCreation) != "undefined"
+       ||   (req.query.dateOfCreation != null
          && verifyApiKey(res, req.query.apiKey, true, apiKey, false)
          && verifyData(res, req.query, false, "dateOfCreation") 
          && verifyData(res, req.query, false, "minValue")
@@ -971,90 +973,90 @@ app.get('/measurements', function (req, res, next) {
                 } else {
                     var sql;
                     var limit = properties.maxNumber;
-                    if (typeof(req.query.maxNumber) != "undefined" && parseInt(req.query.maxNumber) < properties.maxNumber)
+                    if (req.query.maxNumber != null && parseInt(req.query.maxNumber) < properties.maxNumber)
                         limit = parseInt(req.query.maxNumber);
                     
-                    if (typeof(req.query.response) == "undefined")
+                    if (req.query.response == null)
                         sql = 'SELECT "value", "startTime", "latitude", "longitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
-                    else if (typeof(req.query.withEnclosedObject) == "undefined")
+                    else if (req.query.withEnclosedObject == null)
                         sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
-                              "endTime","latitude","longitude","accuracy","height","heightAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                              "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                               MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
                               "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                     else
                         sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
-                              "endTime","latitude","longitude","accuracy","height","heightAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                              "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                               MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","userId", \
                               "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                               
-                    if (typeof(req.query.tag) == "undefined")
+                    if (req.query.tag == null)
                         sql += ' FROM MEASUREMENTS';
                     else
                         sql += ' FROM MEASUREMENTS,TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
                         
                     var where = '';
                     var values = [ ]; 
-                    if (typeof(req.query.minLatitude) != "undefined")
+                    if (req.query.minLatitude != null)
                     {
                         values.push(req.query.minLatitude);
                         where += ' AND MEASUREMENTS."latitude" >= $' + values.length;
                     }
-                    if (typeof(req.query.maxLatitude) != "undefined")
+                    if (req.query.maxLatitude != null)
                     {
                         values.push(req.query.maxLatitude);
                         where += ' AND MEASUREMENTS."latitude" <= $' + values.length;
                     }
-                    if (typeof(req.query.minLongitude) != "undefined")
+                    if (req.query.minLongitude != null)
                     {
                         values.push(req.query.minLongitude);
                         where += ' AND MEASUREMENTS."longitude" >= $' + values.length;
                     }
-                    if (typeof(req.query.maxLongitude) != "undefined")
+                    if (req.query.maxLongitude != null)
                     {
                         values.push(req.query.maxLongitude);
                         where += ' AND MEASUREMENTS."longitude" <= $' + values.length;
                     }
-                    if (typeof(req.query.minStartTime) != "undefined")
+                    if (req.query.minStartTime != null)
                     {
                         values.push(req.query.minStartTime);
                         where += ' AND MEASUREMENTS."startTime" >= $' + values.length;
                     }
-                    if (typeof(req.query.maxStartTime) != "undefined")
+                    if (req.query.maxStartTime != null)
                     {
                         values.push(req.query.maxStartTime);
                         where += ' AND MEASUREMENTS."startTime" <= $' + values.length;
                     }
-                    if (typeof(req.query.minValue) != "undefined")
+                    if (req.query.minValue != null)
                     {
                         values.push(req.query.minValue);
                         where += ' AND MEASUREMENTS."value" >= $' + values.length;
                     }
-                    if (typeof(req.query.maxValue) != "undefined")
+                    if (req.query.maxValue != null)
                     {
                         values.push(req.query.maxValue);
                         where += ' AND MEASUREMENTS."value" <= $' + values.length;
                     }
-                    if (typeof(req.query.userId) != "undefined")
+                    if (req.query.userId != null)
                     {
                         values.push(req.query.userId);
                         where += ' AND MEASUREMENTS."userId" = $' + values.length;
                     }
-                    if (typeof(req.query.qualification) != "undefined")
+                    if (req.query.qualification != null)
                     {
                         values.push(req.query.qualification);
                         where += ' AND MEASUREMENTS."qualification" = $' + values.length;
                     }
-                    if (typeof(req.query.tag) != "undefined")
+                    if (req.query.tag != null)
                     {
                         values.push(req.query.tag);
                         where += ' AND TAGS."tag" = $' + values.length;
                     }
-                    if (typeof(req.query.atypical) != "undefined")
+                    if (req.query.atypical != null)
                     {
                         values.push(req.query.atypical);
                         where += ' AND MEASUREMENTS."atypical" = $' + values.length;
                     }
-                    if (typeof(req.query.dateOfCreation) != "undefined")
+                    if (req.query.dateOfCreation != null)
                     {
                         var date = new Date(req.query.dateOfCreation);
                         var date1 = new Date(date.toDateString());
@@ -1066,13 +1068,13 @@ app.get('/measurements', function (req, res, next) {
                         where += ' AND MEASUREMENTS."dateAndTimeOfCreation" < $' + values.length;
                     }
                     
-                    if (typeof(req.query.tag) == "undefined")
+                    if (req.query.tag == null)
                         where = where.replace('AND', 'WHERE');
                     
                     sql += where;
                     sql += ' ORDER BY "startTime" desc, MEASUREMENTS."reportUuid"';
                     
-                    if (typeof(req.query.dateOfCreation) == "undefined")
+                    if (req.query.dateOfCreation == null)
                         sql += ' LIMIT ' + limit;
                     else
                         limit = -1;
@@ -1089,7 +1091,7 @@ app.get('/measurements', function (req, res, next) {
                             var data = [];
                             
                             //methode 1 : with where
-                            if (typeof(req.query.response) == "undefined" || result.rows.length == 0) // no need to retrieve tags
+                            if (req.query.response == null || result.rows.length == 0) // no need to retrieve tags
                             {
                                 done();
                                 for (r = 0; r < result.rows.length; r++)
@@ -1124,7 +1126,7 @@ app.get('/measurements', function (req, res, next) {
                                         var tmp_tags = {};
                                         for (t = 0; t < result2.rows.length; t++)
                                         {
-                                            if (typeof (tmp_tags[result2.rows[t].reportUuid]) == "undefined")
+                                            if (tmp_tags[result2.rows[t].reportUuid] == null)
                                                 tmp_tags[result2.rows[t].reportUuid] = [];
                                             tmp_tags[result2.rows[t].reportUuid].push(result2.rows[t].tag);
                                         }
@@ -1132,7 +1134,7 @@ app.get('/measurements', function (req, res, next) {
                                         for (r = 0; r < result.rows.length; r++)
                                         {
                                             data.push(result.rows[r]);
-                                            if (typeof (tmp_tags[result.rows[r].reportUuid]) != "undefined")
+                                            if (tmp_tags[result.rows[r].reportUuid] != null)
                                                data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
                                                 
                                             for (i in data[data.length - 1])
@@ -1185,7 +1187,22 @@ app.use(function(err, req, res, next){
         res.status(404).end();
 });
 
-app.listen(properties.port);
+app.listen(properties.port, function() {
+  if (properties.nodeUserUid != null && properties.nodeUserGid != null && process.getuid && process.setuid && process.getgid && process.setgid) {
+    process.setgid(properties.nodeUserGid);
+    process.setuid(properties.nodeUserUid);
+    console.log(new Date().toISOString() + " -    nodeUserUid          : [" + properties.nodeUserUid + "]");
+    console.log(new Date().toISOString() + " -    nodeUserGid          : [" + properties.nodeUserGid + "]"); 
+  }
+});
 
-console.log(new Date().toISOString() + " - *** OpenRadiation API started ***");
-console.log(new Date().toISOString() + " - Listen successfully on port " + properties.port);
+console.log(new Date().toISOString() + " - *** OpenRadiation API started with parameters : ");
+console.log(new Date().toISOString() + " -    port                 : [" + properties.port + "]");
+console.log(new Date().toISOString() + " -    login                : [" + properties.login + "]");
+console.log(new Date().toISOString() + " -    password             : [************]");
+console.log(new Date().toISOString() + " -    host                 : [" + properties.host + "]");
+console.log(new Date().toISOString() + " -    maxNumber            : [" + properties.maxNumber + "]");
+console.log(new Date().toISOString() + " -    getAPIInterval       : [" + properties.getAPIInterval + "]");
+console.log(new Date().toISOString() + " -    getUsersInterval     : [" + properties.getUsersInterval + "]");
+console.log(new Date().toISOString() + " -    APIKeyTestInterval   : [" + properties.APIKeyTestInterval + "]");
+console.log(new Date().toISOString() + " -    APIKeyTestMaxCounter : [" + properties.APIKeyTestMaxCounter + "]"); 

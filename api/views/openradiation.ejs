@@ -8,27 +8,57 @@
     <meta name="author" content="">
     <!--<link rel="shortcut icon" href="../../assets/ico/favicon.ico">-->
    <!-- <link rel="shortcut icon" href="images/openrad.png">
-
-    <title>openradiation.org</title-->
+-->
+    <title>openradiation.org</title>
 
     <!--<link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />-->
     <link rel="stylesheet" href="leaflet.css">
-    <link rel="stylesheet" href="openradiation_embedded.css">   
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" href="openradiation_embedded.css">  
   </head>
 
   <body>  
 
     <div id="openradiation_map">
-        <div id="openradiation_map_title"><span>Les citoyens mesurent la radioactivité</span></div>
-        <div id="openradiation_map_filters"><input type="text" placeholder="# Your tag"></input></div>
-    </div> 
-     
+        <!--<div id="openradiation_map_title"><strong>Les citoyens mesurent la radioactivité</strong></div>-->
+    </div>    
+<!--<div><p><label for="amount">Valeur en uSv/h:</label><input type="text" id="amount" readonly style="border:0; color:#f6931f; font-weight:bold;"></p> 
+                            <div id="slider-range"></div></div> -->
+    
+    <!--</div>
+
+             <div id="openradiation_map_filters">
+            <div>
+                <input id="tag" class="input" type="text" placeholder="# Your tag"/>
+            </div>
+            
+            <div>
+                <select id="qualification" name="qualification" style="z-index:-1000">
+                    <option value="none">Toutes qualifications</option> 
+                    <option value="seemscorrect">Semble correcte</option> 
+                    <option value="mustbeverified">Doit être vérifiée</option> 
+                    <option value="noenvironmentalcontext">Mesure non environnementale</option>
+                    <option value="badsensor">Défaut de capteur</option>
+                    <option value="badprotocole">Protocole non respecté</option>
+                    <option value="baddatatransmission">Problème de transmission de données</option>
+                </select>
+            </div>
+            <div>
+                <input id="user" class="input" type="text" placeholder="User"/>
+            </div>
+            <div>
+                <span id="nbresults"></span>
+            </div> -->
+
     <!-- JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
     <!--<script src="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.js"></script>-->
     <script src="leaflet.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>  
+<!--<script src="http://code.jquery.com/jquery-1.10.2.js"></script>-->
+    <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    
     <script src="openradiation.js"></script>
     <script type="text/javascript">
         var openradiation_map;
@@ -38,6 +68,37 @@
        openradiation_init(true);
        openradiation_getItems();
      
+
+     
+        $(function() {
+             
+            //$( "#amount" ).val( "de " + Math.exp($( "#slider-range" ).slider( "values", 0 ) / 10) +
+            //" à " + Math.exp($( "#slider-range" ).slider( "values", 1 ) / 10) );
+            $( "#slider-range" ).slider({
+                range: true,
+                min: 0,
+                max: 100,
+                values: [ 0, 100 ],
+                slide: function( event, ui ) {
+                       var val3uSv = function(val)
+                        {
+                            var uSv = Math.round((Math.exp(val / 10) - 1)) / 1000;
+                            
+                            if (uSv > 22)
+                                return "+ ∞";
+                            else
+                                return uSv;
+                        };
+
+                        $( "#slider_minvalue").text(val3uSv(ui.values[0]));
+                        $( "#slider_maxvalue").text(val3uSv(ui.values[1]));
+                }
+            });
+
+            $( "#slider_minvalue").text(val2uSv($( "#slider-range" ).slider( "values", 0)));
+            $( "#slider_maxvalue").text(val2uSv($( "#slider-range" ).slider( "values", 1)));
+        });
+
         //openradiation_initWithBounds(latMin, lonMin, latMax, lonMax);
         //openradiation_getItemsWithBounds(latMin, lonMin, latMax, lonMax, timeMin, timeMax);
        

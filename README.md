@@ -27,8 +27,8 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>latitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>latitude</td></tr>
 <tr><td>longitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>longitude</td></tr>
 <tr><td>accuracy</td><td>Real</td><td></td><td> </td><td>Position accuracy</td></tr>
-<tr><td>height</td><td>Integer</td><td></td><td> </td><td>Height above sea in meters</td></tr>
-<tr><td>heightAccuracy</td><td>Real</td><td></td><td> </td><td>Height accuracy</td></tr>
+<tr><td>altitude</td><td>Integer</td><td></td><td> </td><td>Altitude above sea in meters</td></tr>
+<tr><td>altitudeAccuracy</td><td>Real</td><td></td><td> </td><td>Altitude accuracy</td></tr>
 <tr><td>deviceUuid</td><td>String</td><td></td><td> </td><td>Smartphone device UUID  (see http://plugins.cordova.io/#/package/org.apache.cordova.device)</td></tr>
 <tr><td>devicePlatform</td><td>String</td><td></td><td> </td><td>Smartphone device platform</td></tr>
 <tr><td>deviceVersion</td><td>String</td><td></td><td> </td><td>Smartphone device OS version</td></tr>
