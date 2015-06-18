@@ -1,7 +1,138 @@
-#openradiation_map { height: 500px; }
+/* Map is full screen */
+#openradiation_map { height: 100%; width: 100%;}
+body {
+    padding: 0;
+    margin: 0;
+    
+}
+html, body {
+    height: 100%;
+    width: 100%;
+}
 
-#timeslider { width: 200px; }
+/* GENERIC */
+.leaflet-top .openradiation_title {
+    margin-top:0px;
+    margin-left:0px;
+    opacity:0.8; 
+    padding:7px 30px 7px 30px; 
+    background-color:white;
+}
 
-.arrondi {border-radius: 2px;}
+strong, span { color:#2446AB; }
+
+#hide_filters { font-weight:bold; cursor:pointer;}
+
+/*div { border-style:solid; border-width:1px; margin:0; padding:0px; } */
+.userId { font-size:110%; color:#2446AB; font-weight:bold;}
+.value { font-size:110%; color:black; font-weight:bold;}
+.tag { color:#2ECCFA; font-size:90%; background:#E9E2E2; border-radius:4px; padding:3px; }
+.comment {color:#A4A4A4; font-size:90%; }
+
+.voirplus > p { color:#2446AB; font-size:96%; font-style:italic; text-align:center; line-height:1; margin:0; padding:0; }
+.voirplus:link { text-decoration:none; }
+.voirplus .plus { font-size:250%; color:#2446AB; text-align:center; line-height:1;}
+.openradiation_img {width:50px; border-radius:8px; }
+
+/* FILTERS */
+/* overload leaflet CSS to change margin for these controls */
+.leaflet-bottom { right:0px; } /* all the width and not just in the corner */
+.leaflet-bottom .openradiation_filters {
+    margin: 0px;
+    padding: 0px;
+    left:0px;
+    right:0px;
+    width:100%; 
+    min-height:60px;
+    padding-bottom:10px;
+    background-color: rgba(240, 240, 240, 0.8);
+}
 
 
+.openradiation_filters > div { position: relative; float:left; margin-top:10px; padding:0px;}
+.openradiation_filters > div > div { margin-left: auto; margin-right: auto; }
+.openradiation_filters > div.slider_range { padding-top:10px; width:24%;}
+.openradiation_filters > div.slider_range > div { width:150px; }
+.openradiation_filters > div.input_tag { width:16%; }
+.openradiation_filters > div.input_tag > div { width:100px; }
+.openradiation_filters > div.select_qualification { width:28%; }
+.openradiation_filters > div.select_qualification > div { width:190px;}
+.openradiation_filters > div.download_file { margin-top:5px; float:right; width:8%;}
+.openradiation_filters > div.download_file > div { width:50px; font-size:90%; background:white; font-weight:bold; text-align:center;  line-height:1.3; border-width:1px; border-style:solid; border-color:lightgrey;  cursor:pointer;}
+
+.openradiation_filters input { background-color:rgba(169, 204, 235, 0.8); border-radius: 8px; font-size:100%; margin-bottom:5px; border-width:0px; padding:2px; width:100px; color:white; font-weight:bold;}
+.openradiation_filters select { border:none; outline:none; color:#2446AB; font-weight:bold; font-size:100%; width:190px; margin-bottom:5px; appearance:none; -moz-appearance:none; /* Firefox */ -webkit-appearance:none; /* Safari and Chrome */ }
+
+@media only screen and (max-width:700px) {
+    .openradiation_filters > div.slider_range {width:49%; }
+    .openradiation_filters > div.input_tag {clear:both; width:30%;}
+    .openradiation_filters > div.select_qualification { width:55%; }
+    .openradiation_filters > div.download_file { width:15%; margin-bottom:10px;}
+}
+
+@media only screen and (max-width:370px) {
+    /*.leaflet-bottom .openradiation_filters {
+        display:none;
+    }*/
+    .openradiation_filters { display:none; }
+    .openradiation_filters > div.slider_range {width:100%;}
+    .openradiation_filters > div.input_tag {width:60%;}
+    .openradiation_filters > div.download_file { width:40%;}
+    .openradiation_filters > div.select_qualification { width:100%; margin-bottom:20px;}
+}
+
+#slider_rangedate {border-style:none; margin-top:10px; border-radius: 0px; background: black; width:150px; height:4px; margin-bottom:5px;}
+#slider_rangevalue  {border-style:none; margin-top:10px; border-radius: 0px; background: white url(images/time_slider.png) ; width:150px; height:10px; margin-bottom:5px;}
+#slider_text { position:absolute; display:block; margin-left:30px; color:black; font-weight:bold; font-size:80%; }
+#slider_minvalue { margin-top:3px; display:block; float:left; color:blue; font-weight:bold; font-size:90%;}
+#slider_maxvalue { margin-top:3px; display:block; float:right; color:red; font-weight:bold; font-size:90%;}
+#slider_mindate { margin-top:5px; display:block; float:left; color:black; font-weight:bold; font-size:90%;}
+#slider_maxdate { margin-top:5px; display:block; float:right; color:black; font-weight:bold; font-size:90%;}
+/*.ui-slider  .ui-slider-range { background:transparent; }*/
+#slider_rangevalue .ui-slider-range { background:transparent; }
+#slider_rangedate .ui-slider-range { background:transparent; }
+
+/*.ui-slider .ui-slider-handle {*/
+#slider_rangevalue .ui-slider-handle {
+    width:18px; 
+    height:30px; 
+    background:yellow;
+    background:url(images/marker-icon_bleu.png) no-repeat; overflow: hidden; 
+    position:absolute;
+    top: -20px;
+    border-style:none; 
+    cursor:pointer;
+    cursor:-webkit-grab;
+    cursor:-moz-grab;
+}
+
+#slider_rangedate .ui-slider-handle {
+    width:16px; 
+    height:16px; 
+    background:black;
+    border-radius:8px;
+    position:absolute;
+    border-style:none;
+    top:-5px;
+    cursor:pointer;
+    cursor:-webkit-grab;
+    cursor:-moz-grab;
+}
+
+
+/* PLACEHOLDERS */
+/* should be white despite opacity */
+::-webkit-input-placeholder { /* WebKit browsers */
+    color:   white;
+}
+:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+   color:    white;
+   opacity:  1;
+}
+::-moz-placeholder { /* Mozilla Firefox 19+ */
+   color:    white;
+   opacity:  1;
+}
+:-ms-input-placeholder { /* Internet Explorer 10+ */
+   color:    white;
+}

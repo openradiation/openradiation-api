@@ -33,7 +33,7 @@ app.get('/test', function (req, res, next) {
 });
 
 app.get('/openradiation', function (req, res, next) {
-    res.render('openradiation.ejs');
+    res.render('openradiation.ejs', { measurementURL: properties.measurementURL });
 });
 
 //3. load apiKeys every ten minutes
@@ -1206,3 +1206,4 @@ console.log(new Date().toISOString() + " -    getAPIInterval       : [" + proper
 console.log(new Date().toISOString() + " -    getUsersInterval     : [" + properties.getUsersInterval + "]");
 console.log(new Date().toISOString() + " -    APIKeyTestInterval   : [" + properties.APIKeyTestInterval + "]");
 console.log(new Date().toISOString() + " -    APIKeyTestMaxCounter : [" + properties.APIKeyTestMaxCounter + "]"); 
+console.log(new Date().toISOString() + " -    measurementURL       : [" + properties.measurementURL + "]"); 

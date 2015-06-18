@@ -14,7 +14,7 @@
     <!--<link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />-->
     <link rel="stylesheet" href="leaflet.css">
     <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-    <link rel="stylesheet" href="openradiation_embedded.css">  
+    <link rel="stylesheet" href="openradiation.css">  
   </head>
 
   <body>  
@@ -22,6 +22,11 @@
     <div id="openradiation_map">
         <!--<div id="openradiation_map_title"><strong>Les citoyens mesurent la radioactivité</strong></div>-->
     </div>    
+    <!--<canvas id="myCanvas" width="200" height="200" style="border:1px solid #c3c3c3;">
+        Your browser does not support the HTML5 canvas tag.
+    </canvas>-->
+
+
 <!--<div><p><label for="amount">Valeur en uSv/h:</label><input type="text" id="amount" readonly style="border:0; color:#f6931f; font-weight:bold;"></p> 
                             <div id="slider-range"></div></div> -->
     
@@ -59,46 +64,84 @@
 <!--<script src="http://code.jquery.com/jquery-1.10.2.js"></script>-->
     <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
     
+    <script src="Blob.js"></script>
+    <script src="FileSaver.js"></script>
     <script src="openradiation.js"></script>
     <script type="text/javascript">
+        var measurementURL = <%- JSON.stringify(measurementURL) %>;
         var openradiation_map;
         var openradiation_items; 
         var openradiation_listMarkers;  
         
-       openradiation_init(true);
-       openradiation_getItems();
-     
+        openradiation_init(true);
+        openradiation_getItems();
 
-     
-        $(function() {
-             
-            //$( "#amount" ).val( "de " + Math.exp($( "#slider-range" ).slider( "values", 0 ) / 10) +
-            //" à " + Math.exp($( "#slider-range" ).slider( "values", 1 ) / 10) );
-            $( "#slider-range" ).slider({
-                range: true,
-                min: 0,
-                max: 100,
-                values: [ 0, 100 ],
-                slide: function( event, ui ) {
-                       var val3uSv = function(val)
-                        {
-                            var uSv = Math.round((Math.exp(val / 10) - 1)) / 1000;
-                            
-                            if (uSv > 22)
-                                return "+ ∞";
-                            else
-                                return uSv;
-                        };
+/*
+        var c=document.getElementById("myCanvas");
+        var ctx=c.getContext("2d");
 
-                        $( "#slider_minvalue").text(val3uSv(ui.values[0]));
-                        $( "#slider_maxvalue").text(val3uSv(ui.values[1]));
-                }
-            });
+        //var grd=ctx.createRadialGradient(30,40,5,30,40,30);
+        var grd=ctx.createLinearGradient(30,40,0,170);
+        grd.addColorStop(0,'rgba(251, 47, 47, 1)'); //rgba(251, 47, 47, 0.5)); //rouge
+        grd.addColorStop(1,'rgba(251, 47, 47, 0)'); //rgba(255, 255, 255, 0.5)); //blanc
+        ctx.fillStyle=grd;
+        //ctx.fillRect(0,0,200,200);
+        ctx.beginPath();
+        ctx.moveTo(30,10);
+        ctx.lineTo(50,30);
+        ctx.lineTo(50,50);
+        ctx.lineTo(30,70);
+        ctx.lineTo(10,50);
+        ctx.lineTo(10,30);
+        ctx.fill();*/
+    
+    
+ 
+        /*
+        var grd8=ctx.createRadialGradient(140,50,5,140,50,50);
+        grd8.addColorStop(0,'rgba(107, 146, 254, 1)'); //rgba(107, 146, 254, 0.5)); //bleu
+        grd8.addColorStop(1,'rgba(107, 146, 254, 0)'); //rgba(255, 255, 255, 0.5)); //blanc
+        ctx.fillStyle=grd8;
+        ctx.fillRect(0,0,200,200);
 
-            $( "#slider_minvalue").text(val2uSv($( "#slider-range" ).slider( "values", 0)));
-            $( "#slider_maxvalue").text(val2uSv($( "#slider-range" ).slider( "values", 1)));
-        });
+        var grd2=ctx.createRadialGradient(100,50,5,100,50,50);
+        grd2.addColorStop(0,'rgba(107, 146, 254, 1)'); //rgba(107, 146, 254, 0.5)); //bleu
+        grd2.addColorStop(1,'rgba(107, 146, 254, 0)'); //rgba(255, 255, 255, 0.5)); //blanc
+        ctx.fillStyle=grd2;
+        ctx.fillRect(0,0,200,200);
+        
+        var grd3=ctx.createRadialGradient(120,50,5,120,50,50);
+        grd3.addColorStop(0,'rgba(107, 146, 254, 1)'); //rgba(107, 146, 254, 0.5)); //bleu
+        grd3.addColorStop(1,'rgba(107, 146, 254, 0)'); //rgba(255, 255, 255, 0.5)); //blanc
+        ctx.fillStyle=grd3;
+        ctx.fillRect(0,0,200,200);
+        
+        
+        
+                var grd5=ctx.createRadialGradient(70,90,5,70,90,50);
+        grd5.addColorStop(0,'rgba(107, 146, 254, 1)'); //rgba(107, 146, 254, 0.5)); //bleu
+        grd5.addColorStop(1,'rgba(107, 146, 254, 0)'); //rgba(255, 255, 255, 0.5)); //blanc
+        ctx.fillStyle=grd5;
+        ctx.fillRect(0,0,200,200);
+        
+                var grd6=ctx.createRadialGradient(80,80,5,80,80,50);
+        grd6.addColorStop(0,'rgba(107, 146, 254, 1)'); //rgba(107, 146, 254, 0.5)); //bleu
+        grd6.addColorStop(1,'rgba(107, 146, 254, 0)'); //rgba(255, 255, 255, 0.5)); //blanc
+        ctx.fillStyle=grd6;
+        ctx.fillRect(0,0,200,200);
+        
+        var grd7=ctx.createRadialGradient(150,60,5,150,60,50);
+        grd7.addColorStop(0,'rgba(107, 146, 254, 1)'); //rgba(107, 146, 254, 0.5)); //bleu
+        grd7.addColorStop(1,'rgba(107, 146, 254, 0)'); //rgba(255, 255, 255, 0.5)); //blanc
+        ctx.fillStyle=grd7;
+        ctx.fillRect(0,0,200,200);
+        
 
+       var grd4=ctx.createRadialGradient(150,50,5,150,50,50);
+        grd4.addColorStop(0,'rgba(251, 47, 47, 1)'); //rgba(107, 146, 254, 0.5)); //bleu
+        grd4.addColorStop(1,'rgba(251, 47, 47, 0)'); //rgba(255, 255, 255, 0.5)); //blanc
+        ctx.fillStyle=grd4;
+        ctx.fillRect(0,0,200,200);*/
         //openradiation_initWithBounds(latMin, lonMin, latMax, lonMax);
         //openradiation_getItemsWithBounds(latMin, lonMin, latMax, lonMax, timeMin, timeMax);
        
