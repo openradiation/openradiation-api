@@ -3,36 +3,36 @@ var icon1 = L.icon({
     shadowUrl: 'images/marker-shadow_modifie.png',
     iconSize:     [18, 30], // size of the icon
     shadowSize:   [30, 30], // size of the shadow
-    iconAnchor:   [5, 5], // point of the icon which will correspond to marker's location
-    shadowAnchor: [4, 2],  // the same for the shadow
-    popupAnchor:  [0, -5] // point from which the popup should open relative to the iconAnchor
+    iconAnchor:   [9, 30], // point of the icon which will correspond to marker's location from the top / left corner
+    shadowAnchor: [9, 30],  // the same for the shadow
+    popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
 });
 var icon2 = L.icon({
     iconUrl: 'images/marker-icon_bleufonce.png',
     shadowUrl: 'images/marker-shadow_modifie.png',
     iconSize:     [18, 30], // size of the icon
     shadowSize:   [30, 30], // size of the shadow
-    iconAnchor:   [5, 5], // point of the icon which will correspond to marker's location
-    shadowAnchor: [4, 2],  // the same for the shadow
-    popupAnchor:  [0, -5] // point from which the popup should open relative to the iconAnchor
+    iconAnchor:   [9, 30], // point of the icon which will correspond to marker's location from the top / left corner
+    shadowAnchor: [9, 30],  // the same for the shadow
+    popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
 });
 var icon3 = L.icon({
     iconUrl: 'images/marker-icon_violet.png',
     shadowUrl: 'images/marker-shadow_modifie.png',
     iconSize:     [18, 30], // size of the icon
     shadowSize:   [30, 30], // size of the shadow
-    iconAnchor:   [5, 5], // point of the icon which will correspond to marker's location
-    shadowAnchor: [4, 2],  // the same for the shadow
-    popupAnchor:  [0, -5] // point from which the popup should open relative to the iconAnchor
+    iconAnchor:   [9, 30], // point of the icon which will correspond to marker's location from the top / left corner
+    shadowAnchor: [9, 30],  // the same for the shadow
+    popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
 });
 var icon4 = L.icon({
     iconUrl: 'images/marker-icon_rouge.png',
     shadowUrl: 'images/marker-shadow_modifie.png',
     iconSize:     [18, 30], // size of the icon
     shadowSize:   [30, 30], // size of the shadow
-    iconAnchor:   [5, 5], // point of the icon which will correspond to marker's location
-    shadowAnchor: [4, 2],  // the same for the shadow
-    popupAnchor:  [0, -5] // point from which the popup should open relative to the iconAnchor
+    iconAnchor:   [9, 30], // point of the icon which will correspond to marker's location from the top / left corner
+    shadowAnchor: [9, 30],  // the same for the shadow
+    popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
 });
 
 function formatISODate(ISODate)
@@ -157,7 +157,7 @@ function openradiation_init(withLocate)
     // add a metric scale
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
     
-   openradiation_map.on('popupopen', function(e) {
+    openradiation_map.on('popupopen', function(e) {
             $.ajax({
                 type: 'GET',
                 url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=82ace4264f1ac5f83fe3d37319784149&response=complete',
@@ -169,7 +169,7 @@ function openradiation_init(withLocate)
 
                     var htmlPopup = "<div><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
                     
-                    htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px;\">";
+                    htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px;height:90px;\">";
 
                     if (typeof(res.data.enclosedObject) != "undefined") 
                         htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
@@ -224,6 +224,7 @@ function openradiation_init(withLocate)
                         }
                         htmlPopup += "</div>";
                     }
+                    htmlPopup += "</div>";
                     htmlPopup += "</div>";
                     console.log(htmlPopup);
                     e.popup.setContent(htmlPopup);
@@ -315,116 +316,60 @@ function openradiation_getItems()
         url: '/measurements?apiKey=82ace4264f1ac5f83fe3d37319784149' + urlTemp, 
         cache: false,
         timeout: 5000,
-        success: function(data) {
+        success: function(res) {
             
-            if (data.data.length < 2)
-                $("#nbresults").text(data.data.length + " mesure trouvée");
+            if (res.data.length < 2)
+                $("#nbresults").text(res.data.length + " mesure trouvée");
             else
-                $("#nbresults").text(data.data.length + " mesures trouvées");
-                
-            for(var i in openradiation_items)
+                $("#nbresults").text(res.data.length + " mesures trouvées");
+             
+            //list all new items
+            var openradiation_newitems = [];
+            for (i=0; i < res.data.length; i++)
             {
-                if (openradiation_map.hasLayer(openradiation_listMarkers[i]))
-                    openradiation_map.removeLayer(openradiation_listMarkers[i]);
+                openradiation_newitems.push(res.data[i].reportUuid);
             }
             
-            openradiation_items = data.data;
-            console.dir(openradiation_items);
-            openradiation_refreshData();
-            },
+            //for each old item
+            var openradiation_olditems = [];
+            openradiation_map.eachLayer(function (layer) {               
+                if (layer.reportUuid != null)
+                {
+                    if (openradiation_newitems.indexOf(layer.reportUuid) == -1)
+                        openradiation_map.removeLayer(layer);
+                    else
+                        openradiation_olditems.push(layer.reportUuid);
+                }
+            });
+            
+            //for each new item
+            for (i=0; i < res.data.length; i++)
+            {
+                if (openradiation_olditems.indexOf(res.data[i].reportUuid) == -1)
+                {
+                    var htmlPopup = "<div></div>";
+                    var icon;
+                    if (res.data[i].value >= 2)
+                        icon = icon4;
+                    else if (res.data[i].value >= 0.2)
+                        icon = icon3;
+                    else if (res.data[i].value >= 0.04)
+                        icon = icon2;
+                    else
+                        icon = icon1;
+              
+                    var marker = L.marker([res.data[i].latitude, res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
+                        .bindPopup(htmlPopup);
+                    marker.reportUuid = res.data[i].reportUuid;
+                }
+            }
+        },
         error: function() {
             alert('Error during retrieving data'); 
             }
         });
     }
 };
-
-function openradiation_refreshData() 
-{
-    var date_min;
-    var date_max;
-    var i_min;
-    var i_max;
-
-    openradiation_listMarkers = new Array();
-    
-    for(var i in openradiation_items)
-    {
-        console.log(openradiation_items[i]);
-        //var htmlPopup = "<div style=\"overflow:hidden;\">";
-        var htmlPopup = "<div></div>";
-        //htmlPopup += "Valeur : <strong>" + openradiation_items[i].value + "</strong><br>";
-        //htmlPopup += timeValue2Str(openradiation_items[i].startTime) + "<br><br>";
-        
-        //if (openradiation_items[i].userId != null)
-        //    htmlPopup += "by <strong>" + openradiation_items[i].userId + "</strong><br>";
-        //if (openradiation_items[i].enclosedObject != null)
-        //    htmlPopup = htmlPopup + "<div><img class=\"img-rounded\" src=\"" + openradiation_items[i].enclosedObject + "\"/></div><br>";       
-        //if (openradiation_items[i].altitude != null)
-        //    htmlPopup += "altitude : " + openradiation_items[i].altitude + " m<br>";
-        //if (openradiation_items[i].deltaT != null)
-        //    htmlPopup += "Δt : " + openradiation_items[i].deltaT + " s<br>";
-        //if (openradiation_items[i].model != null)
-        //    htmlPopup += "model : " + openradiation_items[i].model + "<br>";
-     	//htmlPopup += "</div>";
-     	
-       // var location;
-       // location[0] = openradiation_items[i].latitude;
-       // location[1] = openradiation_items[i].longitude;
-        //var latlng = L.latLng(openradiation_items[i].latitude,openradiation_items[i].longitude);
-            //.setLatLng(latlng)
-        //var popup = L.popup().setLatLng(latlng).setContent('<p>Hello world!<br />This is a nice popup.</p>'); //.addTo(openradiation_map);
-        //popup.value = 
-        //popup.reportUuid = openradiation_items[i].reportUuid;
-        //var marker = L.marker([openradiation_items[i].latitude, openradiation_items[i].longitude], {icon: greenIcon}).addTo(openradiation_map)
-        //    .bindPopup(htmlPopup);
-        
-        var icon;
-        if (openradiation_items[i].value >= 2)
-            icon = icon4;
-        else if (openradiation_items[i].value >= 0.2)
-            icon = icon3;
-        else if (openradiation_items[i].value >= 0.04)
-            icon = icon2;
-        else
-            icon = icon1;
-  
-        var marker = L.marker([openradiation_items[i].latitude, openradiation_items[i].longitude],  {icon: icon}).addTo(openradiation_map)
-            .bindPopup(htmlPopup);
-        marker.reportUuid = openradiation_items[i].reportUuid;
-
-        openradiation_listMarkers[i] = marker;
-
-        //var t = Str2TimeValue(openradiation_items[i].timestamp);
-        /*var t = openradiation_items[i].startTime;
-        // get the min max
-        if (i == 0) {
-           date_min = t;
-           date_max = t;
-        } else {
-            if (t < date_min) {
-                date_min = t;
-                i_min = i;
-            }
-            if (t > date_max) {
-                date_max = t;
-                i_max = i;
-            }
-        }*/
-    }
-
-    /*var timeslider = $( "#timeslider" );
-    if(timeslider.length) { // timeslider doesn't exist in the embedded case
-        $( "#timeslider" ).attr('data-slider-min', date_min);
-        $( "#timeslider" ).attr('data-slider-max', date_max);
-        $( "#timeslider" ).attr('data-slider-value', "[" + date_min + "," + date_max + "]");
-        $( "#timeslider" ).slider({
-            formater: function(value) {
-                return timeValue2Str(value);
-            }
-        }).on('slideStop', applyFilters);
-    }*/
-}
 
 function val2uSv(val)
 {
@@ -514,48 +459,48 @@ $(function() {
                 url: '/measurements?apiKey=82ace4264f1ac5f83fe3d37319784149' + urlTemp + "&response=complete&withEnclosedObject=no", 
                 cache: false,
                 timeout: 10000,
-                success: function(data) {
+                success: function(res) {
                         
                     var str="Request done via openradiation.org at " + new Date().toString() + " with the parameters " + urlTemp + "\n\n";
                     str += "apparatusID,apparatusVersion,apparatusSensorType,apparatusTubeType,temperature,value,hitsNumber,startTime,endTime,latitude,longitude,accuracy,altitude,altitudeAccuracy,deviceUuid,devicePlatform,deviceVersion,deviceModel,reportUuid,manualReporting,organisationReporting,reportContext,description,measurementHeight,userId,measurementEnvironment,dateAndTimeOfCreation,qualification,qualificationVotesNumber,reliability,atypical,tags\n";
-                    for(var i in data.data)
+                    for(var i in res.data)
                     {
-                        str += data.data[i].apparatusID == null ? "," : data.data[i].apparatusID + ",";
-                        str += data.data[i].apparatusVersion == null ? "," : data.data[i].apparatusVersion + ",";
-                        str += data.data[i].apparatusSensorType == null ? "," : data.data[i].apparatusSensorType + ",";
-                        str += data.data[i].apparatusTubeType == null ? "," : data.data[i].apparatusTubeType + ",";
-                        str += data.data[i].temperature == null ? "," : data.data[i].temperature + ",";
-                        str += data.data[i].value + ",";
-                        str += data.data[i].hitsNumber == null ? "," : data.data[i].hitsNumber + ",";
-                        str += data.data[i].startTime + ",";
-                        str += data.data[i].endTime == null ? "," : data.data[i].endTime + ",";	
-                        str += data.data[i].latitude + ",";	
-                        str += data.data[i].longitude + ",";
-                        str += data.data[i].accuracy == null ? "," : data.data[i].accuracy + ",";	
-                        str += data.data[i].altitude == null ? "," : data.data[i].altitude + ",";	
-                        str += data.data[i].altitudeAccuracy == null ? "," : data.data[i].altitudeAccuracy + ",";	
-                        str += data.data[i].deviceUuid == null ? "," : data.data[i].deviceUuid + ",";	
-                        str += data.data[i].devicePlatform == null ? "," : data.data[i].devicePlatform + ",";	
-                        str += data.data[i].deviceVersion == null ? "," : data.data[i].deviceVersion + ",";	
-                        str += data.data[i].deviceModel == null ? "," : data.data[i].deviceModel + ",";	
-                        str += data.data[i].reportUuid + ",";
-                        str += data.data[i].manualReporting + ",";
-                        str += data.data[i].organisationReporting == null ? "," : data.data[i].organisationReporting + ",";	
-                        str += data.data[i].reportContext == null ? "," : data.data[i].reportContext + ",";	
-                        str += data.data[i].description == null ? "," : data.data[i].description + ",";	
-                        str += data.data[i].measurementHeight == null ? "," : data.data[i].measurementHeight + ",";	
-                        str += data.data[i].userId == null ? "," : data.data[i].userId + ",";
-                        str += data.data[i].measurementEnvironment == null ? "," : data.data[i].measurementEnvironment + ",";
-                        str += data.data[i].dateAndTimeOfCreation + ",";
-                        str += data.data[i].qualification == null ? "," : data.data[i].qualification + ",";	
-                        str += data.data[i].qualificationVotesNumber == null ? "," : data.data[i].qualificationVotesNumber + ",";	
-                        str += data.data[i].reliability + ",";
-                        str += data.data[i].atypical + ",";
-                        if (data.data[i].tags == null)
+                        str += res.data[i].apparatusID == null ? "," : res.data[i].apparatusID + ",";
+                        str += res.data[i].apparatusVersion == null ? "," : res.data[i].apparatusVersion + ",";
+                        str += res.data[i].apparatusSensorType == null ? "," : res.data[i].apparatusSensorType + ",";
+                        str += res.data[i].apparatusTubeType == null ? "," : res.data[i].apparatusTubeType + ",";
+                        str += res.data[i].temperature == null ? "," : res.data[i].temperature + ",";
+                        str += res.data[i].value + ",";
+                        str += res.data[i].hitsNumber == null ? "," : res.data[i].hitsNumber + ",";
+                        str += res.data[i].startTime + ",";
+                        str += res.data[i].endTime == null ? "," : res.data[i].endTime + ",";	
+                        str += res.data[i].latitude + ",";	
+                        str += res.data[i].longitude + ",";
+                        str += res.data[i].accuracy == null ? "," : res.data[i].accuracy + ",";	
+                        str += res.data[i].altitude == null ? "," : res.data[i].altitude + ",";	
+                        str += res.data[i].altitudeAccuracy == null ? "," : res.data[i].altitudeAccuracy + ",";	
+                        str += res.data[i].deviceUuid == null ? "," : res.data[i].deviceUuid + ",";	
+                        str += res.data[i].devicePlatform == null ? "," : res.data[i].devicePlatform + ",";	
+                        str += res.data[i].deviceVersion == null ? "," : res.data[i].deviceVersion + ",";	
+                        str += res.data[i].deviceModel == null ? "," : res.data[i].deviceModel + ",";	
+                        str += res.data[i].reportUuid + ",";
+                        str += res.data[i].manualReporting + ",";
+                        str += res.data[i].organisationReporting == null ? "," : res.data[i].organisationReporting + ",";	
+                        str += res.data[i].reportContext == null ? "," : res.data[i].reportContext + ",";	
+                        str += res.data[i].description == null ? "," : res.data[i].description + ",";	
+                        str += res.data[i].measurementHeight == null ? "," : res.data[i].measurementHeight + ",";	
+                        str += res.data[i].userId == null ? "," : res.data[i].userId + ",";
+                        str += res.data[i].measurementEnvironment == null ? "," : res.data[i].measurementEnvironment + ",";
+                        str += res.data[i].dateAndTimeOfCreation + ",";
+                        str += res.data[i].qualification == null ? "," : res.data[i].qualification + ",";	
+                        str += res.data[i].qualificationVotesNumber == null ? "," : res.data[i].qualificationVotesNumber + ",";	
+                        str += res.data[i].reliability + ",";
+                        str += res.data[i].atypical + ",";
+                        if (res.data[i].tags == null)
                             str += ",";
                         else {
-                            for (t in data.data[i].tags)
-                                str += data.data[i].tags[t] + ",";
+                            for (t in res.data[i].tags)
+                                str += res.data[i].tags[t] + ",";
                         }
                         str += "\n";
                     }

@@ -31,7 +31,7 @@ strong, span { color:#2446AB; }
 
 .voirplus > p { color:#2446AB; font-size:96%; font-style:italic; text-align:center; line-height:1; margin:0; padding:0; }
 .voirplus:link { text-decoration:none; }
-.voirplus .plus { font-size:250%; color:#2446AB; text-align:center; line-height:1;}
+.voirplus .plus { font-size:250%; color:#2446AB; text-align:center; font-style:normal;  line-height:1;}
 .openradiation_img {width:50px; border-radius:8px; }
 
 /* FILTERS */
