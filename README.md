@@ -18,7 +18,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>apparatusID</td><td>String</td><td></td><td></td><td>Unique sensor identifier</td></tr>
 <tr><td>apparatusVersion</td><td>String</td><td> </td><td> </td><td>Sensor firmware version</td></tr>
 <tr><td>apparatusSensorType</td><td>String</td><td> </td><td> </td><td>Sensor type : geiger, photodiode</td></tr>
-<tr><td>apparatusTubeType</td><td>String</td><td> </td><td> </td><td>Tube identification (only if ApparatusSensorType = geiger)</td></tr>
+<tr><td>apparatusTubeType</td><td>String</td><td> </td><td> </td><td>Tube identification (only if apparatusSensorType = geiger)</td></tr>
 <tr><td>temperature</td><td>Integer</td><td></td><td></td><td>Temperature (°C) </td></tr>
 <tr><td>value</td><td>Real</td><td>*</td><td>Mandatory</td><td>value (µSv/h)</td></tr>
 <tr><td>hitsNumber</td><td>Integer</td><td></td><td></td><td>Hits Number</td></tr>
@@ -37,13 +37,13 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>manualReporting</td><td>Boolean</td><td></td><td></td><td>Manual Reporting : true, false (default:true). False if the data is not entered by a human being</td></tr>
 <tr><td>organisationReporting</td><td>String</td><td></td><td></td><td>Software version (sample:openradiation_v1)</td></tr>
 <tr><td>reportContext</td><td>String</td><td>Never</td><td></td><td>Report context : emergency, routine, exercise, test (default:test). test:data are not registrated but you can test api use, emergency and exercise:not used,routine:you should use this one !</td></tr>
-<tr><td>description</td><td>String</td><td></td><td></td><td>Free description</td></tr>
+<tr><td>description</td><td>String</td><td></td><td></td><td>Free description (only if userId is specified)</td></tr>
 <tr><td>measurementHeight</td><td>Integer</td><td></td><td></td><td>Measurement height above the ground (in meters)</td></tr>
-<tr><td>tags</td><td>Json array of string</td><td></td><td></td><td>Free tags list [tag1 ; tag2]</td></tr>
-<tr><td>enclosedObject</td><td>String</td><td></td><td></td><td>Base64 encoded Image. The size shoudn't exceeded 1mb and format should be closed from 600*800 pixels (width * height). The value should be a data URI scheme 'data:image/<subtype>;base64,<data>'</td></tr>
+<tr><td>tags</td><td>Json array of string</td><td></td><td></td><td>Free tags list [tag1 ; tag2] (only if userId is specified)</td></tr>
+<tr><td>enclosedObject</td><td>String</td><td></td><td></td><td>Base64 encoded Image. The size shoudn't exceeded 1mb and format should be closed from 600*800 pixels (width * height). The value should be a data URI scheme 'data:image/<subtype>;base64,<data>'. (only if userId is specified)</td></tr>
 <tr><td>userId</td><td>String</td><td></td><td></td><td>Openradiation.org user id</td></tr>
 <tr><td>userPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org MD5 password (mandatory if userId is specified)</td></tr>
-<tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement Environment : countryside, city, ontheroad, inside</td></tr>
+<tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement environment : countryside, city, ontheroad, inside, plane. (if plane, qualification is set to noenvironmentalcontext and qualificationVotesNumber is set to 0)</td></tr>
 <tr><td>dateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
 <tr><td>qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
 <tr><td>qualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the API or the website</td><td>qualification Votes Number</td></tr>

@@ -10,6 +10,7 @@ var multer = require('multer');
 var properties = require('./properties.js');
 var async = require('async');
 
+
 var conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
 var app = express();
 app.use(bodyParser.json({strict: true, limit: '2mb'})); // enclosedObject shouldn't exceeded 1mb, but total space is higher with the base64 encoding
@@ -31,6 +32,84 @@ app.all('*', function(req, res, next) {
 app.get('/test', function (req, res, next) {
     res.render('test.ejs');
 });
+
+app.get('/i/:z/:x/:y.png', function (req, res, next) { 
+
+    if (isNaN(req.params.z) || isNaN(req.params.x) || isNaN(req.params.y) 
+        || parseInt(req.params.z) < 0 || parseInt(req.params.z) > 16
+        || parseInt(req.params.x) < 0 || parseInt(req.params.x) >= Math.pow(2, 2 * parseInt(req.params.z))
+        || parseInt(req.params.y) < 0 || parseInt(req.params.y) >= Math.pow(2, 2 * parseInt(req.params.z)))
+    {
+        res.status(500).end();
+    }
+    else 
+    {   
+        var x = parseInt(req.params.x);
+        var y = parseInt(req.params.y);
+        var z = parseInt(req.params.z);
+    
+        //lat/lon France = -5 + 7, y =42 à 52
+        var nbTuiles = Math.pow(2, z);
+        console.log("nbTuiles = " + nbTuiles);
+        
+        var x_min = (-7/180 + 1 ) / 2 * nbTuiles;
+        var x_max = (6/180 + 1 ) / 2 * nbTuiles;
+        var y_min = (  (1 - Math.asinh(Math.tan(53 * Math.PI /180 ) )  / Math.PI ) / 2       )  * nbTuiles;
+        var y_max=  (  (1 - Math.asinh(Math.tan(43 * Math.PI /180 ) )  / Math.PI ) / 2       )  * nbTuiles;
+        
+        console.log("x;y = " + x + ";" + y + " | x_min;x_max;y_min;y_max = " + x_min + ";" + x_max + ";" + y_min  + ";" + y_max);
+        
+        if (x < x_min || x > x_max || y < y_min || y > y_max)
+            res.status(200).end();
+        else
+        {                   
+            var fs = require('fs');
+                PNG = require('node-png/lib/png').PNG;
+            
+            var png = new PNG({
+                width: 256,
+                height: 256,
+                filterType: -1
+            });
+            
+            for (var pix_y = 0; pix_y < png.height; pix_y++) {
+                for (var pix_x = 0; pix_x < png.width; pix_x++) {
+                    var idx = (png.width * pix_y + pix_x) << 2;
+                    if (Math.pow(pix_x - 127, 2) + Math.pow(pix_y - 127, 2) < 1000)
+                    {
+                        png.data[idx] = 255;    //R
+                        png.data[idx+1] = 0; //G
+                        png.data[idx+2] = 0; //B
+                        png.data[idx+3] = 255; //opacity
+                    }   else if (Math.pow(pix_x - 127, 2) + 2 * Math.pow(pix_y - 127, 2) < 10000) {
+                        png.data[idx] = 0;    //R
+                        png.data[idx+1] = 0; //G
+                        png.data[idx+2] = 255; //B
+                        png.data[idx+3] = 255; //opacity
+                    } else {
+                        png.data[idx] = 255;    //R
+                        png.data[idx+1] = 255; //G
+                        png.data[idx+2] = 255; //B
+                        png.data[idx+3] = 0; //opacity
+                    }
+                }
+            }
+            var pngFileName = __dirname + '/public/png/{z}_{x}_{y}.png'.replace('{z}_{x}_{y}',z + "_" + x + "_" + y);
+            png.pack().pipe(fs.createWriteStream(pngFileName)).on('finish', function() {
+                var img = fs.readFileSync(pngFileName);
+                res.writeHead(200, {'Content-Type': 'image/png' });
+                res.end(img, 'binary');
+            });
+        }
+    }        
+            
+    /*fs.createReadStream('in.png')
+        .pipe(new PNG({
+            filterType: 4
+        }))
+        .on('parsed', function() {*/
+});
+
 
 app.get('/openradiation', function (req, res, next) {
     res.render('openradiation.ejs', { measurementURL: properties.measurementURL });
@@ -347,6 +426,11 @@ verifyData = function(res, json, isMandatory, dataName) {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
                     return false;
                 }
+                if (json["userId"] == null)
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " can be defined only if userId is defined"}});
+                    return false;
+                }
                 break;
             case "measurementHeight":
                 if (typeof(json[dataName]) != "number" || parseFloat(json[dataName]) != parseInt(json[dataName]))
@@ -384,11 +468,21 @@ verifyData = function(res, json, isMandatory, dataName) {
                         }
                     }
                 }
+                if (json["userId"] == null)
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " can be defined only if userId is defined"}});
+                    return false;
+                }
                 break;
             case "enclosedObject":
                 if (typeof(json[dataName]) != "string" || /data:image\/.*;base64,.*/.test( json[dataName].substr(0,50)) == false) //data:image/<subtype>;base64,
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a data URI scheme with base64 encoded image"}});  
+                    return false;
+                }
+                if (json["userId"] == null)
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " can be defined only if userId is defined"}});
                     return false;
                 }
                 break;
@@ -434,10 +528,10 @@ verifyData = function(res, json, isMandatory, dataName) {
                 return false;    
                 break;    
             case "measurementEnvironment":
-                var measurementEnvironmentValues = ["countryside","city","ontheroad","inside"];
+                var measurementEnvironmentValues = ["countryside","city","ontheroad","inside","plane"];
                 if (typeof(json[dataName]) != "string" || measurementEnvironmentValues.indexOf(json[dataName]) == -1)
                 {
-                    res.status(400).json({ error: {code:"102", message:dataName + " should be in [countryside | city | ontheroad | inside]"}});
+                    res.status(400).json({ error: {code:"102", message:dataName + " should be in [countryside | city | ontheroad | inside | plane]"}});
                     return false;
                 }
                 break;
@@ -640,7 +734,10 @@ app.post('/measurements', function (req, res, next) {
                         // Expecting > 100 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)
                         var qualification;
                         var qualificationVotesNumber;
-                        if (reliability <= 100) {
+                        if (req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane") {
+                            qualification = "noenvironmentalcontext";
+                            qualificationVotesNumber = 0;
+                        } else if (reliability <= 100) {
                             qualification = "mustbeverified";
                             qualificationVotesNumber = 0;
                         } else {

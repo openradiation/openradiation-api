@@ -26,7 +26,7 @@ strong, span { color:#2446AB; }
 /*div { border-style:solid; border-width:1px; margin:0; padding:0px; } */
 .userId { font-size:110%; color:#2446AB; font-weight:bold;}
 .value { font-size:110%; color:black; font-weight:bold;}
-.tag { color:#2ECCFA; font-size:90%; background:#E9E2E2; border-radius:4px; padding:3px; }
+.tag { color:#2ECCFA; font-size:90%; background:#F1E9E9; border-radius:4px; padding:3px; margin:2px; line-height:2;}
 .comment {color:#A4A4A4; font-size:90%; }
 
 .voirplus > p { color:#2446AB; font-size:96%; font-style:italic; text-align:center; line-height:1; margin:0; padding:0; }

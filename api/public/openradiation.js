@@ -35,6 +35,8 @@ var icon4 = L.icon({
     popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
 });
 
+var interpolation;
+
 function formatISODate(ISODate)
 {
     var date = new Date(ISODate);
@@ -73,6 +75,14 @@ function openradiation_init(withLocate)
       attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> <span id="\hide_filters\">| Filtres +/-</span>'
    }).addTo(openradiation_map);
    
+    //add an interpolation map layer
+    interpolation = 
+      new L.TileLayer('i/{z}/{x}/{y}.png',
+      {
+        opacity: 0.6
+      });
+    //openradiation_map.addLayer(interpolation);
+    
     var openradiation_title = L.control({
         position : 'topleft'
     });
@@ -156,7 +166,7 @@ function openradiation_init(withLocate)
     
     // add a metric scale
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
-    
+       
     openradiation_map.on('popupopen', function(e) {
             $.ajax({
                 type: 'GET',
@@ -164,12 +174,12 @@ function openradiation_init(withLocate)
                 //dataType: "jsonp",
                 //jsonpCallback: "_test",
                 //cache: false,
-                timeout: 5000,
+                timeout: 10000,
                 success: function(res) {
 
-                    var htmlPopup = "<div><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
+                    var htmlPopup = "<div style=\"width:210px; overflow:auto; min-height:130px;\"><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
                     
-                    htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px;height:90px;\">";
+                    htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px; min-height:90px;\">";
 
                     if (typeof(res.data.enclosedObject) != "undefined") 
                         htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
@@ -178,7 +188,7 @@ function openradiation_init(withLocate)
                     htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_top\"><p>Voir plus</p><p class=\"plus\">+</p></a></div>";
                     htmlPopup += "</div>";
                     
-                    htmlPopup += "<div style=\"width:200px; height:90px;\">";
+                    htmlPopup += "<div style=\"width:150px; float:right; min-height:90px;\">";
                     
                     if (res.data.userId != null)
                         htmlPopup += "<div><span class=\"userId\">" + res.data.userId + "</span></div>";
@@ -233,8 +243,7 @@ function openradiation_init(withLocate)
                 error: function() {
                     alert('Error during retrieving data'); 
                     }
-                });   
-                
+                });           
     });
 };
 
@@ -526,6 +535,16 @@ $(function() {
             $('.openradiation_filters').css('display', 'block');        
         }
     });
+    
+    
+    $( "#hide_filters" ).dblclick(function() {
+        if (openradiation_map.hasLayer(interpolation))
+            openradiation_map.removeLayer(interpolation);
+        else
+            openradiation_map.addLayer(interpolation);
+    });
+    
+    
     
 });
 
