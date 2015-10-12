@@ -10,29 +10,32 @@
     <title>openradiation.org</title>
 
     <!--<link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />-->
-    <link rel="stylesheet" href="leaflet.css">
-    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-    <link rel="stylesheet" href="openradiation.css">  
+    <link rel="stylesheet" href="/leaflet.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" href="/openradiation.css">    
   </head>
 
   <body>  
 
     <div id="openradiation_map"></div>    
-    
-    <script src="leaflet.js"></script>
+    <div id="permalink-message"></div>
+
+    <script src="/leaflet.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>  
-    <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-    <script src="jquery.ui.touch-punch.min.js"></script> <!-- so we can handle slider with mobile phone -->
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <script src="/jquery.ui.touch-punch.min.js"></script> <!-- so we can handle slider with mobile phone -->
     
-    <script src="Blob.js"></script>
-    <script src="FileSaver.js"></script>
-    <script src="openradiation.js"></script>
+    <script src="/Blob.js"></script>
+    <script src="/FileSaver.js"></script>
+    <script src="/openradiation.js"></script>
     <script type="text/javascript">
-        var measurementURL = <%- JSON.stringify(measurementURL) %>;
         var openradiation_map;
+        var apiKey = <%- JSON.stringify(apiKey) %>; //82ace4264f1ac5f83fe3d37319784149
         
-        openradiation_init(true);
-        openradiation_getItems();
+        openradiation_init(<%- JSON.stringify(measurementURL) %>, <%- withLocate %>,<%- zoom %>, <%- latitude %>, <%- longitude %>, 
+                           <%- JSON.stringify(tag) %>, <%- JSON.stringify(userId) %>, <%- JSON.stringify(qualification) %>, <%- JSON.stringify(atypical) %>,
+                           <%- rangeValueMin %>, <%- rangeValueMax %>, <%- rangeDateMin %>, <%- rangeDateMax %>);
+        openradiation_getItems(<%- fitBounds %>);
     </script>
 
 

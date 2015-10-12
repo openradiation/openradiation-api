@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="">
+        <meta name="author" content="">
+        <!--<link rel="shortcut icon" href="../../assets/ico/favicon.ico">-->
+        <title>Submit a file</title>
+
+        <!-- Bootstrap core CSS -->
+        <link href="bootstrap-3.3.4.min.css" rel="stylesheet">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+       
+        <!-- Just for debugging purposes. Don't actually copy this line! -->
+        <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+          <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+          <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+        <style type="text/css">
+           div {padding: 5px;}
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <div class="container-fluid">
+                <div class="row">
+                    <br/>
+                </div>
+                <div class="well">
+                    <p>Import a measurements file</p>
+                    <p>
+                    <small>You are about to upload a file that may contains many values. Since we are concerned to build a quality collaborative database, we ask you to be precautious before you upload files to the openradiation database, and that's why we want you to carefully fill out the form below.
+                    Uploading file is not the most common way to add data to our database. We just want to build an interoperability system and offer to safecast owners a quick way to populate our database.  
+                    The only compatible files are the bgeigie files (see <a href="https://api.safecast.org/en-US/bgeigie_imports">api.safecast.org/en-US/bgeigie_imports</a>). You should be aware that the safecast database and the openradiation database are independant : when using this form, you do not send data to safecast.</small>
+                    </p>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <form id="uploadForm" class="form-inline" enctype="multipart/form-data" action="/upload" method="post">
+                            <div class="row">
+                                <div class="col-sm-6"><span>Username * :</span></div>
+                                <div class="col-sm-6"><input required name="userId" type="text" class="form-control" value="<%- userId %>" placeholder="Username"></input></div>
+                                <div class="col-sm-6"><span>Password * :</span></div>
+                                <div class="col-sm-6"><input required name="userPwd" type="password" class="form-control" value="<%- userPwd %>" placeholder="Password"></input></div>
+                                <div class="col-sm-6"><span>Measurement height above the ground (in meters) * :</span></div>
+                                <div class="col-sm-6"><input required name="measurementHeight" type="number" class="form-control" value="<%- measurementHeight %>" placeholder="Measurement height"></input></div>
+                                <div class="col-sm-6"><span>Measurement environment * :</span></div>
+                                <div class="col-sm-6"><select required id="measurementEnvironment" name="measurementEnvironment" class="form-control"><option value="countryside">In the countryside</option><option value="city">In a city</option><option value="ontheroad">On the road</option><option value="inside">Inside</option><option value="plane">On a plane</option></select></div>
+                                <div class="col-sm-3"><span>Tags : </span></div><div class="col-sm-3" style="text-align: right;"><span id="addTag" class="btn btn-link">Add an other tag</span></div>
+                                <div id="tags"></div>
+                                <div class="col-sm-6"><span>Description :</span></div>
+                                <div class="col-sm-6"><textarea name="description" rows="3" cols="30" class="form-control" placeholder="Description" form="uploadForm"><%- description %></textarea></div>
+                                <div class="col-sm-6"><span>Your file :</span></div>
+                                <div class="col-sm-6"><input required type="file" name="file"/></div>
+                                <div class="col-sm-12" style="text-align: center;"><input id="submit" type="submit" style="margin-top:10px;" value="Import your file" class="btn btn-large btn-primary" name="submit"><span style="margin-left:20px;" id="submit_text"></span></div>
+                            </div>
+                            <div><span><%- result %></span></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="bootstrap-3.3.4.min.js"></script>
+        <script>
+            var tags = <%- tags %>;
+            var nbTags;
+            
+            if (tags.length == 0) {
+                nbTags = 1;
+                $( "#tags" ).html("<div class=\"col-sm-6\"><input name=\"tag1\" type=\"text\" class=\"form-control\" placeholder=\"Your tag\"></input></div>");
+            } else {
+                for (var t = 0; t < tags.length; t++)
+                {
+                    if (t == 0)
+                        $( "#tags" ).html("<div class=\"col-sm-6\"><input name=\"tag1\" value=\"" + tags[t] + "\" type=\"text\" class=\"form-control\" placeholder=\"Your tag\"></input></div>");
+                    else
+                        $( "#tags" ).append("<div class=\"col-sm-6 col-sm-offset-6\"><input name=\"tag" + nbTags + "\" value=\"" + tags[t] + "\" type=\"text\" class=\"form-control\" placeholder=\"Your tag\"></input></div>");
+                }
+                nbTags = tags.length;
+            }
+            
+            var measurementEnvironment = "<%- measurementEnvironment %>";
+            $("select option").each(function(){
+                console.log(measurementEnvironment);
+                console.log($(this).attr('value'));
+                if ($(this).attr('value') == measurementEnvironment)
+                    $(this).attr('selected', 'selected');
+              
+            });
+            
+            
+            $( "#addTag" ).click(function() {
+                if (nbTags < 9)
+                {
+                    nbTags += 1;
+                    $( "#tags" ).append("<div class=\"col-sm-6 col-sm-offset-6\"><input name=\"tag" + nbTags + "\" type=\"text\" class=\"form-control\" placeholder=\"Your tag\"></input></div>");
+                }
+            });
+            
+            $( "#submit" ).click(function() {
+                $( "#submit_text" ).html("Please wait ...");
+            });
+        </script>
+    </body>
+</html>

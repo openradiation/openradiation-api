@@ -1,40 +1,33 @@
-var icon1 = L.icon({
-    iconUrl: 'images/marker-icon_bleu.png',
-    shadowUrl: 'images/marker-shadow_modifie.png',
-    iconSize:     [18, 30], // size of the icon
-    shadowSize:   [30, 30], // size of the shadow
-    iconAnchor:   [9, 30], // point of the icon which will correspond to marker's location from the top / left corner
-    shadowAnchor: [9, 30],  // the same for the shadow
-    popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
-});
-var icon2 = L.icon({
-    iconUrl: 'images/marker-icon_bleufonce.png',
-    shadowUrl: 'images/marker-shadow_modifie.png',
-    iconSize:     [18, 30], // size of the icon
-    shadowSize:   [30, 30], // size of the shadow
-    iconAnchor:   [9, 30], // point of the icon which will correspond to marker's location from the top / left corner
-    shadowAnchor: [9, 30],  // the same for the shadow
-    popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
-});
-var icon3 = L.icon({
-    iconUrl: 'images/marker-icon_violet.png',
-    shadowUrl: 'images/marker-shadow_modifie.png',
-    iconSize:     [18, 30], // size of the icon
-    shadowSize:   [30, 30], // size of the shadow
-    iconAnchor:   [9, 30], // point of the icon which will correspond to marker's location from the top / left corner
-    shadowAnchor: [9, 30],  // the same for the shadow
-    popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
-});
-var icon4 = L.icon({
-    iconUrl: 'images/marker-icon_rouge.png',
-    shadowUrl: 'images/marker-shadow_modifie.png',
-    iconSize:     [18, 30], // size of the icon
-    shadowSize:   [30, 30], // size of the shadow
-    iconAnchor:   [9, 30], // point of the icon which will correspond to marker's location from the top / left corner
-    shadowAnchor: [9, 30],  // the same for the shadow
-    popupAnchor:  [0, -33] // point from which the popup should open relative to the iconAnchor
+
+var icon_c = L.Icon.extend({
+    options: {
+        shadowUrl: '/images/marker-shadow_1.png',
+        shadowRetinaUrl: '/images/marker-shadow_1-2x.png',
+        iconSize:     [12, 20],
+        shadowSize:   [20, 20],
+        iconAnchor:   [6, 20], // point of the icon which will correspond to marker's location from the top / left corner
+        shadowAnchor: [6, 20], // the same for the shadow
+        popupAnchor:  [0, -23] // point from which the popup should open relative to the iconAnchor
+    }
 });
 
+var icon_1 = new icon_c({iconUrl: '/images/marker-icon_1.png', iconRetinaUrl: '/images/marker-icon_1-2x.png'}),
+    icon_2 = new icon_c({iconUrl: '/images/marker-icon_2.png', iconRetinaUrl: '/images/marker-icon_2-2x.png'}),
+    icon_3 = new icon_c({iconUrl: '/images/marker-icon_3.png', iconRetinaUrl: '/images/marker-icon_3-2x.png'}),
+    icon_4 = new icon_c({iconUrl: '/images/marker-icon_4.png', iconRetinaUrl: '/images/marker-icon_4-2x.png'}),
+    icon_5 = new icon_c({iconUrl: '/images/marker-icon_5.png', iconRetinaUrl: '/images/marker-icon_5-2x.png'}),
+    icon_6 = new icon_c({iconUrl: '/images/marker-icon_6.png', iconRetinaUrl: '/images/marker-icon_6-2x.png'}),
+    icon_7 = new icon_c({iconUrl: '/images/marker-icon_7.png', iconRetinaUrl: '/images/marker-icon_7-2x.png'}),
+    icon_8 = new icon_c({iconUrl: '/images/marker-icon_8.png', iconRetinaUrl: '/images/marker-icon_8-2x.png'}),
+    icon_9 = new icon_c({iconUrl: '/images/marker-icon_9.png', iconRetinaUrl: '/images/marker-icon_9-2x.png'}),
+    icon_10 = new icon_c({iconUrl: '/images/marker-icon_10.png', iconRetinaUrl: '/images/marker-icon_10-2x.png'}),
+    icon_11 = new icon_c({iconUrl: '/images/marker-icon_11.png', iconRetinaUrl: '/images/marker-icon_11-2x.png'}),
+    icon_12 = new icon_c({iconUrl: '/images/marker-icon_12.png', iconRetinaUrl: '/images/marker-icon_12-2x.png'}),
+    icon_13 = new icon_c({iconUrl: '/images/marker-icon_13.png', iconRetinaUrl: '/images/marker-icon_13-2x.png'}),
+    icon_14 = new icon_c({iconUrl: '/images/marker-icon_14.png', iconRetinaUrl: '/images/marker-icon_14-2x.png'}),
+    icon_15 = new icon_c({iconUrl: '/images/marker-icon_15.png', iconRetinaUrl: '/images/marker-icon_15-2x.png'}),
+    icon_16 = new icon_c({iconUrl: '/images/marker-icon_16.png', iconRetinaUrl: '/images/marker-icon_16-2x.png'});
+    
 var interpolation;
 
 function formatISODate(ISODate)
@@ -61,19 +54,19 @@ function formatISODate(ISODate)
     return str;
 }
 
-function openradiation_init(withLocate)
+function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax)
 {
-   // create a map in the "map" div, set the view to a given place and zoom
-   openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true}).setView([46.609464,2.471888], 6);
+    // create a map in the "map" div, set the view to a given place and zoom
+    openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true}).setView([latitude, longitude], zoom);
    
-   //if you want to locate the client
-   if (withLocate)
-       openradiation_map.locate({setView : true});
+    //if you want to locate the client
+    if (withLocate)
+        openradiation_map.locate({setView : true, maxZoom:13 });
    
-   // add an OpenStreetMap tile layer
-   L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> <span id="\hide_filters\">| Filtres +/-</span>'
-   }).addTo(openradiation_map);
+    // add an OpenStreetMap tile layer
+    L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span>'
+    }).addTo(openradiation_map);
    
     //add an interpolation map layer
     interpolation = 
@@ -81,7 +74,7 @@ function openradiation_init(withLocate)
       {
         opacity: 0.6
       });
-    //openradiation_map.addLayer(interpolation);
+    openradiation_map.addLayer(interpolation);
     
     var openradiation_title = L.control({
         position : 'topleft'
@@ -128,7 +121,7 @@ function openradiation_init(withLocate)
                          <div class=\"download_file\">\
                             <div id=\"export\">\
                                 <div>FICHIER CSV</div> \
-                                <img src=\"images/arrow_download.png\"/> \
+                                <img src=\"/images/arrow_download.png\"/> \
                             </div>\
                          </div>\
                          <div class=\"select_qualification\">\
@@ -151,8 +144,28 @@ function openradiation_init(withLocate)
                          </div>';       
         return div;
     };
+       
     openradiation_filters.addTo(openradiation_map);
 
+    $("#tag").val(tag);
+    $("#userId").val(userId);
+    $("#qualification").val(qualification);
+    $("#atypical").val(atypical);
+    $( "#slider_rangevalue" ).on( "slidecreate", function( event, ui ) {
+        $( "#slider_rangevalue" ).slider("option", "values", [rangeValueMin, rangeValueMax]);
+        $( "#slider_minvalue").text(val2uSv($( "#slider_rangevalue" ).slider( "values", 0)));
+        $( "#slider_maxvalue").text(val2uSv($( "#slider_rangevalue" ).slider( "values", 1)));
+    });
+    
+    $( "#slider_rangedate" ).on( "slidecreate", function( event, ui ) {
+        $( "#slider_rangedate" ).slider("option", "values", [rangeDateMin, rangeDateMax]);
+        $( "#slider_mindate").text(val2date($( "#slider_rangedate" ).slider( "values", 0)));
+        $( "#slider_maxdate").text(val2date($( "#slider_rangedate" ).slider( "values", 1)));
+    });
+
+    if (withLocate == false)
+        $('.openradiation_filters').css('display', 'none');
+    
     //add a message
     var openradiation_message = L.control({
         position : 'bottomleft'
@@ -163,18 +176,18 @@ function openradiation_init(withLocate)
         return div;
     };
     openradiation_message.addTo(openradiation_map); 
-    
+      
     // add a metric scale
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
        
     openradiation_map.on('popupopen', function(e) {
             $.ajax({
                 type: 'GET',
-                url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=82ace4264f1ac5f83fe3d37319784149&response=complete',
+                url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=' + apiKey + '&response=complete',
                 //dataType: "jsonp",
                 //jsonpCallback: "_test",
                 //cache: false,
-                timeout: 10000,
+                timeout: 15000,
                 success: function(res) {
 
                     var htmlPopup = "<div style=\"width:210px; overflow:auto; min-height:130px;\"><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
@@ -184,8 +197,8 @@ function openradiation_init(withLocate)
                     if (typeof(res.data.enclosedObject) != "undefined") 
                         htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
                     else
-                        htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"images/measure.png\"/></div>";
-                    htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_top\"><p>Voir plus</p><p class=\"plus\">+</p></a></div>";
+                        htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"/images/measure.png\"/></div>";
+                    htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>Voir plus</p><p class=\"plus\">+</p></a></div>";
                     htmlPopup += "</div>";
                     
                     htmlPopup += "<div style=\"width:150px; float:right; min-height:90px;\">";
@@ -241,7 +254,7 @@ function openradiation_init(withLocate)
                     
                     },
                 error: function() {
-                    alert('Error during retrieving data'); 
+                    //alert('Error during retrieving data'); 
                     }
                 });           
     });
@@ -249,7 +262,7 @@ function openradiation_init(withLocate)
 
 
 var urlprecedente= "";
-setInterval(function(){ openradiation_getItems(); }, 5000);
+setInterval(function(){ openradiation_getItems(false); }, 5000);
 
 function getUrl()
 {
@@ -285,7 +298,8 @@ function getUrl()
     var minDate = $("#slider_mindate").text();
     if (minDate != "" && minDate != "- ∞" && minDate != "maintenant")
     {
-        var nbHours = Math.exp((40 - $( "#slider_rangedate" ).slider( "values", 0) ) / 3) - 1;
+        //var nbHours = Math.exp((40 - $( "#slider_rangedate" ).slider( "values", 0) ) / 3) - 1;
+        var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 0) ) / 9) - 1;
         var NbSecond = Math.round(nbHours * 3600);
         var now =  new Date();
         now.setMilliseconds(0);
@@ -299,7 +313,8 @@ function getUrl()
     var maxDate = $("#slider_maxdate").text();
     if (maxDate != "" && maxDate != "- ∞" && maxDate != "maintenant")
     {
-        var nbHours = Math.exp((40 - $( "#slider_rangedate" ).slider( "values", 1) ) / 3) - 1;
+        //var nbHours = Math.exp((40 - $( "#slider_rangedate" ).slider( "values", 1) ) / 3) - 1;
+        var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 1) ) / 9) - 1;
         var NbSecond = Math.round(nbHours * 3600);
         var now =  new Date();
         now.setMilliseconds(0);
@@ -313,7 +328,7 @@ function getUrl()
     return urlTemp;
 }
 
-function openradiation_getItems()
+function openradiation_getItems(fitBounds)
 {
     var urlTemp = getUrl();
      
@@ -322,13 +337,15 @@ function openradiation_getItems()
         $("#nbresults").text("...");
         $.ajax({
         type: 'GET',
-        url: '/measurements?apiKey=82ace4264f1ac5f83fe3d37319784149' + urlTemp, 
+        url: '/measurements?apiKey=' + apiKey + urlTemp, 
         cache: false,
-        timeout: 5000,
+        timeout: 15000,
         success: function(res) {
             
             if (res.data.length < 2)
                 $("#nbresults").text(res.data.length + " mesure trouvée");
+            else if (res.maxNumber == res.data.length)
+                $("#nbresults").text(res.data.length + " mesures affichées (non exhaustif)");
             else
                 $("#nbresults").text(res.data.length + " mesures trouvées");
              
@@ -358,23 +375,61 @@ function openradiation_getItems()
                 {
                     var htmlPopup = "<div></div>";
                     var icon;
-                    if (res.data[i].value >= 2)
-                        icon = icon4;
-                    else if (res.data[i].value >= 0.2)
-                        icon = icon3;
-                    else if (res.data[i].value >= 0.04)
-                        icon = icon2;
-                    else
-                        icon = icon1;
+                    
+                    var nSvValue = res.data[i].value * 1000;
+                    //16 colours classes depending value in nSv/h
+                    if (nSvValue < 0.395612425)
+                        icon = icon_1;
+                    else if (nSvValue < 1.718281828) 
+                        icon = icon_2;
+                    else if (nSvValue < 4.29449005)
+                        icon = icon_3;
+                    else if (nSvValue < 9.312258501) 
+                        icon = icon_4;
+                    else if (nSvValue < 19.08553692) 
+                        icon = icon_5;
+                    else if (nSvValue < 38.121284) 
+                        icon = icon_6;
+                    else if (nSvValue < 75.19785657) 
+                        icon = icon_7;
+                    else if (nSvValue < 147.4131591) 
+                        icon = icon_8;
+                    else if (nSvValue < 288.0693621) 
+                        icon = icon_9;
+                    else if (nSvValue < 562.0302368) 
+                        icon = icon_10;
+                    else if (nSvValue < 1095.633158)
+                        icon = icon_11;
+                    else if (nSvValue < 2134.949733) 
+                        icon = icon_12;
+                    else if (nSvValue < 4159.262005) 
+                        icon = icon_13;
+                    else if (nSvValue < 8102.083928) 
+                        icon = icon_14;
+                    else if (nSvValue < 15781.6524) 
+                        icon = icon_15;
+                    else 
+                        icon = icon_16;
               
                     var marker = L.marker([res.data[i].latitude, res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
                         .bindPopup(htmlPopup);
                     marker.reportUuid = res.data[i].reportUuid;
                 }
             }
+            
+            if (fitBounds)
+            {
+                var bounds = [];
+                for (i=0; i < res.data.length; i++)
+                {
+                    bounds.push([res.data[i].latitude, res.data[i].longitude]);
+                }
+                openradiation_map.fitBounds(bounds, { maxZoom: 13 } );
+            }
+            
         },
         error: function() {
-            alert('Error during retrieving data'); 
+            //alert('Error during retrieving data'); 
             }
         });
     }
@@ -393,49 +448,47 @@ function val2uSv(val)
 }
 
 function val2date(val)
-{
-    var heure = Math.exp((40 - val) / 3) - 1; // this is the nb hour from now
+{    
+    //var hour = Math.exp((40 - val) / 3) - 1; // this is the nb hour from now
+    var hour = Math.exp((100 - val) / 9) - 1;
     
-    if (heure == 0)
+    if (hour == 0)
         return "maintenant";
-    else if (heure < 0.4)
-        return Math.round(heure*60 / 10) * 10 + " minutes";
-    else if (heure < 20)
+    else if (hour < 0.4)
+        return Math.round(hour*60 / 10) * 10 + " minutes";
+    else if (hour < 20)
     {
-        if (Math.round(heure) == 1)
+        if (Math.round(hour) == 1)
             return "1 heure";
         else
-            return Math.round(heure) + " heures";
+            return Math.round(hour) + " heures";
     }
-    else if (heure < 24*30)
+    else if (hour < 24*30)
     {
-        if (Math.round(heure / 24) == 1)
+        if (Math.round(hour / 24) == 1)
             return "1 jour";
         else
-            return Math.round(heure / 24) + " jours";   
+            return Math.round(hour / 24) + " jours";   
     }
-    else if (heure < 24*30*9)
-        return Math.round(heure / 24 / 30) + " mois";
-    else if (heure > 60000)
+    else if (hour < 24*30*9)
+        return Math.round(hour / 24 / 30) + " mois";
+    else if (hour > 60000)
         return "- ∞";
     else {
-        if (Math.round(heure /24 / 365) == 1)
+        if (Math.round(hour /24 / 365) == 1)
             return "1 an";
         else
-            return Math.round(heure /24 / 365) + " ans";
+            return Math.round(hour /24 / 365) + " ans";
     }
 }
 
 $(function() {
+
     $( "#slider_rangevalue" ).slider({
         range: true,
         min: 0,
         max: 100,
         values: [ 0, 100 ],
-        create: function( event, ui ) {
-            $( "#slider_minvalue").text(val2uSv($( "#slider_rangevalue" ).slider( "values", 0)));
-            $( "#slider_maxvalue").text(val2uSv($( "#slider_rangevalue" ).slider( "values", 1)));
-        },
         slide: function( event, ui ) {
             $( "#slider_minvalue").text(val2uSv(ui.values[0]));
             $( "#slider_maxvalue").text(val2uSv(ui.values[1]));
@@ -444,13 +497,9 @@ $(function() {
     
     $( "#slider_rangedate" ).slider({
         range: true,
-        min: 6,
-        max: 40,
-        values: [ 6, 40 ],
-        create: function( event, ui ) {
-            $( "#slider_mindate").text(val2date($( "#slider_rangedate" ).slider( "values", 0)));
-            $( "#slider_maxdate").text(val2date($( "#slider_rangedate" ).slider( "values", 1)));
-        },
+        min: 0, 
+        max: 100,
+        values: [ 0, 100 ],
         slide: function( event, ui ) {
             $( "#slider_mindate").text(val2date(ui.values[0]));
             $( "#slider_maxdate").text(val2date(ui.values[1]));
@@ -465,7 +514,7 @@ $(function() {
     
             $.ajax({
                 type: 'GET',
-                url: '/measurements?apiKey=82ace4264f1ac5f83fe3d37319784149' + urlTemp + "&response=complete&withEnclosedObject=no", 
+                url: '/measurements?apiKey=' + apiKey + urlTemp + "&response=complete&withEnclosedObject=no", 
                 cache: false,
                 timeout: 10000,
                 success: function(res) {
@@ -535,8 +584,7 @@ $(function() {
             $('.openradiation_filters').css('display', 'block');        
         }
     });
-    
-    
+     
     $( "#hide_filters" ).dblclick(function() {
         if (openradiation_map.hasLayer(interpolation))
             openradiation_map.removeLayer(interpolation);
@@ -545,7 +593,39 @@ $(function() {
     });
     
     
-    
+    $( "#permalink" ).click(function() {
+        var link = window.location.protocol + "//" + window.location.host + "/openradiation";
+        var zoom = "/" + openradiation_map.getZoom() + "/" + openradiation_map.getCenter().lat.toFixed(7) + "/" + openradiation_map.getCenter().lng.toFixed(7);
+       
+        var permalink_details = "/";
+        
+        if ($("#tag").val() != "")
+            permalink_details += $("#tag").val() +"/";
+        else
+            permalink_details += "all/";
+        
+        if ($("#userId").val() != "")
+            permalink_details += $("#userId").val() +"/";
+        else
+            permalink_details += "all/";
+        permalink_details += $("#qualification").val() + "/" + $("#atypical").val() + "/";
+        permalink_details += $( "#slider_rangevalue" ).slider( "values", 0) + "/" + $( "#slider_rangevalue" ).slider( "values", 1) + "/";
+        permalink_details += $( "#slider_rangedate" ).slider( "values", 0) + "/" + $( "#slider_rangedate" ).slider( "values", 1);
+        
+        if (permalink_details == "/all/all/all/all/0/100/0/100")
+            permalink_details = "";
+
+        if (permalink_details == "")
+            $( "#permalink-message" ).html("Lien vers cette carte : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span id=\"permalink-close\">X</span> ");
+        else
+            $( "#permalink-message" ).html("Lien vers cette carte : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> Lien vers la carte ajustée : <a target=\"_blank\" href=\"" + link + permalink_details + "\">" + link + permalink_details + "<\/a> <span id=\"permalink-close\">X</span> ");
+        
+        $( "#permalink-message" ).css("display","block");
+        $( "#permalink-close" ).click(function() {
+            $( "#permalink-message" ).css("display","none");
+        });
+
+    });
 });
 
    

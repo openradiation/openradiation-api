@@ -42,7 +42,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>tags</td><td>Json array of string</td><td></td><td></td><td>Free tags list [tag1 ; tag2] (only if userId is specified)</td></tr>
 <tr><td>enclosedObject</td><td>String</td><td></td><td></td><td>Base64 encoded Image. The size shoudn't exceeded 1mb and format should be closed from 600*800 pixels (width * height). The value should be a data URI scheme 'data:image/<subtype>;base64,<data>'. (only if userId is specified)</td></tr>
 <tr><td>userId</td><td>String</td><td></td><td></td><td>Openradiation.org user id</td></tr>
-<tr><td>userPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org MD5 password (mandatory if userId is specified)</td></tr>
+<tr><td>userPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org plain text password or SHA-256 password (mandatory if userId is specified)</td></tr>
 <tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement environment : countryside, city, ontheroad, inside, plane. (if plane, qualification is set to noenvironmentalcontext and qualificationVotesNumber is set to 0)</td></tr>
 <tr><td>dateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
 <tr><td>qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
