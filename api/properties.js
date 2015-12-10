@@ -18,7 +18,7 @@ module.exports = {
     mappingFeature:true, //if the feature requestAPI is available
     submitFormFeature:true, //if the feature submitForm is available
     mappingURL:"https://localhost:8080", //mapping URL
-    submitAPIHost:"localhost", //submitAPI contacted via post forms
+    submitAPIHost:"127.0.0.1", //submitAPI contacted via post forms
     submitAPIPort:8080, //submitAPI contacted via post forms
     version: "v0.1"
 }

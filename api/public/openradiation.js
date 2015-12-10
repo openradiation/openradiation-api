@@ -70,7 +70,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
    
     //add an interpolation map layer
     interpolation = 
-      new L.TileLayer('i/{z}/{x}/{y}.png',
+      new L.TileLayer('/i/{z}/{x}/{y}.png',
       {
         opacity: 0.6
       });

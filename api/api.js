@@ -155,6 +155,109 @@ verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
     return false;
 };
 
+
+//to decrease computation time password are stored 10 to 12 minutes
+var passwords = {};
+deletePasswords = function() {
+    
+    for (var i in passwords)
+    {
+        var now = new Date();
+        if (passwords[i].getTime() + 600000 < now.getTime())
+            delete passwords[i];
+    }
+};
+setInterval(deletePasswords, 120000); //every 2 minutes
+
+//password_crypt impementation of the php drupal algorithm
+//see https://api.drupal.org/api/drupal/includes!password.inc/function/_password_crypt/7
+var isPasswordValid = function(password, userPwd) {
+
+    var passwordKey = password + userPwd;
+    if (passwordKey in passwords)
+    {
+        passwords[passwordKey] = new Date();
+        return true;
+    }
+    var CryptoJS = require("crypto-js");
+    var SHA512 = require("crypto-js/sha512");
+        
+    var itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    
+    function convertWordArrayToUint8Array(wordArray) {
+        var len = wordArray.words.length,
+        u8_array = new Uint8Array(len << 2),
+        offset = 0, word, i;
+        for (i=0; i<len; i++) {
+            word = wordArray.words[i];
+            u8_array[offset++] = word >> 24;
+            u8_array[offset++] = (word >> 16) & 0xff;
+            u8_array[offset++] = (word >> 8) & 0xff;
+            u8_array[offset++] = word & 0xff;
+        }
+        return u8_array;
+    }
+
+    //base 64 encoding with drupal's method : this function is strictly the same than https://api.drupal.org/api/drupal/includes!password.inc/function/_password_base64_encode/7
+    function _password_base64_encode(input) {
+
+        var count = input.length;
+        var output = '';
+        var i = 0;
+        
+        do {
+            var value = input[i++];
+            output += itoa64[value & 0x3f];
+            if (i < count) {
+              value |= input[i] << 8;
+            }
+            output += itoa64[(value >> 6) & 0x3f];
+            if (i++ >= count) {
+              break;
+            }
+            if (i < count) {
+              value |= input[i] << 16;
+            }
+            output += itoa64[(value >> 12) & 0x3f];
+            if (i++ >= count) {
+              break;
+            }
+            output += itoa64[(value >> 18) & 0x3f];
+        }
+        while (i < count);
+    
+        return output;
+    }
+
+    if (userPwd.length != 55 || userPwd.substring(0,3) != "$S$")
+    {
+        console.error("isPasswordValid detect an invalid userPwd format");
+        return false;
+    }   
+    
+    var count_log2 = itoa64.indexOf(userPwd.substring(3,4));
+    if (count_log2 < 0)
+    {
+        console.error("isPasswordValid detect an invalid userPwd");
+        return false;
+    }    
+    
+    var salt = userPwd.substring(4,12);
+    var hash = SHA512(salt + password);
+    for (var i = 0; i < Math.pow(2,count_log2); i++)
+    {
+        hash = SHA512(hash.concat(CryptoJS.enc.Utf8.parse(password)));
+    } 
+    var base64 = _password_base64_encode(convertWordArrayToUint8Array(hash)); 
+    if (userPwd == userPwd.substring(0,12) + base64.substr(0,43))
+    {
+        passwords[password + userPwd] = new Date();
+        return true;
+    }
+    else
+        return false;
+}
+
 verifyData = function(res, json, isMandatory, dataName) {
        
     if (json[dataName] != null && typeof(json[dataName]) == "string" && json[dataName] == "")
@@ -443,7 +546,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 for (var i = 0; i < users.length; i++) {
                     if (users[i].userId == json["userId"]) {
-                        if ((users[i].userPwd.toLowerCase() == json["userPwd"].toLowerCase()) || (users[i].userPwd.toLowerCase() == SHA256(json["userPwd"]))) //userPwd can be send as it is or in sha256
+                        if (isPasswordValid(json["userPwd"],users[i].userPwd)) //userPwd is encrypted with openradiation.org method and compared to stored encrypted password
                             return true;
                         else
                             break;
@@ -1077,7 +1180,7 @@ if (properties.submitApiFeature) {
 
     app.put('/users', function (req, res, next) {
       
-        console.log("appel PUT USERS");
+        console.log(new Date().toISOString() + "PUT /users");
        
         if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
         {
@@ -1095,7 +1198,7 @@ if (properties.submitApiFeature) {
                     res.status(400).json({ error: {code:"101", message:"data should be an array"}}); 
                 } else {
                     console.log("3");
-                    //first check validity
+                    //1. check validity
                     var isValid = true;
                     for (i = 0; i < req.body.data.length; i++) 
                     {
@@ -1118,7 +1221,7 @@ if (properties.submitApiFeature) {
                             break;
                     }
                     
-                    //second insert users in APIUSERS table
+                    //2. insert users in APIUSERS table
                     if (isValid)
                     {
                         console.log("4");
@@ -1215,13 +1318,14 @@ if (properties.submitFormFeature) {
     });
     
     //sample : https://localhost:8080/test/6/46.6094640/2.4718880/0.45/2015-10-05T13:49:59Z
-    app.get('/test/:zoom/:latitude/:longitude/:value/:startTime', function (req, res, next) { 
-
-        if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
-         && (isNaN(req.params.latitude) == false)
-         && (isNaN(req.params.longitude) == false)
-         && (isNaN(req.params.value) == false)
-         && (new Date(req.params.startTime) != "Invalid Date"))
+    //sample : https://localhost:8080/testme?zoom=6&latitude=46.6094640&longitude=2.3718880&value=0.45&startTime=2015-10-05T13:49:59Z
+    //app.get('/test/:zoom/:latitude/:longitude/:value/:startTime', function (req, res, next) { 
+    app.get('/testme', function (req, res, next) { 
+        if ((req.query.zoom != null && isNaN(req.query.zoom) == false && parseFloat(req.query.zoom) == parseInt(req.query.zoom) && parseInt(req.query.zoom) >=0 && parseInt(req.query.zoom) <= 18)
+         && (req.query.latitude != null && isNaN(req.query.latitude) == false)
+         && (req.query.longitude != null && isNaN(req.query.longitude) == false)
+         && (req.query.value != null && isNaN(req.query.value) == false)
+         && (req.query.startTime != null && new Date(req.query.startTime) != "Invalid Date"))
         {  
             var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
@@ -1232,10 +1336,10 @@ if (properties.submitFormFeature) {
                 "apiKey": openradiationApiKey,
                 "data": {
                     "reportUuid": uuid,
-                    "latitude": parseFloat(req.params.latitude),
-                    "longitude": parseFloat(req.params.longitude),
-                    "value": parseFloat(req.params.value),
-                    "startTime": req.params.startTime,
+                    "latitude": parseFloat(req.query.latitude),
+                    "longitude": parseFloat(req.query.longitude),
+                    "value": parseFloat(req.query.value),
+                    "startTime": req.query.startTime,
                     "organisationReporting" : "openradiation.net v1",	
                     "reportContext" : "routine"
                 }
@@ -1262,15 +1366,18 @@ if (properties.submitFormFeature) {
                 post_res.on('end', function () {
                     if (post_res.statusCode == 201)
                     {
-                        res.render('openradiation.ejs', { apiKey: openradiationApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
+                        res.render('openradiation.ejs', { apiKey: openradiationApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.query.zoom, latitude: req.query.latitude, longitude: req.query.longitude, 
                                  tag:"", userId: "", qualification: "all", atypical: "all",
                                  rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100 } );                    
                         
                     } else {
-                        console.error("Error while posting measurement : (" + post_res.statusCode  + ") " + result);
+                        console.error("Error after posting measurement : (" + post_res.statusCode  + ") " + result);
                         res.status(500).end();
                     }    
                 });
+            }).on('error', function(e) {
+                console.error("Error while trying to post measurement : " + e.message);
+                res.status(500).end();
             });
              
             // post the data
@@ -1286,7 +1393,7 @@ if (properties.submitFormFeature) {
     });
     
     app.post('/upload', upload.single('file'), function(req, res, next) {
-        console.log("POST /upload");
+        console.log(new Date().toISOString() + "POST /upload");
         
         var message = "";
         var tags = [];      
@@ -1440,6 +1547,9 @@ if (properties.submitFormFeature) {
                                                     callback();
                                                 }    
                                             });
+                                        }).on('error', function(e) {
+                                            console.error("Error while trying to post measurement : " + e.message);
+                                            res.status(500).end();
                                         });
                                              
                                         // post the data
@@ -1777,8 +1887,9 @@ var certificate = fs.readFileSync(__dirname + '/' + properties.certCrtFile, 'utf
 var credentials = {key: privateKey, cert: certificate};
 var httpsServer = https.createServer(credentials, app);
 
+httpsServer.timeout = 600000; // ten minutes before timeout (used when we post files, default is 120000)
+
 httpsServer.listen(properties.port, function() {
-    httpsServer.setTimeout(600000); // ten minutes before timeout (used when we post files)
     
     console.log(new Date().toISOString() + " - *** OpenRadiation API started with parameters : ");
     console.log(new Date().toISOString() + " -    port                 : [" + properties.port + "]");
