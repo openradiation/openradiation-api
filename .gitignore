@@ -6,6 +6,8 @@ api/public/bootstrap-3.3.4-dist.zip
 api/public/test.js
 api/views/test.ejs
 api/public/png
+api/public/png/*
+api/public/robots.txt
 backend/*
 backend
 interpolation/*

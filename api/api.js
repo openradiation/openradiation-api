@@ -13,8 +13,11 @@ var fs = require('fs');
 var PNG = require('node-png/lib/png').PNG;
 var https = require('https');
 var http = require('http');
+var CryptoJS = require("crypto-js");
 var SHA256 = require("crypto-js/sha256");
-
+var SHA512 = require("crypto-js/sha512");
+var itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    
 var conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
 var app = express();
 app.use(bodyParser.json({strict: true, limit: '2mb'})); // enclosedObject shouldn't exceeded 1mb, but total space is higher with the base64 encoding
@@ -42,6 +45,7 @@ var apiKeyTestCounter = 0;
 var apiKeyTestDate;
 
 getAPI = function() {
+    console.log(new Date().toISOString() + " - getAPI() : begin"); 
     pg.connect(conStr, function(err, client, done) {
         if (err) {
             done();
@@ -63,6 +67,7 @@ getAPI = function() {
             });
         }
     });
+    console.log(new Date().toISOString() + " - getAPI() : end");
 };
 
 getAPI();
@@ -72,6 +77,7 @@ setInterval(getAPI, properties.getAPIInterval); //every ten minutes
 var users = [];
 
 getUsers = function() {
+    console.log(new Date().toISOString() + " - getUsers() : begin");
     pg.connect(conStr, function(err, client, done) {
         if (err) {
             done();
@@ -88,6 +94,7 @@ getUsers = function() {
             });
         }
     });
+    console.log(new Date().toISOString() + " - getUsers() : end");
 };
 
 getUsers();
@@ -130,6 +137,7 @@ verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
             pg.connect(conStr, function(err, client, done) {
                 if (err)
                 {
+                    done();
                     console.error("Could not connect to PostgreSQL", err);
                     return false;
                 } else {
@@ -156,21 +164,67 @@ verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
 };
 
 
+//password_crypt impementation of the php drupal algorithm
+//see https://api.drupal.org/api/drupal/includes!password.inc/function/_password_crypt/7
 //to decrease computation time password are stored 10 to 12 minutes
 var passwords = {};
 deletePasswords = function() {
-    
+    console.log(new Date().toISOString() + " - deletePasswords() : begin");
     for (var i in passwords)
     {
         var now = new Date();
         if (passwords[i].getTime() + 600000 < now.getTime())
             delete passwords[i];
     }
+    console.log(new Date().toISOString() + " - deletePasswords() : end");
 };
 setInterval(deletePasswords, 120000); //every 2 minutes
 
-//password_crypt impementation of the php drupal algorithm
-//see https://api.drupal.org/api/drupal/includes!password.inc/function/_password_crypt/7
+function convertWordArrayToUint8Array(wordArray) {
+    var len = wordArray.words.length,
+    u8_array = new Uint8Array(len << 2),
+    offset = 0, word, i;
+    for (i=0; i<len; i++) {
+        word = wordArray.words[i];
+        u8_array[offset++] = word >> 24;
+        u8_array[offset++] = (word >> 16) & 0xff;
+        u8_array[offset++] = (word >> 8) & 0xff;
+        u8_array[offset++] = word & 0xff;
+    }
+    return u8_array;
+}
+
+//base 64 encoding with drupal's method : this function is strictly the same than https://api.drupal.org/api/drupal/includes!password.inc/function/_password_base64_encode/7
+function _password_base64_encode(input) {
+
+    var count = input.length;
+    var output = '';
+    var i = 0;
+    
+    do {
+        var value = input[i++];
+        output += itoa64[value & 0x3f];
+        if (i < count) {
+          value |= input[i] << 8;
+        }
+        output += itoa64[(value >> 6) & 0x3f];
+        if (i++ >= count) {
+          break;
+        }
+        if (i < count) {
+          value |= input[i] << 16;
+        }
+        output += itoa64[(value >> 12) & 0x3f];
+        if (i++ >= count) {
+          break;
+        }
+        output += itoa64[(value >> 18) & 0x3f];
+    }
+    while (i < count);
+
+    return output;
+}
+    
 var isPasswordValid = function(password, userPwd) {
 
     var passwordKey = password + userPwd;
@@ -178,55 +232,6 @@ var isPasswordValid = function(password, userPwd) {
     {
         passwords[passwordKey] = new Date();
         return true;
-    }
-    var CryptoJS = require("crypto-js");
-    var SHA512 = require("crypto-js/sha512");
-        
-    var itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    
-    function convertWordArrayToUint8Array(wordArray) {
-        var len = wordArray.words.length,
-        u8_array = new Uint8Array(len << 2),
-        offset = 0, word, i;
-        for (i=0; i<len; i++) {
-            word = wordArray.words[i];
-            u8_array[offset++] = word >> 24;
-            u8_array[offset++] = (word >> 16) & 0xff;
-            u8_array[offset++] = (word >> 8) & 0xff;
-            u8_array[offset++] = word & 0xff;
-        }
-        return u8_array;
-    }
-
-    //base 64 encoding with drupal's method : this function is strictly the same than https://api.drupal.org/api/drupal/includes!password.inc/function/_password_base64_encode/7
-    function _password_base64_encode(input) {
-
-        var count = input.length;
-        var output = '';
-        var i = 0;
-        
-        do {
-            var value = input[i++];
-            output += itoa64[value & 0x3f];
-            if (i < count) {
-              value |= input[i] << 8;
-            }
-            output += itoa64[(value >> 6) & 0x3f];
-            if (i++ >= count) {
-              break;
-            }
-            if (i < count) {
-              value |= input[i] << 16;
-            }
-            output += itoa64[(value >> 12) & 0x3f];
-            if (i++ >= count) {
-              break;
-            }
-            output += itoa64[(value >> 18) & 0x3f];
-        }
-        while (i < count);
-    
-        return output;
     }
 
     if (userPwd.length != 55 || userPwd.substring(0,3) != "$S$")
@@ -620,7 +625,7 @@ verifyData = function(res, json, isMandatory, dataName) {
 //5. request API
 if (properties.requestApiFeature) {
     app.get('/measurements/:reportUuid', function (req, res, next) {
-       
+        console.log(new Date().toISOString() + " - GET /measurements/:reportUuid : begin");
         if (typeof(req.query.apiKey) != "string")
         {
             res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
@@ -696,11 +701,12 @@ if (properties.requestApiFeature) {
                 });
             }
         }
+        console.log(new Date().toISOString() + " - GET /measurements/:reportUuid : end");
     });
 
     //http://localhost:8080/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434&minLatitude=3.4&maxStartTime=2015-04-19T11:49:59Z&minStartTime=2015-04-19T11:49:59.005Z&response=complete
     app.get('/measurements', function (req, res, next) {
-       
+        console.log(new Date().toISOString() + " - GET /measurements : begin");
         if (typeof(req.query.apiKey) != "string")
         {
             res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
@@ -900,7 +906,6 @@ if (properties.requestApiFeature) {
                                             console.error("Error while running query " + sql, err);
                                             res.status(500).end();
                                         } else {
-                                            //var t = 0;
                                             var tmp_tags = {};
                                             for (t = 0; t < result2.rows.length; t++)
                                             {
@@ -956,13 +961,14 @@ if (properties.requestApiFeature) {
                 });
             }
         }
+        console.log(new Date().toISOString() + " - GET /measurements : end");
     });
 }
 
 //6. submit API
 if (properties.submitApiFeature) {
     app.post('/measurements', function (req, res, next) {
-        //console.log(new Date().toISOString() + " - POST /measurements : ");
+        console.log(new Date().toISOString() + " - POST /measurements : begin");
         if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
         {
             res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
@@ -1176,12 +1182,12 @@ if (properties.submitApiFeature) {
                 }
             }
         }
+        console.log(new Date().toISOString() + " - POST /measurements : end");
     });
 
     app.put('/users', function (req, res, next) {
       
-        console.log(new Date().toISOString() + "PUT /users");
-       
+        console.log(new Date().toISOString() + " - PUT /users : begin");
         if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
         {
             res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
@@ -1266,10 +1272,11 @@ if (properties.submitApiFeature) {
                 }
             }
         }
+        console.log(new Date().toISOString() + " - PUT /users : end");
     });
 
     app.post('/measurements/:reportUuid', function (req, res, next) {
-       
+        console.log(new Date().toISOString() + " - POST /measurements/:reportUuid : begin");
         if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
         {
             res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
@@ -1308,19 +1315,23 @@ if (properties.submitApiFeature) {
                 });
             }
         }
+        console.log(new Date().toISOString() + " - POST /measurements/:reportUuid : end");
     });
 }
 
 //7. submit Form
 if (properties.submitFormFeature) {
     app.get('/test', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /test : begin");
         res.render('test.ejs');
+        console.log(new Date().toISOString() + " - GET /test : end");
     });
     
     //sample : https://localhost:8080/test/6/46.6094640/2.4718880/0.45/2015-10-05T13:49:59Z
     //sample : https://localhost:8080/testme?zoom=6&latitude=46.6094640&longitude=2.3718880&value=0.45&startTime=2015-10-05T13:49:59Z
     //app.get('/test/:zoom/:latitude/:longitude/:value/:startTime', function (req, res, next) { 
     app.get('/testme', function (req, res, next) { 
+        console.log(new Date().toISOString() + " - GET /testme : begin");
         if ((req.query.zoom != null && isNaN(req.query.zoom) == false && parseFloat(req.query.zoom) == parseInt(req.query.zoom) && parseInt(req.query.zoom) >=0 && parseInt(req.query.zoom) <= 18)
          && (req.query.latitude != null && isNaN(req.query.latitude) == false)
          && (req.query.longitude != null && isNaN(req.query.longitude) == false)
@@ -1386,14 +1397,17 @@ if (properties.submitFormFeature) {
         } else {
             res.status(404).end();
         }
+        console.log(new Date().toISOString() + " - GET /testme : end");
     });
 
     app.get('/upload', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /upload : begin");
         res.render('uploadfile.ejs', { userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", description:"", tags: JSON.stringify([]), result: "" });
+        console.log(new Date().toISOString() + " - GET /upload : end");
     });
     
     app.post('/upload', upload.single('file'), function(req, res, next) {
-        console.log(new Date().toISOString() + "POST /upload");
+        console.log(new Date().toISOString() + " - POST /upload : begin");
         
         var message = "";
         var tags = [];      
@@ -1549,7 +1563,7 @@ if (properties.submitFormFeature) {
                                             });
                                         }).on('error', function(e) {
                                             console.error("Error while trying to post measurement : " + e.message);
-                                            res.status(500).end();
+                                            res.status(500).end(); //todo callback ?
                                         });
                                              
                                         // post the data
@@ -1599,6 +1613,7 @@ if (properties.submitFormFeature) {
                 }
             }
         }
+        console.log(new Date().toISOString() + " - POST /upload : end");
     });
 }
 
@@ -1609,6 +1624,7 @@ if (properties.mappingFeature) {
     }
             
     app.get('/i/:z/:x/:y.png', function (req, res, next) { 
+        console.log(new Date().toISOString() + " - GET /i/:z/:x/:y.png : begin");
 
         if (isNaN(req.params.z) || isNaN(req.params.x) || isNaN(req.params.y) 
             || parseInt(req.params.z) < 0 || parseInt(req.params.z) > 16
@@ -1789,15 +1805,18 @@ if (properties.mappingFeature) {
                 filterType: 4
             }))
             .on('parsed', function() {*/
+        console.log(new Date().toISOString() + " - GET /i/:z/:x/:y.png : end");
     });
 
 
     app.get('/openradiation', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /openradiation : begin");
         res.render('openradiation.ejs', { apiKey: openradiationApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"all",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
+        console.log(new Date().toISOString() + " - GET /openradiation : end");
     });
     
     app.get('/openradiation/:zoom/:latitude/:longitude', function (req, res, next) { 
-
+        console.log(new Date().toISOString() + " - GET /openradiation/:zoom/:latitude/:longitude : begin");
         if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
          && (isNaN(req.params.latitude) == false)
          && (isNaN(req.params.longitude) == false))
@@ -1808,10 +1827,11 @@ if (properties.mappingFeature) {
         } else {
             res.status(404).end();
         }
+        console.log(new Date().toISOString() + " - GET /openradiation/:zoom/:latitude/:longitude : end");
     });   
        
     app.get('/openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) { 
-
+        console.log(new Date().toISOString() + " - GET /openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax : begin");
         if ( (req.params.qualification == "all" || req.params.qualification == "seemscorrect" || req.params.qualification == "mustbeverified" || req.params.qualification == "noenvironmentalcontext" || req.params.qualification == "badsensor" || req.params.qualification == "badprotocole" || req.params.qualification == "baddatatransmission")
           && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
           && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >=0 && parseInt(req.params.rangeValueMin) <= 100)
@@ -1835,10 +1855,13 @@ if (properties.mappingFeature) {
                                           rangeValueMin:req.params.rangeValueMin, rangeValueMax:req.params.rangeValueMax, rangeDateMin:req.params.rangeDateMin, rangeDateMax:req.params.rangeDateMax } );
         } else
             res.status(404).end();
+        console.log(new Date().toISOString() + " - GET /openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax : end");
+        
     });
     
     app.get('/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) { 
-
+        console.log(new Date().toISOString() + " - GET /openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax : begin");
+        
         if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
           && (isNaN(req.params.latitude) == false)
           && (isNaN(req.params.longitude) == false)
@@ -1865,10 +1888,12 @@ if (properties.mappingFeature) {
                                           rangeValueMin:req.params.rangeValueMin, rangeValueMax:req.params.rangeValueMax, rangeDateMin:req.params.rangeDateMin, rangeDateMax:req.params.rangeDateMax } );
         } else
             res.status(404).end();
+        
+        console.log(new Date().toISOString() + " - GET /openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax : end");
     });     
 }
 
-//9. launch server
+//9. https server
 app.use(function(err, req, res, next){
     if (err)
     {
@@ -1889,10 +1914,9 @@ var httpsServer = https.createServer(credentials, app);
 
 httpsServer.timeout = 600000; // ten minutes before timeout (used when we post files, default is 120000)
 
-httpsServer.listen(properties.port, function() {
+httpsServer.listen(properties.httpsPort, function() {
     
     console.log(new Date().toISOString() + " - *** OpenRadiation API started with parameters : ");
-    console.log(new Date().toISOString() + " -    port                 : [" + properties.port + "]");
     console.log(new Date().toISOString() + " -    login                : [" + properties.login + "]");
     console.log(new Date().toISOString() + " -    password             : [************]");
     console.log(new Date().toISOString() + " -    host                 : [" + properties.host + "]");
@@ -1917,8 +1941,24 @@ httpsServer.listen(properties.port, function() {
     console.log(new Date().toISOString() + " -    mappingURL           : [" + properties.mappingURL + "]");
     console.log(new Date().toISOString() + " -    submitAPIHost        : [" + properties.submitAPIHost + "]");
     console.log(new Date().toISOString() + " -    submitAPIPort        : [" + properties.submitAPIPort + "]");
+    console.log(new Date().toISOString() + " -    httpsPort            : [" + properties.httpsPort + "]");
+    console.log(new Date().toISOString() + " -    httpPort             : [" + properties.httpPort + "]");    
     console.log(new Date().toISOString() + " -    version              : [" + properties.version + "]");
     console.log(new Date().toISOString() + " - ****** ");
 });
+
+//10. http server
+http.createServer(http_req).listen(properties.httpPort);
+function http_req(req, res) {
+    if (req.headers.host.indexOf(":") > -1)
+        res.writeHead(301, {Location: "https://" + req.headers.host.slice(0,req.headers.host.indexOf(":")) + ":" + properties.httpsPort + req.url} );
+    else
+        res.writeHead(301, {Location: "https://" + req.headers.host + req.url} );
+    res.end();
+}
+
+
+
+
 
 

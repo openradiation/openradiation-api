@@ -74,7 +74,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
       {
         opacity: 0.6
       });
-    openradiation_map.addLayer(interpolation);
+    //openradiation_map.addLayer(interpolation);
     
     var openradiation_title = L.control({
         position : 'topleft'
@@ -181,95 +181,98 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
        
     openradiation_map.on('popupopen', function(e) {
-            $.ajax({
-                type: 'GET',
-                url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=' + apiKey + '&response=complete',
-                //dataType: "jsonp",
-                //jsonpCallback: "_test",
-                //cache: false,
-                timeout: 15000,
-                success: function(res) {
+        $.ajax({
+            type: 'GET',
+            url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=' + apiKey + '&response=complete',
+            //dataType: "jsonp",
+            //jsonpCallback: "_test",
+            //cache: false,
+            timeout: 15000,
+            success: function(res) {
 
-                    var htmlPopup = "<div style=\"width:210px; overflow:auto; min-height:130px;\"><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
-                    
-                    htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px; min-height:90px;\">";
+                var htmlPopup = "<div style=\"width:210px; overflow:auto; min-height:130px;\"><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
+                
+                htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px; min-height:90px;\">";
 
-                    if (typeof(res.data.enclosedObject) != "undefined") 
-                        htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
-                    else
-                        htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"/images/measure.png\"/></div>";
-                    htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>Voir plus</p><p class=\"plus\">+</p></a></div>";
-                    htmlPopup += "</div>";
+                if (typeof(res.data.enclosedObject) != "undefined") 
+                    htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
+                else
+                    htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"/images/measure.png\"/></div>";
+                htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>Voir plus</p><p class=\"plus\">+</p></a></div>";
+                htmlPopup += "</div>";
+                
+                htmlPopup += "<div style=\"width:150px; float:right; min-height:90px;\">";
+                
+                if (res.data.userId != null)
+                    htmlPopup += "<div><span class=\"userId\">" + res.data.userId + "</span></div>";
+                htmlPopup += "<span class=\"value\">" + res.data.value.toFixed(3).toString().replace(".",",") + " µSv/h</span><br/>";
                     
-                    htmlPopup += "<div style=\"width:150px; float:right; min-height:90px;\">";
+                if (res.data.qualification != null) {
+                    htmlPopup += "<div><span class=\"comment\">";
+                    switch (res.data.qualification) {
+                        case "seemscorrect":
+                            htmlPopup += "Semble correcte";
+                            break;
+                        case "mustbeverified":
+                            htmlPopup += "Doit être vérifiée";
+                            break;
+                        case "noenvironmentalcontext":
+                            htmlPopup += "Mesure non environnementale";
+                            break;
+                        case "badsensor":
+                            htmlPopup += "Défaut de capteur";
+                            break;
+                        case "badprotocole":
+                            htmlPopup += "Protocole non respecté";
+                            break;
+                        case "baddatatransmission":
+                            htmlPopup += "Problème de transmission de données";
+                            break;
+                    };
+                    htmlPopup += ", " + res.data.qualificationVotesNumber + " pouce";
+                    htmlPopup += res.data.qualificationVotesNumber < 2 ? "" : "s";
+                    htmlPopup += "</span></div>"
                     
-                    if (res.data.userId != null)
-                        htmlPopup += "<div><span class=\"userId\">" + res.data.userId + "</span></div>";
-                    htmlPopup += "<span class=\"value\">" + res.data.value.toFixed(3).toString().replace(".",",") + " µSv/h</span><br/>";
-                        
-                    if (res.data.qualification != null) {
-                        htmlPopup += "<div><span class=\"comment\">";
-                        switch (res.data.qualification) {
-                            case "seemscorrect":
-                                htmlPopup += "Semble correcte";
-                                break;
-                            case "mustbeverified":
-                                htmlPopup += "Doit être vérifiée";
-                                break;
-                            case "noenvironmentalcontext":
-                                htmlPopup += "Mesure non environnementale";
-                                break;
-                            case "badsensor":
-                                htmlPopup += "Défaut de capteur";
-                                break;
-                            case "badprotocole":
-                                htmlPopup += "Protocole non respecté";
-                                break;
-                            case "baddatatransmission":
-                                htmlPopup += "Problème de transmission de données";
-                                break;
-                        };
-                        htmlPopup += ", " + res.data.qualificationVotesNumber + " pouce";
-                        htmlPopup += res.data.qualificationVotesNumber < 2 ? "" : "s";
-                        htmlPopup += "</span></div>"
-                        
-                    }
+                }
+                
+                if (res.data.atypical == true)
+                    htmlPopup += "<div><span class=\"comment\">Mesure Atypique</span></div>";
                     
-                    if (res.data.atypical == true)
-                        htmlPopup += "<div><span class=\"comment\">Mesure Atypique</span></div>";
-                        
-                    if (res.data.tags != null)
+                if (res.data.tags != null)
+                {
+                    htmlPopup += "<div>";
+                    for (var i = 0; i < res.data.tags.length; i++)
                     {
-                        htmlPopup += "<div>";
-                        for (var i = 0; i < res.data.tags.length; i++)
-                        {
-                            htmlPopup += "<span class=\"tag\">#" + res.data.tags[i] + " </span>";
-                        }
-                        htmlPopup += "</div>";
+                        htmlPopup += "<span class=\"tag\">#" + res.data.tags[i] + " </span>";
                     }
                     htmlPopup += "</div>";
-                    htmlPopup += "</div>";
-                    console.log(htmlPopup);
-                    e.popup.setContent(htmlPopup);
-                    
-                    },
-                error: function() {
-                    //alert('Error during retrieving data'); 
-                    }
-                });           
+                }
+                htmlPopup += "</div>";
+                htmlPopup += "</div>";
+                console.log(htmlPopup);
+                e.popup.setContent(htmlPopup);
+                
+            },
+            error: function(res, status, err) {
+                console.log(err + " : " + status); 
+            }
+        });           
     });
 };
 
+var urlPrev = "null";
+var minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -180, maxLongitudePrev = +180;
+var exhaustiveResultsPrev = false;
 
-var urlprecedente= "";
 setInterval(function(){ openradiation_getItems(false); }, 5000);
 
 function getUrl()
 {
-    var urlTemp = "&minLatitude=" + openradiation_map.getBounds().getSouth() 
-                + "&maxLatitude=" + openradiation_map.getBounds().getNorth() 
-                + "&minLongitude=" + openradiation_map.getBounds().getWest() 
-                + "&maxLongitude=" + openradiation_map.getBounds().getEast();
+    //var urlTemp = "&minLatitude=" + openradiation_map.getBounds().getSouth() 
+    //            + "&maxLatitude=" + openradiation_map.getBounds().getNorth() 
+    //            + "&minLongitude=" + openradiation_map.getBounds().getWest() 
+    //            + "&maxLongitude=" + openradiation_map.getBounds().getEast();
+    var urlTemp = "";
     
     var tag = $("#tag").val();
     if (tag != "")
@@ -298,7 +301,6 @@ function getUrl()
     var minDate = $("#slider_mindate").text();
     if (minDate != "" && minDate != "- ∞" && minDate != "maintenant")
     {
-        //var nbHours = Math.exp((40 - $( "#slider_rangedate" ).slider( "values", 0) ) / 3) - 1;
         var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 0) ) / 9) - 1;
         var NbSecond = Math.round(nbHours * 3600);
         var now =  new Date();
@@ -313,7 +315,6 @@ function getUrl()
     var maxDate = $("#slider_maxdate").text();
     if (maxDate != "" && maxDate != "- ∞" && maxDate != "maintenant")
     {
-        //var nbHours = Math.exp((40 - $( "#slider_rangedate" ).slider( "values", 1) ) / 3) - 1;
         var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 1) ) / 9) - 1;
         var NbSecond = Math.round(nbHours * 3600);
         var now =  new Date();
@@ -328,111 +329,176 @@ function getUrl()
     return urlTemp;
 }
 
+function retrieve_items(urlTemp, fitBounds) {
+
+    console.log("retrieve items");
+    urlPrev = urlTemp;
+    minLatitudePrev = openradiation_map.getBounds().getSouth();
+    maxLatitudePrev = openradiation_map.getBounds().getNorth();
+    minLongitudePrev = openradiation_map.getBounds().getWest();
+    maxLongitudePrev = openradiation_map.getBounds().getEast();
+    
+    $("#nbresults").text("...");
+    $.ajax({
+    type: 'GET',
+    url: '/measurements?apiKey=' + apiKey 
+            + "&minLatitude=" + openradiation_map.getBounds().getSouth() 
+            + "&maxLatitude=" + openradiation_map.getBounds().getNorth() 
+            + "&minLongitude=" + openradiation_map.getBounds().getWest() 
+            + "&maxLongitude=" + openradiation_map.getBounds().getEast() 
+            + urlTemp, 
+    //cache: false,
+    timeout: 15000,
+    success: function(res, statut) {
+        
+        if (res.data.length < 2)
+        {
+            exhaustiveResultsPrev = true;
+            $("#nbresults").text(res.data.length + " mesure trouvée");
+        }
+        else if (res.maxNumber == res.data.length)
+        { 
+            exhaustiveResultsPrev = false;
+            $("#nbresults").text(res.data.length + " mesures affichées (non exhaustif)");
+        }
+        else
+        {
+            exhaustiveResultsPrev = true;
+            $("#nbresults").text(res.data.length + " mesures trouvées");
+        }
+        
+        //list all new items
+        var openradiation_newitems = [];
+        for (i=0; i < res.data.length; i++)
+        {
+            openradiation_newitems.push(res.data[i].reportUuid);
+        }
+        
+        //for each old item
+        var openradiation_olditems = [];
+        openradiation_map.eachLayer(function (layer) {               
+            if (layer.reportUuid != null)
+            {
+                if (openradiation_newitems.indexOf(layer.reportUuid) == -1)
+                    openradiation_map.removeLayer(layer);
+                else
+                    openradiation_olditems.push(layer.reportUuid);
+            }
+        });
+        
+        //for each new item
+        for (i=0; i < res.data.length; i++)
+        {
+            if (openradiation_olditems.indexOf(res.data[i].reportUuid) == -1)
+            {
+                var htmlPopup = "<div></div>";
+                var icon;
+                
+                var nSvValue = res.data[i].value * 1000;
+                //16 colours classes depending value in nSv/h
+                if (nSvValue < 0.395612425)
+                    icon = icon_1;
+                else if (nSvValue < 1.718281828) 
+                    icon = icon_2;
+                else if (nSvValue < 4.29449005)
+                    icon = icon_3;
+                else if (nSvValue < 9.312258501) 
+                    icon = icon_4;
+                else if (nSvValue < 19.08553692) 
+                    icon = icon_5;
+                else if (nSvValue < 38.121284) 
+                    icon = icon_6;
+                else if (nSvValue < 75.19785657) 
+                    icon = icon_7;
+                else if (nSvValue < 147.4131591) 
+                    icon = icon_8;
+                else if (nSvValue < 288.0693621) 
+                    icon = icon_9;
+                else if (nSvValue < 562.0302368) 
+                    icon = icon_10;
+                else if (nSvValue < 1095.633158)
+                    icon = icon_11;
+                else if (nSvValue < 2134.949733) 
+                    icon = icon_12;
+                else if (nSvValue < 4159.262005) 
+                    icon = icon_13;
+                else if (nSvValue < 8102.083928) 
+                    icon = icon_14;
+                else if (nSvValue < 15781.6524) 
+                    icon = icon_15;
+                else 
+                    icon = icon_16;
+          
+                var marker = L.marker([res.data[i].latitude, res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
+                    .bindPopup(htmlPopup);
+                marker.reportUuid = res.data[i].reportUuid;
+            }
+        }
+        
+        if (fitBounds)
+        {
+            var bounds = [];
+            for (i=0; i < res.data.length; i++)
+            {
+                bounds.push([res.data[i].latitude, res.data[i].longitude]);
+            }
+            openradiation_map.fitBounds(bounds, { maxZoom: 13 } );
+        }
+        
+    },
+    error: function() {
+        //alert('Error during retrieving data'); 
+        }
+    });
+}
+
 function openradiation_getItems(fitBounds)
 {
     var urlTemp = getUrl();
-     
-    if (urlTemp != urlprecedente) {
-        urlprecedente = urlTemp;
-        $("#nbresults").text("...");
-        $.ajax({
-        type: 'GET',
-        url: '/measurements?apiKey=' + apiKey + urlTemp, 
-        cache: false,
-        timeout: 15000,
-        success: function(res) {
-            
-            if (res.data.length < 2)
-                $("#nbresults").text(res.data.length + " mesure trouvée");
-            else if (res.maxNumber == res.data.length)
-                $("#nbresults").text(res.data.length + " mesures affichées (non exhaustif)");
-            else
-                $("#nbresults").text(res.data.length + " mesures trouvées");
-             
-            //list all new items
-            var openradiation_newitems = [];
-            for (i=0; i < res.data.length; i++)
-            {
-                openradiation_newitems.push(res.data[i].reportUuid);
-            }
-            
-            //for each old item
-            var openradiation_olditems = [];
-            openradiation_map.eachLayer(function (layer) {               
-                if (layer.reportUuid != null)
-                {
-                    if (openradiation_newitems.indexOf(layer.reportUuid) == -1)
-                        openradiation_map.removeLayer(layer);
-                    else
-                        openradiation_olditems.push(layer.reportUuid);
-                }
-            });
-            
-            //for each new item
-            for (i=0; i < res.data.length; i++)
-            {
-                if (openradiation_olditems.indexOf(res.data[i].reportUuid) == -1)
-                {
-                    var htmlPopup = "<div></div>";
-                    var icon;
-                    
-                    var nSvValue = res.data[i].value * 1000;
-                    //16 colours classes depending value in nSv/h
-                    if (nSvValue < 0.395612425)
-                        icon = icon_1;
-                    else if (nSvValue < 1.718281828) 
-                        icon = icon_2;
-                    else if (nSvValue < 4.29449005)
-                        icon = icon_3;
-                    else if (nSvValue < 9.312258501) 
-                        icon = icon_4;
-                    else if (nSvValue < 19.08553692) 
-                        icon = icon_5;
-                    else if (nSvValue < 38.121284) 
-                        icon = icon_6;
-                    else if (nSvValue < 75.19785657) 
-                        icon = icon_7;
-                    else if (nSvValue < 147.4131591) 
-                        icon = icon_8;
-                    else if (nSvValue < 288.0693621) 
-                        icon = icon_9;
-                    else if (nSvValue < 562.0302368) 
-                        icon = icon_10;
-                    else if (nSvValue < 1095.633158)
-                        icon = icon_11;
-                    else if (nSvValue < 2134.949733) 
-                        icon = icon_12;
-                    else if (nSvValue < 4159.262005) 
-                        icon = icon_13;
-                    else if (nSvValue < 8102.083928) 
-                        icon = icon_14;
-                    else if (nSvValue < 15781.6524) 
-                        icon = icon_15;
-                    else 
-                        icon = icon_16;
-              
-                    var marker = L.marker([res.data[i].latitude, res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
-                        .bindPopup(htmlPopup);
-                    marker.reportUuid = res.data[i].reportUuid;
-                }
-            }
-            
-            if (fitBounds)
-            {
-                var bounds = [];
-                for (i=0; i < res.data.length; i++)
-                {
-                    bounds.push([res.data[i].latitude, res.data[i].longitude]);
-                }
-                openradiation_map.fitBounds(bounds, { maxZoom: 13 } );
-            }
-            
-        },
-        error: function() {
-            //alert('Error during retrieving data'); 
+    
+    // we retrieve results if filters are differents
+    //     or bounds are greater than the next request
+    //     or bounds are lower and results were not exhaustive and some items are not included in the new bounds    
+    if (urlTemp != urlPrev)
+        retrieve_items(urlTemp, fitBounds);
+    else if (openradiation_map.getBounds().getSouth() < minLatitudePrev 
+       || openradiation_map.getBounds().getNorth() > maxLatitudePrev
+       || openradiation_map.getBounds().getWest() < minLongitudePrev
+       || openradiation_map.getBounds().getEast() > maxLongitudePrev)
+        retrieve_items(urlTemp, fitBounds);
+    else if (openradiation_map.getBounds().getSouth() > minLatitudePrev
+       || openradiation_map.getBounds().getNorth() < maxLatitudePrev 
+       || openradiation_map.getBounds().getWest() > minLongitudePrev
+       || openradiation_map.getBounds().getEast() < maxLongitudePrev)
+    {
+        var nb = 0;
+        var not_included = false;
+        openradiation_map.eachLayer(function (layer) {               
+            if (layer.reportUuid != null) {
+                if (layer.getLatLng().lon < openradiation_map.getBounds().getWest()
+               || layer.getLatLng().lon > openradiation_map.getBounds().getEast()
+               || layer.getLatLng().lat < openradiation_map.getBounds().getSouth()
+               || layer.getLatLng().lat > openradiation_map.getBounds().getNorth())
+                    not_included = true;
+                else
+                    nb++;
             }
         });
-    }
+               
+        if (exhaustiveResultsPrev == false && not_included == true)
+            retrieve_items(urlTemp, fitBounds);
+        else {
+            if (exhaustiveResultsPrev) {
+                console.log("modification sans recherche");
+                if (nb < 2)
+                    $("#nbresults").text(nb + " mesure trouvée");
+                else
+                    $("#nbresults").text(nb + " mesures trouvées");
+            } else
+                console.log("pas de modif (non exhaustif)");
+        }
+    } else
+        console.log("pas de changement");
 };
 
 function val2uSv(val)

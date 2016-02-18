@@ -1,5 +1,5 @@
 module.exports = {
-    port : 8080,
+    
     login: "submitapi", //PgSQL
     password: "submitapi", //PgSQL
     host: "localhost", //PgSQL
@@ -8,7 +8,6 @@ module.exports = {
     getUsersInterval: 600000, //Users Table is reloaded every ten minutes
     APIKeyTestInterval: 60000, //APITest every 1 minute
     APIKeyTestMaxCounter: 5, //APITest max 5 calls during APIKeyTestInterval
-    measurementURL: "http://openradiation.bluestone.fr/import-measure/{reportUuid}",
     nodeUserUid:"exploit",
     nodeUserGid:"exploit",
     certKeyFile:"certs/cert.key",
@@ -17,9 +16,12 @@ module.exports = {
     requestApiFeature:true, //if the feature requestAPI is available
     mappingFeature:true, //if the feature requestAPI is available
     submitFormFeature:true, //if the feature submitForm is available
+    measurementURL: "http://openradiation.bluestone.fr/import-measure/{reportUuid}",
     mappingURL:"https://localhost:8080", //mapping URL
     submitAPIHost:"127.0.0.1", //submitAPI contacted via post forms
     submitAPIPort:8080, //submitAPI contacted via post forms
+    httpsPort : 8080,
+    httpPort : 8083,
     version: "v0.1"
 }
 
