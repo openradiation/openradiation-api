@@ -124,6 +124,40 @@ strong, span { color:#2446AB; }
     cursor:-moz-grab;
 }
 
+/* CSS time chart */
+#openradiation_time {
+    position:fixed;
+    display:none;
+    top:0; 
+    left:0; 
+    width:100%; 
+    height:100%;            
+    background-color: rgba(0,0,0,0.3); 
+} 
+
+#charttime {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: auto;
+    margin-right: auto;
+    height:70%;
+    width:80%;
+    
+}
+
+#charttime_close {
+    position: absolute;
+    top: 15.1%;
+    right:10.1%;
+    background-color: #ffffff;
+    cursor:pointer;
+    font-weight:bold;
+    font-family:sans-serif;
+    padding-top:4px;
+    padding-right:4px;
+}
+        
 /* Placeholders should be white despite opacity */
 input::-webkit-input-placeholder { /* WebKit browsers */
     color:   white !important; 
