@@ -56,20 +56,18 @@ function formatISODate(ISODate)
 
 function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax)
 {
-    
     // create a map in the "map" div, set the view to a given place and zoom
     openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true}).setView([latitude, longitude], zoom);
    
     //if you want to locate the client
     if (withLocate)
-        openradiation_map.locate({ setView : true, maxZoom:13 });
-    
+        openradiation_map.locate({setView : true, maxZoom:13 });
+   
     // add an OpenStreetMap tile layer
     L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-        //attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span> | <span id="\timechartlink\">tT</span> | <span id="\interpolationlink\">int</span>'
-        attribution: '&copy; <a href=\"http:\/\/osm.org\/copyright\">OpenStreetMap<\/a> contributors | &copy; <a href=\"http:\/\/www.openradiation.org\/copyright\">OpenRadiation</a> | <span id=\"hide_filters\">Filtres +\/-</span> | <span id=\"permalink\">Permalink</span> | <span id=\"timechartlink\">t</span> | <span id=\"interpolationlink\">i</span>'
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span>'
     }).addTo(openradiation_map);
-      
+   
     //add an interpolation map layer
     interpolation = 
       new L.TileLayer('/i/{z}/{x}/{y}.png',
@@ -251,6 +249,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                 }
                 htmlPopup += "</div>";
                 htmlPopup += "</div>";
+                console.log(htmlPopup);
                 e.popup.setContent(htmlPopup);
                 
             },
@@ -262,7 +261,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 };
 
 var urlPrev = "null";
-var minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -10000, maxLongitudePrev = +10000;
+var minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -180, maxLongitudePrev = +180;
 var exhaustiveResultsPrev = false;
 
 setInterval(function(){ openradiation_getItems(false); }, 5000);
@@ -433,9 +432,6 @@ function retrieve_items(urlTemp, fitBounds) {
                 var marker = L.marker([res.data[i].latitude, res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
                     .bindPopup(htmlPopup);
                 marker.reportUuid = res.data[i].reportUuid;
-                //for chart time
-                marker.value = res.data[i].value;
-                marker.startTime = new Date(res.data[i].startTime);
             }
         }
         
@@ -461,8 +457,8 @@ function openradiation_getItems(fitBounds)
     var urlTemp = getUrl();
     
     // we retrieve results if filters are differents
-    //     or one of the geographical bounds are the bounds of the last request
-    //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds    
+    //     or bounds are greater than the next request
+    //     or bounds are lower and results were not exhaustive and some items are not included in the new bounds    
     if (urlTemp != urlPrev)
         retrieve_items(urlTemp, fitBounds);
     else if (openradiation_map.getBounds().getSouth() < minLatitudePrev 
@@ -477,11 +473,10 @@ function openradiation_getItems(fitBounds)
     {
         var nb = 0;
         var not_included = false;
-        openradiation_map.eachLayer(function (layer) {
-            
+        openradiation_map.eachLayer(function (layer) {               
             if (layer.reportUuid != null) {
-                if (layer.getLatLng().lng < openradiation_map.getBounds().getWest()
-               || layer.getLatLng().lng > openradiation_map.getBounds().getEast()
+                if (layer.getLatLng().lon < openradiation_map.getBounds().getWest()
+               || layer.getLatLng().lon > openradiation_map.getBounds().getEast()
                || layer.getLatLng().lat < openradiation_map.getBounds().getSouth()
                || layer.getLatLng().lat > openradiation_map.getBounds().getNorth())
                     not_included = true;
@@ -489,20 +484,21 @@ function openradiation_getItems(fitBounds)
                     nb++;
             }
         });
+               
         if (exhaustiveResultsPrev == false && not_included == true)
             retrieve_items(urlTemp, fitBounds);
         else {
             if (exhaustiveResultsPrev) {
-                console.log("updated results without research");
+                console.log("modification sans recherche");
                 if (nb < 2)
                     $("#nbresults").text(nb + " mesure trouvée");
                 else
                     $("#nbresults").text(nb + " mesures trouvées");
             } else
-                console.log("not updated (not exhaustive and all the items are in the new bounds)");
+                console.log("pas de modif (non exhaustif)");
         }
     } else
-        console.log("no change");
+        console.log("pas de changement");
 };
 
 function val2uSv(val)
@@ -581,15 +577,15 @@ $(function() {
         try {
             var isFileSaverSupported = !!new Blob;
             var urlTemp = getUrl();
-                       
+    
             $.ajax({
                 type: 'GET',
-                url: '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp + "&response=complete&withEnclosedObject=no", 
+                url: '/measurements?apiKey=' + apiKey + urlTemp + "&response=complete&withEnclosedObject=no", 
                 cache: false,
                 timeout: 10000,
                 success: function(res) {
                         
-                    var str="Request done via openradiation.org at " + new Date().toString() + " with the parameters : minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp + "\n";
+                    var str="Request done via openradiation.org at " + new Date().toString() + " with the parameters " + urlTemp + "\n\n";
                     str += "apparatusID,apparatusVersion,apparatusSensorType,apparatusTubeType,temperature,value,hitsNumber,startTime,endTime,latitude,longitude,accuracy,altitude,altitudeAccuracy,deviceUuid,devicePlatform,deviceVersion,deviceModel,reportUuid,manualReporting,organisationReporting,reportContext,description,measurementHeight,userId,measurementEnvironment,dateAndTimeOfCreation,qualification,qualificationVotesNumber,reliability,atypical,tags\n";
                     for(var i in res.data)
                     {
@@ -655,7 +651,7 @@ $(function() {
         }
     });
      
-    $( "#interpolationlink" ).click(function() {
+    $( "#hide_filters" ).dblclick(function() {
         if (openradiation_map.hasLayer(interpolation))
             openradiation_map.removeLayer(interpolation);
         else
@@ -696,98 +692,6 @@ $(function() {
         });
 
     });
-    
-    var firstTimeGoogleChart = true;
-    
-    $( "#timechartlink" ).click(function() {
-        $("#openradiation_time").css("display","block");
-        
-        if (firstTimeGoogleChart) {
-            firstTimeGoogleChart = false;
-            google.charts.load('current', {'packages':['line', 'corechart']});
-            google.charts.setOnLoadCallback(drawChart);
-        } else {
-            drawChart();
-        }
-
-        function drawChart() {
-            
-            var openradiationTime = document.getElementById('charttime');
-
-            var data = new google.visualization.DataTable();
-            data.addColumn('datetime', 'Date');
-            data.addColumn('number', 'Dose rate (in μSv/h)');
-
-            var urlTemp = getUrl();                       
-            $.ajax({
-                type: 'GET',
-                url: '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp, 
-                cache: false,
-                timeout: 10000,
-                success: function(res) {
-                    var rows = [];
-                    // results are sorted by startTime so we can add them directly
-                    for(var i in res.data)
-                    {
-                        rows.push([new Date(res.data[i].startTime), res.data[i].value]);
-                    }
-                    data.addRows(rows);
-                    
-                    var date_formatter = new google.visualization.DateFormat({pattern: 'yyyy-MM-dd HH:mm'});
-                    var number_formatter = new google.visualization.NumberFormat({pattern: '#0.000'});
-                    date_formatter.format(data, 0); // Apply formatter to first column
-                    number_formatter.format(data, 1); // Apply formatter to second column
-                    
-
-                    var options = {
-                        
-                        legend : { position: "none" },
-                        chartArea:{width:'85%',height:'75%'},
-                        title: 'Dose rate (in μSv/h) during time',
-                        titlePosition : 'in',
-                        //width: 100%,
-                        //height: 100%,
-                        explorer: {},
-                        lineDashStyle: [1, 5],
-                        pointsVisible: true,
-                        hAxis: {
-                            gridlines: {
-                                color: '#F8F8F8',
-                                units: {
-                                    //years: {format: [YYYY]},
-                                    //months: {format: [/]},
-                                    //days: {format: ['yyyy-MM-dd']}
-                                    //hours: {format: []}
-                                    //minutes: {format: []}
-                                    //seconds: {format: []},
-                                    //milliseconds: {format: []},
-                                }
-                            }
-                        },
-                        vAxis: {
-                            format : '0.000',
-                            gridlines: {
-                           
-                          }
-                        }
-                    };
-
-                    var classicChart = new google.visualization.LineChart(openradiationTime);
-                    classicChart.draw(data, options);
-                    
-                    document.getElementById('charttime').focus();
-                },
-                error: function() {
-                    alert('Error during retrieving data'); 
-                }
-            });
-        }
-    });
-    
-    closeChartTime = function() {
-        $("#openradiation_time").css("display","none");
-    }   
-    
 });
 
    

@@ -8,34 +8,25 @@
     <meta name="author" content="">
 
     <title>openradiation.org</title>
-    
-    <link rel="stylesheet" href="/leaflet.css">
+
     <!--<link rel="stylesheet" href="https://cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />-->
-    <link rel="stylesheet" href="/jquery-ui-1.11.4.css">
-    <!--<link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">-->
+    <link rel="stylesheet" href="/leaflet.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
     <link rel="stylesheet" href="/openradiation.css">    
   </head>
 
   <body>  
 
-    <div id="openradiation_map"></div>  
-    <div id="openradiation_time">
-        <div id="charttime"></div>
-        <div id="charttime_close" onclick="closeChartTime()">X</div>
-    </div>
+    <div id="openradiation_map"></div>    
     <div id="permalink-message"></div>
 
     <script src="/leaflet.js"></script>
-    <script src="/jquery-2.2.4.min.js"></script>
-    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>  -->
-    <script src="/jquery-ui-1.11.4.js"></script>
-    <!-- <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>  
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
     <script src="/jquery.ui.touch-punch.min.js"></script> <!-- so we can handle slider with mobile phone -->
     
     <script src="/Blob.js"></script>
     <script src="/FileSaver.js"></script>
-    <script src="/loader.js"></script>
-    <!--<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script> --> 
     <script src="/openradiation.js"></script>
     <script type="text/javascript">
         var openradiation_map;
@@ -46,6 +37,7 @@
                            <%- rangeValueMin %>, <%- rangeValueMax %>, <%- rangeDateMin %>, <%- rangeDateMax %>);
         openradiation_getItems(<%- fitBounds %>);
     </script>
-    
+
+
   </body>
 </html>
