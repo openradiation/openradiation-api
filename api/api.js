@@ -1630,12 +1630,12 @@ if (properties.submitFormFeature) {
                             if (measurementsLinesValid != measurementsLinesOk) {
                                 message = "The file " + req.file.originalname + " has been processed : " + measurementsLinesOk + " measurement(s) are stored in the openradiation database.<br>";
                                 message += "<br>" + (measurementsLinesValid - measurementsLinesOk) + " line(s) of the file have been refused, like this one : <br><i>" + errorMessage + "</i><br><br>";
-                                message += "The measurements have been tagged <i>#file_" + sha256.substr(0,18) + "</i><br><br><br>";             
+                                message += "The measurements have been tagged <i>#safecast</i> <i>#file_" + sha256.substr(0,18) + "</i><br><br><br>";             
                                 message += "<iframe frameborder=\"0\" style=\"height:90%;width:90%;left:auto;right:auto;min-height:400px;\" height=\"90%\" width=\"90%\" src=\"" + properties.mappingURL + "/openradiation/file_" + sha256.substr(0,18) + "/all/all/all/0/100/0/100\"></iframe>";
                                 res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: message });
                             } else {
                                 message = "Your file " + req.file.originalname + " has been processed : " + measurementsLinesOk + " measurements are stored in the openradiation database.<br>";
-                                message += "All the measurements have been tagged <i>#file_" + sha256.substr(0,18) + "</i><br><br><br>";
+                                message += "All the measurements have been tagged <i>#safecast</i> <i>#file_" + sha256.substr(0,18) + "</i><br><br><br>";
                                 message += "<iframe frameborder=\"0\" style=\"height:90%;width:90%;left:auto;right:auto;min-height:400px;\" height=\"90%\" width=\"90%\" src=\"" + properties.mappingURL + "/openradiation/file_" + sha256.substr(0,18) + "/all/all/all/0/100/0/100\"></iframe>";
                                 res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: message });
                             }

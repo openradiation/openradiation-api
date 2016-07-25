@@ -80,7 +80,7 @@ Error message response will look like :
 
 ### Requesting the API
 
-The endpoint for request API is https://requestapi.openradiation.net/
+The endpoint for request API is https://request.openradiation.net/
 
 By default, all requests will be limited to the 1000 last measurements within the criterias (considering startTime). 
 This max number is in the response group and defined in the properties file.
@@ -127,7 +127,7 @@ All these criterias can be combined :
     
 Sample : to get the last measurements all over the world
 
-    http://requestapi.openradiation.net/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434
+    http://request.openradiation.net/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434
     
 Response will look like : 
     
@@ -193,7 +193,7 @@ To get the all the measurements in one specific day based on DateAndTimeOfCreati
     
 ### Submitting data to the API
 
-The endpoint for submit API is https://submitapi.openradiation.net/. 
+The endpoint for submit API is https://submit.openradiation.net/. 
 
 #### To submit a measurement
 
