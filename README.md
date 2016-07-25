@@ -15,7 +15,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 
 <table>
 <tr><th>API Name</th><th>Type</th><th>Available for request API</th><th>Available for submit API</th><th>Description</th></tr>
-<tr><td>apparatusID</td><td>String</td><td></td><td></td><td>Unique sensor identifier</td></tr>
+<tr><td>apparatusId</td><td>String</td><td></td><td></td><td>Unique sensor identifier</td></tr>
 <tr><td>apparatusVersion</td><td>String</td><td> </td><td> </td><td>Sensor firmware version</td></tr>
 <tr><td>apparatusSensorType</td><td>String</td><td> </td><td> </td><td>Sensor type : geiger, photodiode</td></tr>
 <tr><td>apparatusTubeType</td><td>String</td><td> </td><td> </td><td>Tube identification (only if apparatusSensorType = geiger)</td></tr>

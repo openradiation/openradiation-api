@@ -3,6 +3,25 @@
  */
 
  //1. generic
+var cluster = require('cluster');
+
+// Code to run if we're in the master process
+if (cluster.isMaster) {
+
+    var cpuCount = require('os').cpus().length;
+    console.log(new Date().toISOString() + " - ****** OpenRadiation : cpuCount = " + cpuCount);
+    // Create a worker for each CPU
+    for (var i = 0; i < cpuCount; i += 1) {
+        cluster.fork();
+    }
+    
+    cluster.on('exit', function() {
+        console.log('A worker process died, restarting...');
+        cluster.fork();
+    });
+// Code to run if we're in a worker process
+} else {
+
 var pg = require('pg');
 var express = require('express');
 var bodyParser = require('body-parser');
@@ -225,8 +244,8 @@ function _password_base64_encode(input) {
     return output;
 }
     
-var isPasswordValid = function(password, userPwd) {
-
+isPasswordValid = function(password, userPwd) {
+    
     var passwordKey = password + userPwd;
     if (passwordKey in passwords)
     {
@@ -246,12 +265,17 @@ var isPasswordValid = function(password, userPwd) {
         console.error("isPasswordValid detect an invalid userPwd");
         return false;
     }    
-    
+    console.log(new Date().toISOString() + " - debut2");
+    var password_wordArray = CryptoJS.enc.Utf8.parse(password);
     var salt = userPwd.substring(4,12);
     var hash = SHA512(salt + password);
-    for (var i = 0; i < Math.pow(2,count_log2); i++)
+    var iterations = Math.pow(2,count_log2);
+    
+    for (var i = 0; i < iterations; i++)
     {
-        hash = SHA512(hash.concat(CryptoJS.enc.Utf8.parse(password)));
+        if (i%1000==0)
+            console.log(new Date().toISOString() + " - " + i);
+        hash = SHA512(hash.concat(password_wordArray));
     } 
     var base64 = _password_base64_encode(convertWordArrayToUint8Array(hash)); 
     if (userPwd == userPwd.substring(0,12) + base64.substr(0,43))
@@ -260,7 +284,9 @@ var isPasswordValid = function(password, userPwd) {
         return true;
     }
     else
+    {
         return false;
+    }   
 }
 
 verifyData = function(res, json, isMandatory, dataName) {
@@ -802,12 +828,12 @@ if (properties.requestApiFeature) {
                         }
                         if (req.query.minStartTime != null)
                         {
-                            values.push(req.query.minStartTime);
+                            values.push(new Date(req.query.minStartTime));
                             where += ' AND MEASUREMENTS."startTime" >= $' + values.length;
                         }
                         if (req.query.maxStartTime != null)
                         {
-                            values.push(req.query.maxStartTime);
+                            values.push(new Date(req.query.maxStartTime));
                             where += ' AND MEASUREMENTS."startTime" <= $' + values.length;
                         }
                         if (req.query.minValue != null)
@@ -971,11 +997,14 @@ if (properties.submitApiFeature) {
         console.log(new Date().toISOString() + " - POST /measurements : begin");
         if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
         {
+            console.dir(req.body);
+            console.log("You must send a JSON with a string apiKey and an object data");
             res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
         }
         else {
             var apiKey = { "role":""};
-
+            console.log(req.body.apiKey);
+            console.log(req.body.data);
             if (verifyApiKey(res, req.body.apiKey, false, apiKey, true)
              && verifyData(res, req.body.data, false, "apparatusId")
              && verifyData(res, req.body.data, false, "apparatusVersion")
@@ -1007,6 +1036,7 @@ if (properties.submitApiFeature) {
              && verifyData(res, req.body.data, false, "userPwd")
              && verifyData(res, req.body.data, false, "measurementEnvironment"))
             {
+                console.log("ok");
                 if (apiKey.role != "test" && req.body.data.reportContext != null && req.body.data.reportContext == "routine")
                 {
                     pg.connect(conStr, function(err, client, done) {
@@ -1125,8 +1155,8 @@ if (properties.submitApiFeature) {
                             var atypical = req.body.data.value < 0.2 ? false : true;
                             var dateAndTimeOfCreation = new Date();
                             var values = [ req.body.data.apparatusId, req.body.data.apparatusVersion, req.body.data.apparatusSensorType, req.body.data.apparatusTubeType, 
-                                           req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, req.body.data.startTime, 
-                                           req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, req.body.data.accuracy,
+                                           req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, new Date(req.body.data.startTime), 
+                                           req.body.data.endTime != null ? new Date(req.body.data.endTime) : req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, req.body.data.accuracy,
                                            req.body.data.altitude, req.body.data.altitudeAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
                                            req.body.data.deviceVersion, req.body.data.deviceModel, req.body.data.reportUuid, manualReporting,
                                            req.body.data.organisationReporting, req.body.data.reportContext, req.body.data.description, req.body.data.measurementHeight,
@@ -1518,6 +1548,7 @@ if (properties.submitFormFeature) {
                                         data.description = req.body.description;
                                         data.measurementHeight = parseInt(req.body.measurementHeight);
                                         data.tags = tags.slice();
+                                        data.tags.push("safecast");
                                         data.tags.push("file_" + sha256.substr(0,18));
                                         data.userId = req.body.userId;
                                         data.userPwd = req.body.userPwd;
@@ -1639,172 +1670,175 @@ if (properties.mappingFeature) {
             var y = parseInt(req.params.y);
             var z = parseInt(req.params.z);
         
-            var btilex = x.toString(2);
-            var btiley = y.toString(2);
-            var quadkey = "";
-            var cx, cy; 
-            
-            for (q = 0; q < z; q++) //from right to left
-            {
-                if (btilex.length > q)
-                    cx = parseInt( btilex.substr(btilex.length-q-1,1) );
-                else
-                    cx = 0;
-                    
-                if (btiley.length > q)
-                    cy = parseInt( btiley.substr(btiley.length-q-1,1) );
-                else
-                    cy = 0;
-                quadkey = (cx + 2 * cy) + quadkey;
-            }
-        
-            //console.log("x, y, z, quadkey = " + x + ";" + y + ";" + z + ";" + quadkey);
-            
-            var sql = 'SELECT "tile", "opacity" FROM TILES WHERE "quadKey"=$1';
-            var values = [ quadkey ];
-            
-            pg.connect(conStr, function(err, client, done) {
-                if (err) {
-                    done();
-                    console.error("Could not connect to PostgreSQL", err);
-                    res.status(500).end();
-                } else {
-                    client.query(sql, values, function(err, result) {
-                        done();
-                        if (err)
-                        {
-                            console.error("Error while running query " + sql + values, err);
-                            res.status(500).end();
-                        }
-                        else
-                        {
-                            if (result.rowCount == 0)
-                                res.status(200).end();
-                            else
-                            {
-                                var png = new PNG({
-                                    width: 256,
-                                    height: 256,
-                                    filterType: -1
-                                });
-                                 
-                                var tile = result.rows[0].tile;
-                                var opacity = result.rows[0].opacity;
-
-                                var value;
-                                var opac;
-
-                                idx_value = 0;
-                                idx_opacity = 0;                          
-                                // for each value stored from left to right, then top to bottom
-                                for (var pix_x = 0; pix_x < 256; pix_x++) {
-                                    for (var pix_y = 0; pix_y < 256; pix_y++) { 
-                                        value = parseInt(tile.substr(idx_value,16), 2);
-                                        opac = parseInt(opacity.substr(idx_opacity,7),2);
-                                        
-                                        if (opac > 100)
-                                            opac=100;
-                                        //idx in png is stored from top to bottom, then left to right
-                                        var idx = (pix_x + pix_y * 256) << 2;
-          
-                                        png.data[idx+3] = Math.floor(255 * (opac / 100.0));
+            var pngFileName = __dirname + '/public/png/{z}_{x}_{y}.png'.replace('{z}_{x}_{y}',z + "_" + x + "_" + y);
                                 
-                                        if (value == 65535) { //in fact it is a null value
-                                            png.data[idx] = 255;    //R
-                                            png.data[idx+1] = 255; //G
-                                            png.data[idx+2] = 255; //B
-                                            png.data[idx+3] = 0; //opacity
-                                        } else if (value < 0.395612425) {
-                                            png.data[idx] = 39; //R
-                                            png.data[idx+1] = 190; //G
-                                            png.data[idx+2] = 240; //B
-                                        } else if (value < 1.718281828) {
-                                            png.data[idx] = 36; //R
-                                            png.data[idx+1] = 180; //G
-                                            png.data[idx+2] = 241; //B
-                                        } else if (value < 4.29449005) {
-                                            png.data[idx] = 29; //R
-                                            png.data[idx+1] = 148; //G
-                                            png.data[idx+2] = 244; //B
-                                        } else if (value < 9.312258501) {
-                                            png.data[idx] = 21; //R
-                                            png.data[idx+1] = 113; //G
-                                            png.data[idx+2] = 246; //B
-                                        } else if (value < 19.08553692) {
-                                            png.data[idx] = 15; //R
-                                            png.data[idx+1] = 80; //G
-                                            png.data[idx+2] = 251; //B
-                                        } else if (value < 38.121284) {
-                                            png.data[idx] = 12; //R
-                                            png.data[idx+1] = 51; //G
-                                            png.data[idx+2] = 251; //B
-                                        } else if (value < 75.19785657) {
-                                            png.data[idx] = 13; //R
-                                            png.data[idx+1] = 42; //G
-                                            png.data[idx+2] = 250; //B
-                                        } else if (value < 147.4131591) {
-                                            png.data[idx] = 40; //R
-                                            png.data[idx+1] = 41; //G
-                                            png.data[idx+2] = 242; //B
-                                        } else if (value < 288.0693621) {
-                                            png.data[idx] = 88; //R
-                                            png.data[idx+1] = 44; //G
-                                            png.data[idx+2] = 229; //B
-                                        } else if (value < 562.0302368) {
-                                            png.data[idx] = 128; //R
-                                            png.data[idx+1] = 48; //G
-                                            png.data[idx+2] = 201; //B
-                                        } else if (value < 1095.633158) {
-                                            png.data[idx] = 143; //R
-                                            png.data[idx+1] = 46; //G
-                                            png.data[idx+2] = 175; //B
-                                        } else if (value < 2134.949733) {
-                                            png.data[idx] = 159; //R
-                                            png.data[idx+1] = 43; //G
-                                            png.data[idx+2] = 135; //B
-                                        } else if (value < 4159.262005) {
-                                            png.data[idx] = 172; //R
-                                            png.data[idx+1] = 41; //G
-                                            png.data[idx+2] = 99; //B
-                                        } else if (value < 8102.083928) {
-                                            png.data[idx] = 183; //R
-                                            png.data[idx+1] = 37; //G
-                                            png.data[idx+2] = 66; //B
-                                        } else if (value < 15781.6524) {
-                                            png.data[idx] = 193; //R
-                                            png.data[idx+1] = 36; //G
-                                            png.data[idx+2] = 35; //B
-                                        } else {
-                                            png.data[idx] = 189; //R
-                                            png.data[idx+1] = 46; //G
-                                            png.data[idx+2] = 38; //B
-                                        }
-                                        
-                                        idx_value = idx_value + 16;
-                                        idx_opacity = idx_opacity + 7;
-                                    }                           
-                                }
+            fs.access(pngFileName, (err) => {
+                if (err) {
+                    var btilex = x.toString(2);
+                    var btiley = y.toString(2);
+                    var quadkey = "";
+                    var cx, cy; 
+                    
+                    for (q = 0; q < z; q++) //from right to left
+                    {
+                        if (btilex.length > q)
+                            cx = parseInt( btilex.substr(btilex.length-q-1,1) );
+                        else
+                            cx = 0;
                             
-                                var pngFileName = __dirname + '/public/png/{z}_{x}_{y}.png'.replace('{z}_{x}_{y}',z + "_" + x + "_" + y);
-                                png.pack().pipe(fs.createWriteStream(pngFileName)).on('finish', function() {
-                                    var img = fs.readFileSync(pngFileName);
-                                    res.writeHead(200, {'Content-Type': 'image/png' });
-                                    res.end(img, 'binary');
-                                    if (z > 6)
-                                        fs.unlinkSync(pngFileName);
-                                });
-                            }   
-                        }
+                        if (btiley.length > q)
+                            cy = parseInt( btiley.substr(btiley.length-q-1,1) );
+                        else
+                            cy = 0;
+                        quadkey = (cx + 2 * cy) + quadkey;
+                    }
+                
+                    //console.log("x, y, z, quadkey = " + x + ";" + y + ";" + z + ";" + quadkey);
+                    
+                    var sql = 'SELECT "tile", "opacity" FROM TILES WHERE "quadKey"=$1';
+                    var values = [ quadkey ];
+                    
+                    pg.connect(conStr, function(err, client, done) {
+                        if (err) {
+                            done();
+                            console.error("Could not connect to PostgreSQL", err);
+                            res.status(500).end();
+                        } else {
+                            client.query(sql, values, function(err, result) {
+                                done();
+                                if (err)
+                                {
+                                    console.error("Error while running query " + sql + values, err);
+                                    res.status(500).end();
+                                }
+                                else
+                                {
+                                    if (result.rowCount == 0)
+                                        res.status(200).end();
+                                    else
+                                    {
+                                        var png = new PNG({
+                                            width: 256,
+                                            height: 256,
+                                            filterType: -1
+                                        });
+                                         
+                                        var tile = result.rows[0].tile;
+                                        var opacity = result.rows[0].opacity;
+
+                                        var value;
+                                        var opac;
+
+                                        idx_value = 0;
+                                        idx_opacity = 0;                          
+                                        // for each value stored from left to right, then top to bottom
+                                        for (var pix_x = 0; pix_x < 256; pix_x++) {
+                                            for (var pix_y = 0; pix_y < 256; pix_y++) { 
+                                                value = parseInt(tile.substr(idx_value,16), 2);
+                                                opac = parseInt(opacity.substr(idx_opacity,7),2);
+                                                
+                                                if (opac > 100)
+                                                    opac=100;
+                                                //idx in png is stored from top to bottom, then left to right
+                                                var idx = (pix_x + pix_y * 256) << 2;
+                  
+                                                png.data[idx+3] = Math.floor(255 * (opac / 100.0));
+                                        
+                                                if (value == 65535) { // it is a null value
+                                                    png.data[idx] = 255;    //R
+                                                    png.data[idx+1] = 255; //G
+                                                    png.data[idx+2] = 255; //B
+                                                    png.data[idx+3] = 0; //opacity
+                                                } else if (value < 0.395612425) {
+                                                    png.data[idx] = 39; //R
+                                                    png.data[idx+1] = 190; //G
+                                                    png.data[idx+2] = 240; //B
+                                                } else if (value < 1.718281828) {
+                                                    png.data[idx] = 36; //R
+                                                    png.data[idx+1] = 180; //G
+                                                    png.data[idx+2] = 241; //B
+                                                } else if (value < 4.29449005) {
+                                                    png.data[idx] = 29; //R
+                                                    png.data[idx+1] = 148; //G
+                                                    png.data[idx+2] = 244; //B
+                                                } else if (value < 9.312258501) {
+                                                    png.data[idx] = 21; //R
+                                                    png.data[idx+1] = 113; //G
+                                                    png.data[idx+2] = 246; //B
+                                                } else if (value < 19.08553692) {
+                                                    png.data[idx] = 15; //R
+                                                    png.data[idx+1] = 80; //G
+                                                    png.data[idx+2] = 251; //B
+                                                } else if (value < 38.121284) {
+                                                    png.data[idx] = 12; //R
+                                                    png.data[idx+1] = 51; //G
+                                                    png.data[idx+2] = 251; //B
+                                                } else if (value < 75.19785657) {
+                                                    png.data[idx] = 13; //R
+                                                    png.data[idx+1] = 42; //G
+                                                    png.data[idx+2] = 250; //B
+                                                } else if (value < 147.4131591) {
+                                                    png.data[idx] = 40; //R
+                                                    png.data[idx+1] = 41; //G
+                                                    png.data[idx+2] = 242; //B
+                                                } else if (value < 288.0693621) {
+                                                    png.data[idx] = 88; //R
+                                                    png.data[idx+1] = 44; //G
+                                                    png.data[idx+2] = 229; //B
+                                                } else if (value < 562.0302368) {
+                                                    png.data[idx] = 128; //R
+                                                    png.data[idx+1] = 48; //G
+                                                    png.data[idx+2] = 201; //B
+                                                } else if (value < 1095.633158) {
+                                                    png.data[idx] = 143; //R
+                                                    png.data[idx+1] = 46; //G
+                                                    png.data[idx+2] = 175; //B
+                                                } else if (value < 2134.949733) {
+                                                    png.data[idx] = 159; //R
+                                                    png.data[idx+1] = 43; //G
+                                                    png.data[idx+2] = 135; //B
+                                                } else if (value < 4159.262005) {
+                                                    png.data[idx] = 172; //R
+                                                    png.data[idx+1] = 41; //G
+                                                    png.data[idx+2] = 99; //B
+                                                } else if (value < 8102.083928) {
+                                                    png.data[idx] = 183; //R
+                                                    png.data[idx+1] = 37; //G
+                                                    png.data[idx+2] = 66; //B
+                                                } else if (value < 15781.6524) {
+                                                    png.data[idx] = 193; //R
+                                                    png.data[idx+1] = 36; //G
+                                                    png.data[idx+2] = 35; //B
+                                                } else {
+                                                    png.data[idx] = 189; //R
+                                                    png.data[idx+1] = 46; //G
+                                                    png.data[idx+2] = 38; //B
+                                                }
+                                                
+                                                idx_value = idx_value + 16;
+                                                idx_opacity = idx_opacity + 7;
+                                            }                           
+                                        }
+                                    
+                                        png.pack().pipe(fs.createWriteStream(pngFileName)).on('finish', function() {
+                                            var img = fs.readFileSync(pngFileName);
+                                            res.writeHead(200, {'Content-Type': 'image/png' });
+                                            res.end(img, 'binary');
+                                            if (z > 6) // 6 to limit the number of files, because at this zoom level, we have 4^6 image files
+                                                fs.unlinkSync(pngFileName);
+                                        });
+                                    }   
+                                }
+                            });
+                        }   
                     });
-                }   
+                } else {
+                    var img = fs.readFileSync(pngFileName);
+                    res.writeHead(200, {'Content-Type': 'image/png' });
+                    res.end(img, 'binary');
+                }
             });
         }        
-                
-        /*fs.createReadStream('in.png')
-            .pipe(new PNG({
-                filterType: 4
-            }))
-            .on('parsed', function() {*/
         console.log(new Date().toISOString() + " - GET /i/:z/:x/:y.png : end");
     });
 
@@ -1915,8 +1949,7 @@ var httpsServer = https.createServer(credentials, app);
 httpsServer.timeout = 600000; // ten minutes before timeout (used when we post files, default is 120000)
 
 httpsServer.listen(properties.httpsPort, function() {
-    
-    console.log(new Date().toISOString() + " - *** OpenRadiation API started with parameters : ");
+    console.log(new Date().toISOString() + " - *** OpenRadiation API (worker " + cluster.worker.id + ") started with parameters : ");
     console.log(new Date().toISOString() + " -    login                : [" + properties.login + "]");
     console.log(new Date().toISOString() + " -    password             : [************]");
     console.log(new Date().toISOString() + " -    host                 : [" + properties.host + "]");
@@ -1950,15 +1983,26 @@ httpsServer.listen(properties.httpsPort, function() {
 //10. http server
 http.createServer(http_req).listen(properties.httpPort);
 function http_req(req, res) {
-    if (req.headers.host.indexOf(":") > -1)
-        res.writeHead(301, {Location: "https://" + req.headers.host.slice(0,req.headers.host.indexOf(":")) + ":" + properties.httpsPort + req.url} );
-    else
-        res.writeHead(301, {Location: "https://" + req.headers.host + req.url} );
-    res.end();
+    console.log(new Date().toISOString() + " - http_req(req, res) : HTTP /" + req.method + " called");
+    req.on('error', function(err) {
+        console.error(new Date().toISOString() + " - Error in request " + err.stack);
+    });
+
+    if (req.method == "GET" || req.method == "HEAD") {
+        if (req.headers.host.indexOf(":") > -1)
+            res.writeHead(301, {Location: "https://" + req.headers.host.slice(0,req.headers.host.indexOf(":")) + ":" + properties.httpsPort + req.url} );
+        else
+            res.writeHead(301, {Location: "https://" + req.headers.host + req.url} );
+        res.end();
+    } else {
+        console.log(new Date().toISOString() + " - before res");
+        res.writeHead(400, {'Content-Type': 'application/json'});
+        res.end(JSON.stringify({ error: {code:"100", message:"Please use https instead of http"}}));
+        console.log(new Date().toISOString() + " - after res");
+    }
 }
 
-
-
+} // worker
 
 
 
