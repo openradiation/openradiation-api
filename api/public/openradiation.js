@@ -1,32 +1,40 @@
 
+var isLanguageFR = true;
+
+if (navigator.language.indexOf('fr') == -1)
+    isLanguageFR = false;
+
 var icon_c = L.Icon.extend({
     options: {
         shadowUrl: '/images/marker-shadow_1.png',
         shadowRetinaUrl: '/images/marker-shadow_1-2x.png',
-        iconSize:     [12, 20],
+        iconSize:     [15, 25], //[12, 20],
         shadowSize:   [20, 20],
-        iconAnchor:   [6, 20], // point of the icon which will correspond to marker's location from the top / left corner
+        iconAnchor:   [8, 25], // point of the icon which will correspond to marker's location from the top / left corner
         shadowAnchor: [6, 20], // the same for the shadow
-        popupAnchor:  [0, -23] // point from which the popup should open relative to the iconAnchor
+        popupAnchor:  [0, -28] // point from which the popup should open relative to the iconAnchor
     }
 });
 
-var icon_1 = new icon_c({iconUrl: '/images/marker-icon_1.png', iconRetinaUrl: '/images/marker-icon_1-2x.png'}),
-    icon_2 = new icon_c({iconUrl: '/images/marker-icon_2.png', iconRetinaUrl: '/images/marker-icon_2-2x.png'}),
-    icon_3 = new icon_c({iconUrl: '/images/marker-icon_3.png', iconRetinaUrl: '/images/marker-icon_3-2x.png'}),
-    icon_4 = new icon_c({iconUrl: '/images/marker-icon_4.png', iconRetinaUrl: '/images/marker-icon_4-2x.png'}),
-    icon_5 = new icon_c({iconUrl: '/images/marker-icon_5.png', iconRetinaUrl: '/images/marker-icon_5-2x.png'}),
-    icon_6 = new icon_c({iconUrl: '/images/marker-icon_6.png', iconRetinaUrl: '/images/marker-icon_6-2x.png'}),
-    icon_7 = new icon_c({iconUrl: '/images/marker-icon_7.png', iconRetinaUrl: '/images/marker-icon_7-2x.png'}),
-    icon_8 = new icon_c({iconUrl: '/images/marker-icon_8.png', iconRetinaUrl: '/images/marker-icon_8-2x.png'}),
-    icon_9 = new icon_c({iconUrl: '/images/marker-icon_9.png', iconRetinaUrl: '/images/marker-icon_9-2x.png'}),
-    icon_10 = new icon_c({iconUrl: '/images/marker-icon_10.png', iconRetinaUrl: '/images/marker-icon_10-2x.png'}),
-    icon_11 = new icon_c({iconUrl: '/images/marker-icon_11.png', iconRetinaUrl: '/images/marker-icon_11-2x.png'}),
-    icon_12 = new icon_c({iconUrl: '/images/marker-icon_12.png', iconRetinaUrl: '/images/marker-icon_12-2x.png'}),
-    icon_13 = new icon_c({iconUrl: '/images/marker-icon_13.png', iconRetinaUrl: '/images/marker-icon_13-2x.png'}),
-    icon_14 = new icon_c({iconUrl: '/images/marker-icon_14.png', iconRetinaUrl: '/images/marker-icon_14-2x.png'}),
-    icon_15 = new icon_c({iconUrl: '/images/marker-icon_15.png', iconRetinaUrl: '/images/marker-icon_15-2x.png'}),
-    icon_16 = new icon_c({iconUrl: '/images/marker-icon_16.png', iconRetinaUrl: '/images/marker-icon_16-2x.png'});
+var icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/images/icon_2x_1.png'}),
+    icon_2 = new icon_c({iconUrl: '/images/icon_1x_2.png', iconRetinaUrl: '/images/icon_2x_2.png'}),
+    icon_3 = new icon_c({iconUrl: '/images/icon_1x_3.png', iconRetinaUrl: '/images/icon_2x_3.png'}),
+    icon_4 = new icon_c({iconUrl: '/images/icon_1x_4.png', iconRetinaUrl: '/images/icon_2x_4.png'}),
+    icon_5 = new icon_c({iconUrl: '/images/icon_1x_5.png', iconRetinaUrl: '/images/icon_2x_5.png'}),
+    icon_6 = new icon_c({iconUrl: '/images/icon_1x_6.png', iconRetinaUrl: '/images/icon_2x_6.png'}),
+    icon_7 = new icon_c({iconUrl: '/images/icon_1x_7.png', iconRetinaUrl: '/images/icon_2x_7.png'}),
+    icon_8 = new icon_c({iconUrl: '/images/icon_1x_8.png', iconRetinaUrl: '/images/icon_2x_8.png'}),
+    icon_9 = new icon_c({iconUrl: '/images/icon_1x_9.png', iconRetinaUrl: '/images/icon_2x_9.png'}),
+    icon_10 = new icon_c({iconUrl: '/images/icon_1x_10.png', iconRetinaUrl: '/images/icon_2x_10.png'}),
+    icon_11 = new icon_c({iconUrl: '/images/icon_1x_11.png', iconRetinaUrl: '/images/icon_2x_11.png'}),
+    icon_12 = new icon_c({iconUrl: '/images/icon_1x_12.png', iconRetinaUrl: '/images/icon_2x_12.png'}),
+    icon_13 = new icon_c({iconUrl: '/images/icon_1x_13.png', iconRetinaUrl: '/images/icon_2x_13.png'}),
+    icon_14 = new icon_c({iconUrl: '/images/icon_1x_14.png', iconRetinaUrl: '/images/icon_2x_14.png'}),
+    icon_15 = new icon_c({iconUrl: '/images/icon_1x_15.png', iconRetinaUrl: '/images/icon_2x_15.png'}),
+    icon_16 = new icon_c({iconUrl: '/images/icon_1x_16.png', iconRetinaUrl: '/images/icon_2x_16.png'}),
+    icon_17 = new icon_c({iconUrl: '/images/icon_1x_17.png', iconRetinaUrl: '/images/icon_2x_17.png'}),
+    icon_18 = new icon_c({iconUrl: '/images/icon_1x_18.png', iconRetinaUrl: '/images/icon_2x_18.png'}),
+    icon_19 = new icon_c({iconUrl: '/images/icon_1x_19.png', iconRetinaUrl: '/images/icon_2x_19.png'});
     
 var interpolation;
 
@@ -65,9 +73,18 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         openradiation_map.locate({ setView : true, maxZoom:13 });
     
     // add an OpenStreetMap tile layer
-    L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+    //L.tileLayer('http://bissorte.irsn.fr/mapcache/tms/1.0.0/osm@g/{z}/{x}/{y}.png', { tms:true,
+    //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// https
+    //L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { // http
+    L.tileLayer('https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
+    
         //attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span> | <span id="\timechartlink\">tT</span> | <span id="\interpolationlink\">int</span>'
-        attribution: '&copy; <a href=\"http:\/\/osm.org\/copyright\">OpenStreetMap<\/a> contributors | &copy; <a href=\"http:\/\/www.openradiation.org\/copyright\">OpenRadiation</a> | <span id=\"hide_filters\">Filtres +\/-</span> | <span id=\"permalink\">Permalink</span> | <span id=\"timechartlink\">t</span> | <span id=\"interpolationlink\">i</span>'
+        
+        //attribution: '&copy; <a href=\"http:\/\/osm.org\/copyright\">OpenStreetMap<\/a> contributors | &copy; <a href=\"http:\/\/www.openradiation.org\/copyright\">OpenRadiation</a> | <span id=\"hide_filters\">Filtres +\/-</span> | <span id=\"permalink\">Permalink</span> | <span id=\"timechartlink\">t</span> | <span id=\"interpolationlink\">i</span>'
+    
+        attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>'
+        
+        
     }).addTo(openradiation_map);
       
     //add an interpolation map layer
@@ -78,23 +95,47 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
       });
     //openradiation_map.addLayer(interpolation);
     
+    //Add title control
     var openradiation_title = L.control({
         position : 'topleft'
     });
     
     openradiation_title.onAdd = function(openradiation_map) {
         var div = L.DomUtil.create('div', 'openradiation_title');
-        div.innerHTML = '<strong>Les citoyens mesurent la radioactivité</strong>';
+        if (isLanguageFR)
+            div.innerHTML = '<strong>Les citoyens mesurent la radioactivité</strong>';
+        else
+            div.innerHTML = '<strong>Citizens measure the radioactivity</strong>';
         return div;
     };
     
     openradiation_title.addTo(openradiation_map);
     
-    // add our zoom control manually where we want to
+    //Add menu control
+    var openradiation_menu = L.control({
+        position : 'topright'
+    });
+    openradiation_menu.onAdd = function(openradiation_map) {
+        var div = L.DomUtil.create('div', 'openradiation_menu');
+        div.innerHTML = '<span class="openradiation_menu_header openradiation_icon icon_menu"></span> \
+                          <div class="openradiation_menu_footer"> \
+                            <span class="openradiation_icon icon_cross" id="openradiation_menu_footer-close"></span> \
+                            <ul> \
+                                <li><span class="openradiation_icon icon_filter"></span><span id="hide_filters">Afficher / Masquer les filtres</span></li> \
+                                <li><span class="openradiation_icon icon_link"></span><span id="permalink">Obtenir un permalien</span></li> \
+                                <li><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">Représentation temporelle</span></li> \
+                                <li><span class="openradiation_icon icon_interpolation"></span><span id="interpolationlink">Afficher / Masquer l\'interpolation</span></li>  \
+                            </ul> \
+                          </div>';
+        return div;
+    };
+    openradiation_menu.addTo(openradiation_map);
+    
+    // Add zoom control
     var zoomControl = L.control.zoom({ position: 'topleft'});
     openradiation_map.addControl(zoomControl);
 
-    // add a openradiation_filters 
+    // Add openradiation filters control
     var openradiation_filters = L.control({
         position : 'bottomleft'
     });
@@ -183,6 +224,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
        
     openradiation_map.on('popupopen', function(e) {
+    console.log("langue=" + navigator.language + "; userlan = " + navigator.userLanguage + " brows = " + navigator.browserLanguage);
         $.ajax({
             type: 'GET',
             url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=' + apiKey + '&response=complete',
@@ -397,38 +439,44 @@ function retrieve_items(urlTemp, fitBounds) {
                 
                 var nSvValue = res.data[i].value * 1000;
                 //16 colours classes depending value in nSv/h
-                if (nSvValue < 0.395612425)
+                if (nSvValue < 45)
                     icon = icon_1;
-                else if (nSvValue < 1.718281828) 
+                else if (nSvValue < 72) 
                     icon = icon_2;
-                else if (nSvValue < 4.29449005)
+                else if (nSvValue < 114)
                     icon = icon_3;
-                else if (nSvValue < 9.312258501) 
+                else if (nSvValue < 181) 
                     icon = icon_4;
-                else if (nSvValue < 19.08553692) 
+                else if (nSvValue < 287) 
                     icon = icon_5;
-                else if (nSvValue < 38.121284) 
+                else if (nSvValue < 454) 
                     icon = icon_6;
-                else if (nSvValue < 75.19785657) 
+                else if (nSvValue < 720) 
                     icon = icon_7;
-                else if (nSvValue < 147.4131591) 
+                else if (nSvValue < 1142) 
                     icon = icon_8;
-                else if (nSvValue < 288.0693621) 
+                else if (nSvValue < 1809) 
                     icon = icon_9;
-                else if (nSvValue < 562.0302368) 
+                else if (nSvValue < 2867) 
                     icon = icon_10;
-                else if (nSvValue < 1095.633158)
+                else if (nSvValue < 4545)
                     icon = icon_11;
-                else if (nSvValue < 2134.949733) 
+                else if (nSvValue < 7203) 
                     icon = icon_12;
-                else if (nSvValue < 4159.262005) 
+                else if (nSvValue < 11416) 
                     icon = icon_13;
-                else if (nSvValue < 8102.083928) 
+                else if (nSvValue < 18092) 
                     icon = icon_14;
-                else if (nSvValue < 15781.6524) 
+                else if (nSvValue < 28675) 
                     icon = icon_15;
-                else 
+                else if (nSvValue < 45446) 
                     icon = icon_16;
+                else if (nSvValue < 72027) 
+                    icon = icon_17;
+                else if (nSvValue < 114155) 
+                    icon = icon_18;
+                else 
+                    icon = icon_19;
           
                 var marker = L.marker([res.data[i].latitude, res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
                     .bindPopup(htmlPopup);
@@ -507,11 +555,15 @@ function openradiation_getItems(fitBounds)
 
 function val2uSv(val)
 {
-    var uSv = Math.round((Math.exp(val / 10) - 1)) / 1000;
-                            
-    if (uSv > 22)
+    //var uSv = Math.round((Math.exp(val / 10) - 1)) / 1000;
+    //var uSv = Math.round((Math.exp(val / 13.56) * 29)) / 1000;
+    
+    //empiric method to convert from 0-100 scale to the expected scale in uSv/h
+    var uSv = Math.round((Math.exp(val / 11.94) * 29)) / 1000;
+    
+    if (uSv > 120)
         return "+ ∞";
-    else if (uSv == 0)
+    else if (uSv < 0.03)
         return 0;
     else
         return uSv.toFixed(3);
@@ -645,6 +697,9 @@ $(function() {
     });
     
     $( "#hide_filters" ).click(function() {
+        $(".openradiation_menu_footer").css("display","none");
+        $(".openradiation_menu_header").css("display","block");
+        
         if ($( ".openradiation_filters" ).css('display') == "block")
         {
             $('.openradiation_filters').css('display', 'none');
@@ -656,6 +711,9 @@ $(function() {
     });
      
     $( "#interpolationlink" ).click(function() {
+        $(".openradiation_menu_footer").css("display","none");
+        $(".openradiation_menu_header").css("display","block");
+        
         if (openradiation_map.hasLayer(interpolation))
             openradiation_map.removeLayer(interpolation);
         else
@@ -664,6 +722,9 @@ $(function() {
     
     
     $( "#permalink" ).click(function() {
+        $(".openradiation_menu_footer").css("display","none");
+        $(".openradiation_menu_header").css("display","block");
+        
         var link = window.location.protocol + "//" + window.location.host + "/openradiation";
         var zoom = "/" + openradiation_map.getZoom() + "/" + openradiation_map.getCenter().lat.toFixed(7) + "/" + openradiation_map.getCenter().lng.toFixed(7);
        
@@ -686,7 +747,7 @@ $(function() {
             permalink_details = "";
 
         if (permalink_details == "")
-            $( "#permalink-message" ).html("Lien vers cette carte : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span id=\"permalink-close\">X</span> ");
+            $( "#permalink-message" ).html("Lien vers cette carte : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span class=\"openradiation_icon icon_cross\" id=\"permalink-close\"></span> ");
         else
             $( "#permalink-message" ).html("Lien vers cette carte : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> Lien vers la carte ajustée : <a target=\"_blank\" href=\"" + link + permalink_details + "\">" + link + permalink_details + "<\/a> <span id=\"permalink-close\">X</span> ");
         
@@ -699,8 +760,20 @@ $(function() {
     
     var firstTimeGoogleChart = true;
     
+    $( ".openradiation_menu_header").click(function() {
+        $(".openradiation_menu_footer").css("display","block");
+        $(".openradiation_menu_header").css("display","none");
+    });
+    
+    $( "#openradiation_menu_footer-close" ).click(function() {
+        $(".openradiation_menu_header").css("display","block");
+        $(".openradiation_menu_footer").css("display","none");
+    });    
+    
     $( "#timechartlink" ).click(function() {
         $("#openradiation_time").css("display","block");
+        $(".openradiation_menu_footer").css("display","none");
+        $(".openradiation_menu_header").css("display","block");
         
         if (firstTimeGoogleChart) {
             firstTimeGoogleChart = false;
@@ -716,7 +789,7 @@ $(function() {
 
             var data = new google.visualization.DataTable();
             data.addColumn('datetime', 'Date');
-            data.addColumn('number', 'Dose rate (in μSv/h)');
+            data.addColumn('number', 'Débit de dose (μSv/h)');
 
             var urlTemp = getUrl();                       
             $.ajax({
@@ -743,7 +816,7 @@ $(function() {
                         
                         legend : { position: "none" },
                         chartArea:{width:'85%',height:'75%'},
-                        title: 'Dose rate (in μSv/h) during time',
+                        title: 'Débit de dose (μSv/h) par date',
                         titlePosition : 'in',
                         //width: 100%,
                         //height: 100%,

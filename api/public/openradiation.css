@@ -10,7 +10,7 @@ html, body {
     width: 100%;
 }
 
-/* GENERIC */
+/* Title */
 .leaflet-top .openradiation_title {
     margin-top:0px;
     margin-left:0px;
@@ -19,15 +19,58 @@ html, body {
     background-color:white;
 }
 
-strong, span { color:#2446AB; }
+/* Menu */
+.leaflet-top .openradiation_menu {
+    padding: 5px 8px 3px 8px;
+    background: white;
+    background: rgba(255,255,255, 0.9);
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    border-radius: 5px;
+    min-height:20px;
+}
 
-#hide_filters, #permalink-close, #permalink { font-weight:bold; cursor:pointer;}
-#permalink-close { top:5px; right:5px; position:absolute; color:black; }
-#permalink-message { font-family:sans-serif; display: none; padding: 20px; position: fixed; bottom: 15px; right: 5px; z-index: 99999; background-color: rgba(240, 240, 240, 0.8); font-size:70%;
+.openradiation_icon {
+width:16px;
+height:16px;
+display: inline-block;
+background: url("images/picto.png") no-repeat;
+background-position:right top;
+}
+
+.icon_menu  { background-position:left top;}
+.icon_filter { background-position:-16px top;}
+.icon_cross { background-position:-32px top;}
+.icon_arrow { background-position:-48px top;}
+.icon_link { background-position:-64px top;}
+.icon_timeline { background-position:-80px top;}
+.icon_interpolation { background-position:-96px top;}
+
+.openradiation_menu_header {   cursor:pointer; }
+
+.leaflet-top .openradiation_menu_footer { display:none;}
+/*.leaflet-top .openradiation_menu:hover .openradiation_menu_footer {
+    display:block;
+}
+.leaflet-top .openradiation_menu:hover .openradiation_menu_header {
+    display:none;
+}*/
+
+ul {list-style:none; padding-left:5px;}
+ul li { margin:5px; height:25px; line-height:25px;}
+ul li span.openradiation_icon  { vertical-align:middle; margin-right:10px;}
+
+    
+#permalink-close, #openradiation_menu_footer-close, #hide_filters, #permalink , #timechartlink, #interpolationlink { font-weight:bold; cursor:pointer; }
+#permalink-close, #openradiation_menu_footer-close { top:5px; right:5px; position:absolute; color:black; }
+ 
+#permalink-message { font-family:sans-serif; display: none; padding: 20px; position: fixed; top: 15px; right: 50px; z-index: 99999; background-color: rgba(240, 240, 240, 0.9); font-size:70%;
 	-webkit-border-radius: 8px; -moz-border-radius: 8px; border-radius: 8px;
 	-webkit-box-shadow: 0px 0px 5px #000; -moz-box-shadow: 0px 0px 5px #000; box-shadow: 0px 0px 5px #000;
 } 
 #permalink-message a { color:#2446AB; font-weight:bold; text-decoration:none; }
+
+/* Measure */
+strong, span { color:#2446AB; }
 
 .userId { font-size:110%; color:#2446AB; font-weight:bold;}
 .value { font-size:110%; color:black; font-weight:bold;}
@@ -149,12 +192,12 @@ strong, span { color:#2446AB; }
 #charttime_close {
     position: absolute;
     top: 15.1%;
-    right:10.1%;
+    right:10%;
     background-color: #ffffff;
     cursor:pointer;
     font-weight:bold;
     font-family:sans-serif;
-    padding-top:4px;
+    padding-top:6px;
     padding-right:4px;
 }
         

@@ -1734,7 +1734,7 @@ if (properties.mappingFeature) {
                                         // for each value stored from left to right, then top to bottom
                                         for (var pix_x = 0; pix_x < 256; pix_x++) {
                                             for (var pix_y = 0; pix_y < 256; pix_y++) { 
-                                                value = parseInt(tile.substr(idx_value,16), 2);
+                                                value = parseInt(tile.substr(idx_value,16), 2); // value is stored in nSv/h
                                                 opac = parseInt(opacity.substr(idx_opacity,7),2);
                                                 
                                                 if (opac > 100)
@@ -1749,70 +1749,82 @@ if (properties.mappingFeature) {
                                                     png.data[idx+1] = 255; //G
                                                     png.data[idx+2] = 255; //B
                                                     png.data[idx+3] = 0; //opacity
-                                                } else if (value < 0.395612425) {
-                                                    png.data[idx] = 39; //R
-                                                    png.data[idx+1] = 190; //G
-                                                    png.data[idx+2] = 240; //B
-                                                } else if (value < 1.718281828) {
-                                                    png.data[idx] = 36; //R
-                                                    png.data[idx+1] = 180; //G
-                                                    png.data[idx+2] = 241; //B
-                                                } else if (value < 4.29449005) {
-                                                    png.data[idx] = 29; //R
-                                                    png.data[idx+1] = 148; //G
-                                                    png.data[idx+2] = 244; //B
-                                                } else if (value < 9.312258501) {
-                                                    png.data[idx] = 21; //R
-                                                    png.data[idx+1] = 113; //G
+                                                } else if (value < 45) {
+                                                    png.data[idx] = 3; //R
+                                                    png.data[idx+1] = 3; //G
+                                                    png.data[idx+2] = 230; //B
+                                                } else if (value < 72) {
+                                                    png.data[idx] = 17; //R
+                                                    png.data[idx+1] = 84; //G
+                                                    png.data[idx+2] = 238; //B
+                                                } else if (value < 114) {72
+                                                    png.data[idx] = 35; //R
+                                                    png.data[idx+1] = 172; //G
                                                     png.data[idx+2] = 246; //B
-                                                } else if (value < 19.08553692) {
-                                                    png.data[idx] = 15; //R
-                                                    png.data[idx+1] = 80; //G
-                                                    png.data[idx+2] = 251; //B
-                                                } else if (value < 38.121284) {
-                                                    png.data[idx] = 12; //R
-                                                    png.data[idx+1] = 51; //G
-                                                    png.data[idx+2] = 251; //B
-                                                } else if (value < 75.19785657) {
-                                                    png.data[idx] = 13; //R
-                                                    png.data[idx+1] = 42; //G
-                                                    png.data[idx+2] = 250; //B
-                                                } else if (value < 147.4131591) {
-                                                    png.data[idx] = 40; //R
-                                                    png.data[idx+1] = 41; //G
-                                                    png.data[idx+2] = 242; //B
-                                                } else if (value < 288.0693621) {
-                                                    png.data[idx] = 88; //R
-                                                    png.data[idx+1] = 44; //G
-                                                    png.data[idx+2] = 229; //B
-                                                } else if (value < 562.0302368) {
-                                                    png.data[idx] = 128; //R
-                                                    png.data[idx+1] = 48; //G
-                                                    png.data[idx+2] = 201; //B
-                                                } else if (value < 1095.633158) {
-                                                    png.data[idx] = 143; //R
-                                                    png.data[idx+1] = 46; //G
+                                                } else if (value < 181) {
+                                                    png.data[idx] = 51; //R
+                                                    png.data[idx+1] = 250; //G
+                                                    png.data[idx+2] = 254; //B
+                                                } else if (value < 287) {
+                                                    png.data[idx] = 34; //R
+                                                    png.data[idx+1] = 248; //G
                                                     png.data[idx+2] = 175; //B
-                                                } else if (value < 2134.949733) {
-                                                    png.data[idx] = 159; //R
-                                                    png.data[idx+1] = 43; //G
-                                                    png.data[idx+2] = 135; //B
-                                                } else if (value < 4159.262005) {
-                                                    png.data[idx] = 172; //R
-                                                    png.data[idx+1] = 41; //G
-                                                    png.data[idx+2] = 99; //B
-                                                } else if (value < 8102.083928) {
-                                                    png.data[idx] = 183; //R
-                                                    png.data[idx+1] = 37; //G
-                                                    png.data[idx+2] = 66; //B
-                                                } else if (value < 15781.6524) {
-                                                    png.data[idx] = 193; //R
-                                                    png.data[idx+1] = 36; //G
-                                                    png.data[idx+2] = 35; //B
+                                                } else if (value < 454) {
+                                                    png.data[idx] = 16; //R
+                                                    png.data[idx+1] = 247; //G
+                                                    png.data[idx+2] = 89; //B
+                                                } else if (value < 720) {
+                                                    png.data[idx] = 0; //R
+                                                    png.data[idx+1] = 245; //G
+                                                    png.data[idx+2] = 15; //B
+                                                } else if (value < 1142) {
+                                                    png.data[idx] = 59; //R
+                                                    png.data[idx+1] = 247; //G
+                                                    png.data[idx+2] = 13; //B
+                                                } else if (value < 1809) {
+                                                    png.data[idx] = 129; //R
+                                                    png.data[idx+1] = 249; //G
+                                                    png.data[idx+2] = 10; //B
+                                                } else if (value < 2867) {
+                                                    png.data[idx] = 195; //R
+                                                    png.data[idx+1] = 251; //G
+                                                    png.data[idx+2] = 8; //B
+                                                } else if (value < 4545) {
+                                                    png.data[idx] = 255; //R
+                                                    png.data[idx+1] = 253; //G
+                                                    png.data[idx+2] = 6; //B
+                                                } else if (value < 7203) {
+                                                    png.data[idx] = 255; //R
+                                                    png.data[idx+1] = 222; //G
+                                                    png.data[idx+2] = 6; //B
+                                                } else if (value < 11416) {
+                                                    png.data[idx] = 254; //R
+                                                    png.data[idx+1] = 192; //G
+                                                    png.data[idx+2] = 7; //B
+                                                } else if (value < 18092) {
+                                                    png.data[idx] = 254; //R
+                                                    png.data[idx+1] = 161; //G
+                                                    png.data[idx+2] = 7; //B
+                                                } else if (value < 28675) {
+                                                    png.data[idx] = 253; //R
+                                                    png.data[idx+1] = 131; //G
+                                                    png.data[idx+2] = 7; //B
+                                                } else if (value < 45446) {
+                                                    png.data[idx] = 253; //R
+                                                    png.data[idx+1] = 100; //G
+                                                    png.data[idx+2] = 7; //B
+                                                } else if (value < 72027) { //todo : value format is limited to 65535 
+                                                    png.data[idx] = 252; //R
+                                                    png.data[idx+1] = 69; //G
+                                                    png.data[idx+2] = 8; //B
+                                                } else if (value < 114115) {
+                                                    png.data[idx] = 252; //R
+                                                    png.data[idx+1] = 39; //G
+                                                    png.data[idx+2] = 8; //B
                                                 } else {
-                                                    png.data[idx] = 189; //R
-                                                    png.data[idx+1] = 46; //G
-                                                    png.data[idx+2] = 38; //B
+                                                    png.data[idx] = 251; //R
+                                                    png.data[idx+1] = 8; //G
+                                                    png.data[idx+2] = 8; //B
                                                 }
                                                 
                                                 idx_value = idx_value + 16;
