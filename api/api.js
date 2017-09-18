@@ -1351,6 +1351,7 @@ if (properties.submitApiFeature) {
 
 //7. submit Form
 if (properties.submitFormFeature) {
+/*
     app.get('/test', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /test : begin");
         res.render('test.ejs');
@@ -1429,6 +1430,7 @@ if (properties.submitFormFeature) {
         }
         console.log(new Date().toISOString() + " - GET /testme : end");
     });
+*/
 
     app.get('/upload', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /upload : begin");
@@ -2000,7 +2002,7 @@ function http_req(req, res) {
         console.error(new Date().toISOString() + " - Error in request " + err.stack);
     });
 
-    if (req.method == "GET" || req.method == "HEAD") {
+    if ((req.method == "GET" || req.method == "HEAD") && (typeof req.headers.host != "undefined")) { // bug : Cannot read property 'indexOf' of undefined
         if (req.headers.host.indexOf(":") > -1)
             res.writeHead(301, {Location: "https://" + req.headers.host.slice(0,req.headers.host.indexOf(":")) + ":" + properties.httpsPort + req.url} );
         else

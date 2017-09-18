@@ -124,9 +124,9 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                                 <li><span class="openradiation_icon icon_filter"></span><span id="hide_filters">Afficher / Masquer les filtres</span></li> \
                                 <li><span class="openradiation_icon icon_link"></span><span id="permalink">Obtenir un permalien</span></li> \
                                 <li><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">Représentation temporelle</span></li> \
-                                <li><span class="openradiation_icon icon_interpolation"></span><span id="interpolationlink">Afficher / Masquer l\'interpolation</span></li>  \
                             </ul> \
                           </div>';
+                          //<li><span class="openradiation_icon icon_interpolation"></span><span id="interpolationlink">Afficher / Masquer l\'interpolation</span></li> 
         return div;
     };
     openradiation_menu.addTo(openradiation_map);
