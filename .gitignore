@@ -3,6 +3,7 @@ api/node_modules
 api/node_modules/*
 api/certs
 api/certs/*
+api/properties.js
 api/public/test.js
 api/views/test.ejs
 api/public/png/*
