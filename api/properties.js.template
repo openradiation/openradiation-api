@@ -23,6 +23,6 @@ module.exports = {
     submitAPIPort:8080, //submitAPI contacted via post forms
     httpsPort : 8080,
     httpPort : 8083,
-    version: "v0.1"
+    version: "v0.2"
 }
 
