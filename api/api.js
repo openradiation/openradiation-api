@@ -1126,25 +1126,25 @@ if (properties.submitApiFeature) {
                             //+20 if manualReporting=false
                             if (manualReporting == false)
                                 reliability += 20;
-                            //+20 if measurementEnvironment=countryside / +10 if measurementEnvironment=city 
+                            //+20 if measurementEnvironment=countryside / +10 if measurementEnvironment=city or ontheroad 
                             if (req.body.data.measurementEnvironment != null)
                             {
                                 if (req.body.data.measurementEnvironment == "countryside")
                                     reliability += 20;
-                                else if (req.body.data.measurementEnvironment == "city")
+                                else if (req.body.data.measurementEnvironment == "city" || req.body.data.measurementEnvironment == "ontheroad")
                                     reliability += 10;
                             }
                             //+20 if measurementHeight=1 
                             if (req.body.data.measurementHeight != null && req.body.data.measurementHeight == 1)
-                                reliability += 20;
+                                reliability += 10;
 
-                            // Expecting > 100 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)
+                            // Expecting > 78 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)
                             var qualification;
                             var qualificationVotesNumber;
                             if (req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane") {
                                 qualification = "noenvironmentalcontext";
                                 qualificationVotesNumber = 0;
-                            } else if (reliability <= 100) {
+                            } else if (reliability <= 78) {
                                 qualification = "mustbeverified";
                                 qualificationVotesNumber = 0;
                             } else {
