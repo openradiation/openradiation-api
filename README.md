@@ -86,7 +86,7 @@ Error message response will look like :
 
 The endpoint for request API is https://request.openradiation.net/
 
-By default, all requests will be limited to the 1000 last measurements within the criterias (considering startTime). 
+By default, all requests will be limited to the 400 last measurements within the criterias (considering startTime). 
 This max number is in the response group and defined in the properties file.
 
 General fields in the query strings : 
@@ -131,7 +131,7 @@ All these criterias can be combined :
     
 Sample : to get the last measurements all over the world
 
-    http://request.openradiation.net/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434
+    https://request.openradiation.net/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434
     
 Response will look like : 
     
