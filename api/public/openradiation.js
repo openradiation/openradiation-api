@@ -642,10 +642,10 @@ $(function() {
                 success: function(res) {
                         
                     var str="Request done via openradiation.org at " + new Date().toString() + " with the parameters : minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp + "\n";
-                    str += "apparatusID,apparatusVersion,apparatusSensorType,apparatusTubeType,temperature,value,hitsNumber,startTime,endTime,latitude,longitude,accuracy,altitude,altitudeAccuracy,deviceUuid,devicePlatform,deviceVersion,deviceModel,reportUuid,manualReporting,organisationReporting,reportContext,description,measurementHeight,userId,measurementEnvironment,dateAndTimeOfCreation,qualification,qualificationVotesNumber,reliability,atypical,tags\n";
+                    str += "apparatusId,apparatusVersion,apparatusSensorType,apparatusTubeType,temperature,value,hitsNumber,startTime,endTime,latitude,longitude,accuracy,altitude,altitudeAccuracy,deviceUuid,devicePlatform,deviceVersion,deviceModel,reportUuid,manualReporting,organisationReporting,reportContext,description,measurementHeight,userId,measurementEnvironment,dateAndTimeOfCreation,qualification,qualificationVotesNumber,reliability,atypical,tags\n";
                     for(var i in res.data)
                     {
-                        str += res.data[i].apparatusID == null ? "," : res.data[i].apparatusID + ",";
+                        str += res.data[i].apparatusId == null ? "," : res.data[i].apparatusId + ",";
                         str += res.data[i].apparatusVersion == null ? "," : res.data[i].apparatusVersion + ",";
                         str += res.data[i].apparatusSensorType == null ? "," : res.data[i].apparatusSensorType + ",";
                         str += res.data[i].apparatusTubeType == null ? "," : res.data[i].apparatusTubeType + ",";
