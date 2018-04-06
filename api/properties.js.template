@@ -17,12 +17,13 @@ module.exports = {
     requestApiFeature:true, //if the feature requestAPI is available
     mappingFeature:true, //if the feature requestAPI is available
     submitFormFeature:true, //if the feature submitForm is available
+    submitFormAPIKey:"********************************", //API key for submitting data
     measurementURL: "http://localhost/import-measure/{reportUuid}",
     mappingURL:"https://localhost:8080", //mapping URL
     submitAPIHost:"127.0.0.1", //submitAPI contacted via post forms
     submitAPIPort:8080, //submitAPI contacted via post forms
     httpsPort : 8080,
     httpPort : 8083,
-    version: "v0.2"
+    version: "v0.3"
 }
 

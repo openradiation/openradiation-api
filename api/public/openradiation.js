@@ -1,9 +1,10 @@
 
-var isLanguageFR = true;
+var isLanguageFR = false;
 
-if (navigator.language.indexOf('fr') == -1)
-    isLanguageFR = false;
-
+//if (navigator.language.indexOf('fr') != -1)
+if (document.documentElement.lang == "fr")
+    isLanguageFR = true; // true
+    
 var icon_c = L.Icon.extend({
     options: {
         shadowUrl: '/images/marker-shadow_1.png',
@@ -38,6 +39,76 @@ var icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/imag
     
 var interpolation;
 
+var translations_FR = {
+      "Citizen radioactivity measurements" : "Les citoyens mesurent la radioactivité",
+      "Display / Mask the filters" : "Afficher / Masquer les filtres",
+      "Get a permalink" : "Obtenir un permalien",
+      "Timeline" : "Représentation temporelle",
+      "VALUE IN µSv/h" : "VALEUR EN μSv/h",
+      "Your tag" : "Votre tag",
+      "User" : "Utilisateur",
+      "CSV FILE" : "FICHIER CSV",     
+      "ALL QUALIFICATIONS" : "TOUTES QUALIFICATIONS",
+      "Seems correct" : "Semble correcte",
+      "Must be verified" : "Doit être vérifiée",
+      "Non-environmental context" : "Mesure non environnementale",
+      "Bad sensor" : "Défaut de capteur",
+      "Bad protocol" : "Protocole non respecté",
+      "Bad data transmission" : "Problème de transmission de données",
+      "ALL MEASUREMENTS" : "TOUTES MESURES",    
+      "Standard measurements" : "Mesures standard",
+      "Non-standard measurement" : "Mesure atypique",  
+      "Non-standard measurements" : "Mesures atypiques", 
+      "thumb" : "pouce",
+      "More ..." : "Voir plus",
+      "measurement found" : "mesure trouvée",
+      "measurements found" : "mesures trouvées",
+      "displayed measurements (NON-EXHAUSTIVE)" : "mesures affichées (NON EXHAUSTIF)",
+      "Link to this map" : "Lien vers cette carte",
+      "Link to the fitted map" : "Lien vers la carte ajustée",
+      "Date" : "Date",
+      "Dose rate (μSv/h)" : "Débit de dose (μSv/h)",
+      "Dose rate (μSv/h) per date" : "Débit de dose (μSv/h) par date",
+      "now" : "maintenant",
+      "minutes" : "minutes",
+      "hour" : "heure",
+      "hours" : "heures",
+      "day" : "jour",
+      "days" : "jours",  
+      "month" : "mois",
+      "months" : "mois",
+      "year" : "an",
+      "years" : "ans"
+            
+    };
+    
+function t(englishText)
+{
+    if (isLanguageFR == false)
+        return englishText;
+    else
+    {
+        if (englishText in translations_FR)
+            return translations_FR[englishText];
+        else
+            return englishText;
+    }
+}
+
+function csv(text)
+{ 
+    // if text contains ; \n \r " it is surrounded by "
+    // if text contains "
+    var result = text;
+    if (text.indexOf(';') > -1 || text.indexOf('\n') > -1 || text.indexOf('\r') > -1 || text.indexOf('"') > -1) 
+    {
+        result = result.replace(/"/g, '""');
+        result = '"' + result + '"';
+    }
+    return result;
+}
+
+
 function formatISODate(ISODate)
 {
     var date = new Date(ISODate);
@@ -66,27 +137,31 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 {
     
     // create a map in the "map" div, set the view to a given place and zoom
-    openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true}).setView([latitude, longitude], zoom);
+    openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true, minZoom:2, maxZoom:17 }).setView([latitude, longitude], zoom);
    
     //if you want to locate the client
     if (withLocate)
-        openradiation_map.locate({ setView : true, maxZoom:13 });
+        openradiation_map.locate({ setView : true, maxZoom:12 });
     
     // add an OpenStreetMap tile layer
     //L.tileLayer('http://bissorte.irsn.fr/mapcache/tms/1.0.0/osm@g/{z}/{x}/{y}.png', { tms:true,
     //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// https
     //L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { // http
-    L.tileLayer('https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
-    
-        //attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span> | <span id="\timechartlink\">tT</span> | <span id="\interpolationlink\">int</span>'
-        
-        //attribution: '&copy; <a href=\"http:\/\/osm.org\/copyright\">OpenStreetMap<\/a> contributors | &copy; <a href=\"http:\/\/www.openradiation.org\/copyright\">OpenRadiation</a> | <span id=\"hide_filters\">Filtres +\/-</span> | <span id=\"permalink\">Permalink</span> | <span id=\"timechartlink\">t</span> | <span id=\"interpolationlink\">i</span>'
-    
-        attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>'
-        
-        
-    }).addTo(openradiation_map);
-      
+    if (isLanguageFR) {
+        L.tileLayer('https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
+            //attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span> | <span id="\timechartlink\">tT</span> | <span id="\interpolationlink\">int</span>'
+            //attribution: '&copy; <a href=\"http:\/\/osm.org\/copyright\">OpenStreetMap<\/a> contributors | &copy; <a href=\"http:\/\/www.openradiation.org\/copyright\">OpenRadiation</a> | <span id=\"hide_filters\">Filtres +\/-</span> | <span id=\"permalink\">Permalink</span> | <span id=\"timechartlink\">t</span> | <span id=\"interpolationlink\">i</span>'
+            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>' 
+        }).addTo(openradiation_map);
+    } else {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
+            //attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span> | <span id="\timechartlink\">tT</span> | <span id="\interpolationlink\">int</span>'
+            //attribution: '&copy; <a href=\"http:\/\/osm.org\/copyright\">OpenStreetMap<\/a> contributors | &copy; <a href=\"http:\/\/www.openradiation.org\/copyright\">OpenRadiation</a> | <span id=\"hide_filters\">Filtres +\/-</span> | <span id=\"permalink\">Permalink</span> | <span id=\"timechartlink\">t</span> | <span id=\"interpolationlink\">i</span>'
+            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/en/\data\">OpenRadiation</a>' 
+        }).addTo(openradiation_map);
+
+
+    }
     //add an interpolation map layer
     interpolation = 
       new L.TileLayer('/i/{z}/{x}/{y}.png',
@@ -102,10 +177,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     
     openradiation_title.onAdd = function(openradiation_map) {
         var div = L.DomUtil.create('div', 'openradiation_title');
-        if (isLanguageFR)
-            div.innerHTML = '<strong>Les citoyens mesurent la radioactivité</strong>';
-        else
-            div.innerHTML = '<strong>Citizens measure the radioactivity</strong>';
+        div.innerHTML = '<strong>' + t("Citizen radioactivity measurements") + '</strong>';
         return div;
     };
     
@@ -117,16 +189,18 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     });
     openradiation_menu.onAdd = function(openradiation_map) {
         var div = L.DomUtil.create('div', 'openradiation_menu');
+        
+        // <li><span class="openradiation_icon icon_interpolation"></span><span id="interpolationlink">' + t("Interpolation") + '</span></li> 
         div.innerHTML = '<span class="openradiation_menu_header openradiation_icon icon_menu"></span> \
                           <div class="openradiation_menu_footer"> \
                             <span class="openradiation_icon icon_cross" id="openradiation_menu_footer-close"></span> \
                             <ul> \
-                                <li><span class="openradiation_icon icon_filter"></span><span id="hide_filters">Afficher / Masquer les filtres</span></li> \
-                                <li><span class="openradiation_icon icon_link"></span><span id="permalink">Obtenir un permalien</span></li> \
-                                <li><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">Représentation temporelle</span></li> \
+                                <li><span class="openradiation_icon icon_filter"></span><span id="hide_filters">' + t("Display / Mask the filters") + '</span></li> \
+                                <li><span class="openradiation_icon icon_link"></span><span id="permalink">' + t("Get a permalink") + '</span></li> \
+                                <li><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + t("Timeline") + '</span></li> \
+                                <li><span><a href="/en/openradiation">EN</a> | <a href="/fr/openradiation">FR</a> </span></li> \
                             </ul> \
                           </div>';
-                          //<li><span class="openradiation_icon icon_interpolation"></span><span id="interpolationlink">Afficher / Masquer l\'interpolation</span></li> 
         return div;
     };
     openradiation_menu.addTo(openradiation_map);
@@ -146,7 +220,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         div.innerHTML = '<div class=\"slider_range\">\
                             <div>\
                                 <div id=\"slider_rangevalue\"></div> \
-                                <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">VALEUR EN μSv/h</span><span id=\"slider_maxvalue\"></span></div>\
+                                <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + t("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
                             </div>\
                          </div>\
                          <div class=\"slider_range\">\
@@ -157,31 +231,31 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                          </div>\
                          <div class=\"input_tag\">\
                             <div>\
-                                <input id="tag" class="input" type="text" placeholder="# Votre tag"/>  \
-                                <input id="userId" class="input" type="text" placeholder="Utilisateur"/> \
+                                <input id="tag" class="input" type="text" placeholder="# ' + t("Your tag") + '"/>  \
+                                <input id="userId" class="input" type="text" placeholder="' + t("User") + '"/> \
                             </div>\
                          </div>\
                          <div class=\"download_file\">\
                             <div id=\"export\">\
-                                <div>FICHIER CSV</div> \
+                                <div>' + t("CSV FILE") + '</div> \
                                 <img src=\"/images/arrow_download.png\"/> \
                             </div>\
                          </div>\
                          <div class=\"select_qualification\">\
                             <div>\
                                 <select id="qualification" name="qualification"> \
-                                    <option value="all">TOUTES QUALIFICATIONS</option> \
-                                    <option value="seemscorrect">Semble correcte</option> \
-                                    <option value="mustbeverified">Doit être vérifiée</option> \
-                                    <option value="noenvironmentalcontext">Mesure non environnementale</option>\
-                                    <option value="badsensor">Défaut de capteur</option>\
-                                    <option value="badprotocole">Protocole non respecté</option>\
-                                    <option value="baddatatransmission">Problème de transmission de données</option>\
+                                    <option value="all">' + t("ALL QUALIFICATIONS") + '</option> \
+                                    <option value="seemscorrect">' + t("Seems correct") + '</option> \
+                                    <option value="mustbeverified">' + t("Must be verified") + '</option> \
+                                    <option value="noenvironmentalcontext">' + t("Non-environmental context") + '</option>\
+                                    <option value="badsensor">' + t("Bad sensor") + '</option>\
+                                    <option value="badprotocole">' + t("Bad protocol") + '</option>\
+                                    <option value="baddatatransmission">' + t("Bad data transmission") + '</option>\
                                 </select>\
                                 <select id="atypical" name="atypical"> \
-                                    <option value="all">TOUTES MESURES</option> \
-                                    <option value="false">Mesures standard</option> \
-                                    <option value="true">Mesures atypiques</option> \
+                                    <option value="all">' + t("ALL MEASUREMENTS") + '</option> \
+                                    <option value="false">' + t("Standard measurements") + '</option> \
+                                    <option value="true">' + t("Non-standard measurements") + '</option> \
                                 </select>\
                             </div>\
                          </div>';       
@@ -215,7 +289,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     });
     openradiation_message.onAdd = function(openradiation_map) {
         var div = L.DomUtil.create('div', 'openradiation_message');
-        div.innerHTML = '<span id="nbresults"></span>';
+        div.innerHTML = '<strong id="nbresults"></strong>';
         return div;
     };
     openradiation_message.addTo(openradiation_map); 
@@ -224,7 +298,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
        
     openradiation_map.on('popupopen', function(e) {
-    console.log("langue=" + navigator.language + "; userlan = " + navigator.userLanguage + " brows = " + navigator.browserLanguage);
+    
         $.ajax({
             type: 'GET',
             url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=' + apiKey + '&response=complete',
@@ -242,45 +316,53 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                     htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
                 else
                     htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"/images/measure.png\"/></div>";
-                htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>Voir plus</p><p class=\"plus\">+</p></a></div>";
+                htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>" + t("More ...") + "</p><p class=\"plus\">+</p></a></div>";
                 htmlPopup += "</div>";
                 
                 htmlPopup += "<div style=\"width:150px; float:right; min-height:90px;\">";
                 
+                if (res.data.measurementEnvironment != null)
+                    htmlPopup += "<div style=\"float:right;\"><img src=\"/images/icon-env-" + res.data.measurementEnvironment + ".png\"/></div>";
+
+                //htmlPopup += "<div style=\"float:right;\"><img src=\"/images/icon-env1-on-24px.png\"/></div>";
                 if (res.data.userId != null)
                     htmlPopup += "<div><span class=\"userId\">" + res.data.userId + "</span></div>";
-                htmlPopup += "<span class=\"value\">" + res.data.value.toFixed(3).toString().replace(".",",") + " µSv/h</span><br/>";
                     
+                
+                htmlPopup += "<div style=\"margin-bottom:5px;\"><span class=\"value\">" + res.data.value.toFixed(3).toString().replace(".",",") + " µSv/h</span></div>";
+                
+                
                 if (res.data.qualification != null) {
                     htmlPopup += "<div><span class=\"comment\">";
                     switch (res.data.qualification) {
                         case "seemscorrect":
-                            htmlPopup += "Semble correcte";
+                            htmlPopup += t("Seems correct");
                             break;
                         case "mustbeverified":
-                            htmlPopup += "Doit être vérifiée";
+                            htmlPopup += t("Must be verified");
                             break;
                         case "noenvironmentalcontext":
-                            htmlPopup += "Mesure non environnementale";
+                            htmlPopup += t("Non-environmental context");
                             break;
                         case "badsensor":
-                            htmlPopup += "Défaut de capteur";
+                            htmlPopup += t("Bad sensor");
                             break;
                         case "badprotocole":
-                            htmlPopup += "Protocole non respecté";
+                            htmlPopup += t("Bad protocol");
                             break;
                         case "baddatatransmission":
-                            htmlPopup += "Problème de transmission de données";
+                            htmlPopup += t("Bad data transmission");
                             break;
                     };
-                    htmlPopup += ", " + res.data.qualificationVotesNumber + " pouce";
-                    htmlPopup += res.data.qualificationVotesNumber < 2 ? "" : "s";
+                    htmlPopup += " <img style=\"margin-bottom:-4px;\"src=\"/images/thumb.png\"/>+ " + res.data.qualificationVotesNumber;
+                    //htmlPopup += ", " + res.data.qualificationVotesNumber + " " + t("thumb");
+                    //htmlPopup += res.data.qualificationVotesNumber < 2 ? "" : "s";
                     htmlPopup += "</span></div>"
                     
                 }
                 
                 if (res.data.atypical == true)
-                    htmlPopup += "<div><span class=\"comment\">Mesure Atypique</span></div>";
+                    htmlPopup += "<div><span class=\"comment\">" + t("Non-standard measurement") + "</span></div>";
                     
                 if (res.data.tags != null)
                 {
@@ -293,6 +375,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                 }
                 htmlPopup += "</div>";
                 htmlPopup += "</div>";
+                console.log(htmlPopup);
                 e.popup.setContent(htmlPopup);
                 
             },
@@ -342,7 +425,7 @@ function getUrl()
         urlTemp+= "&maxValue=" + maxValue;
     
     var minDate = $("#slider_mindate").text();
-    if (minDate != "" && minDate != "- ∞" && minDate != "maintenant")
+    if (minDate != "" && minDate != "- ∞" && minDate != t("now"))
     {
         var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 0) ) / 9) - 1;
         var NbSecond = Math.round(nbHours * 3600);
@@ -356,7 +439,7 @@ function getUrl()
     }
     
     var maxDate = $("#slider_maxdate").text();
-    if (maxDate != "" && maxDate != "- ∞" && maxDate != "maintenant")
+    if (maxDate != "" && maxDate != "- ∞" && maxDate != t("now"))
     {
         var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 1) ) / 9) - 1;
         var NbSecond = Math.round(nbHours * 3600);
@@ -397,17 +480,17 @@ function retrieve_items(urlTemp, fitBounds) {
         if (res.data.length < 2)
         {
             exhaustiveResultsPrev = true;
-            $("#nbresults").text(res.data.length + " mesure trouvée");
+            $("#nbresults").text(res.data.length + " " + t("measurement found") );
         }
         else if (res.maxNumber == res.data.length)
         { 
             exhaustiveResultsPrev = false;
-            $("#nbresults").text(res.data.length + " mesures affichées (non exhaustif)");
+            $("#nbresults").text(res.data.length + " " + t("displayed measurements (NON-EXHAUSTIVE)") );
         }
         else
         {
             exhaustiveResultsPrev = true;
-            $("#nbresults").text(res.data.length + " mesures trouvées");
+            $("#nbresults").text(res.data.length + " " + t("measurements found") );
         }
         
         //list all new items
@@ -543,9 +626,9 @@ function openradiation_getItems(fitBounds)
             if (exhaustiveResultsPrev) {
                 console.log("updated results without research");
                 if (nb < 2)
-                    $("#nbresults").text(nb + " mesure trouvée");
+                    $("#nbresults").text(nb + " " + t("measurement found"));
                 else
-                    $("#nbresults").text(nb + " mesures trouvées");
+                    $("#nbresults").text(nb + " " + t("measurements found"));
             } else
                 console.log("not updated (not exhaustive and all the items are in the new bounds)");
         }
@@ -575,32 +658,37 @@ function val2date(val)
     var hour = Math.exp((100 - val) / 9) - 1;
     
     if (hour == 0)
-        return "maintenant";
+        return t("now");
     else if (hour < 0.4)
-        return Math.round(hour*60 / 10) * 10 + " minutes";
+        return Math.round(hour*60 / 10) * 10 + " " + t("minutes");
     else if (hour < 20)
     {
         if (Math.round(hour) == 1)
-            return "1 heure";
+            return "1 " + t("hour");
         else
-            return Math.round(hour) + " heures";
+            return Math.round(hour) + " " + t("hours");
     }
     else if (hour < 24*30)
     {
         if (Math.round(hour / 24) == 1)
-            return "1 jour";
+            return "1 " + t("day");
         else
-            return Math.round(hour / 24) + " jours";   
+            return Math.round(hour / 24) + " " + t("days");   
     }
     else if (hour < 24*30*9)
-        return Math.round(hour / 24 / 30) + " mois";
+    {
+        if (Math.round(hour / 24 / 30) == 1)
+            return "1 " + t("month");
+        else
+            return Math.round(hour / 24 / 30) + " " + t("months");
+    }
     else if (hour > 60000)
         return "- ∞";
     else {
         if (Math.round(hour /24 / 365) == 1)
-            return "1 an";
+            return "1 " + t("year");
         else
-            return Math.round(hour /24 / 365) + " ans";
+            return Math.round(hour /24 / 365) + " " + t("years");
     }
 }
 
@@ -641,50 +729,54 @@ $(function() {
                 timeout: 10000,
                 success: function(res) {
                         
-                    var str="Request done via openradiation.org at " + new Date().toString() + " with the parameters : minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp + "\n";
-                    str += "apparatusId,apparatusVersion,apparatusSensorType,apparatusTubeType,temperature,value,hitsNumber,startTime,endTime,latitude,longitude,accuracy,altitude,altitudeAccuracy,deviceUuid,devicePlatform,deviceVersion,deviceModel,reportUuid,manualReporting,organisationReporting,reportContext,description,measurementHeight,userId,measurementEnvironment,dateAndTimeOfCreation,qualification,qualificationVotesNumber,reliability,atypical,tags\n";
+                    
+                    var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
                     for(var i in res.data)
                     {
-                        str += res.data[i].apparatusId == null ? "," : res.data[i].apparatusId + ",";
-                        str += res.data[i].apparatusVersion == null ? "," : res.data[i].apparatusVersion + ",";
-                        str += res.data[i].apparatusSensorType == null ? "," : res.data[i].apparatusSensorType + ",";
-                        str += res.data[i].apparatusTubeType == null ? "," : res.data[i].apparatusTubeType + ",";
-                        str += res.data[i].temperature == null ? "," : res.data[i].temperature + ",";
-                        str += res.data[i].value + ",";
-                        str += res.data[i].hitsNumber == null ? "," : res.data[i].hitsNumber + ",";
-                        str += res.data[i].startTime + ",";
-                        str += res.data[i].endTime == null ? "," : res.data[i].endTime + ",";	
-                        str += res.data[i].latitude + ",";	
-                        str += res.data[i].longitude + ",";
-                        str += res.data[i].accuracy == null ? "," : res.data[i].accuracy + ",";	
-                        str += res.data[i].altitude == null ? "," : res.data[i].altitude + ",";	
-                        str += res.data[i].altitudeAccuracy == null ? "," : res.data[i].altitudeAccuracy + ",";	
-                        str += res.data[i].deviceUuid == null ? "," : res.data[i].deviceUuid + ",";	
-                        str += res.data[i].devicePlatform == null ? "," : res.data[i].devicePlatform + ",";	
-                        str += res.data[i].deviceVersion == null ? "," : res.data[i].deviceVersion + ",";	
-                        str += res.data[i].deviceModel == null ? "," : res.data[i].deviceModel + ",";	
-                        str += res.data[i].reportUuid + ",";
-                        str += res.data[i].manualReporting + ",";
-                        str += res.data[i].organisationReporting == null ? "," : res.data[i].organisationReporting + ",";	
-                        str += res.data[i].reportContext == null ? "," : res.data[i].reportContext + ",";	
-                        str += res.data[i].description == null ? "," : res.data[i].description + ",";	
-                        str += res.data[i].measurementHeight == null ? "," : res.data[i].measurementHeight + ",";	
-                        str += res.data[i].userId == null ? "," : res.data[i].userId + ",";
-                        str += res.data[i].measurementEnvironment == null ? "," : res.data[i].measurementEnvironment + ",";
-                        str += res.data[i].dateAndTimeOfCreation + ",";
-                        str += res.data[i].qualification == null ? "," : res.data[i].qualification + ",";	
-                        str += res.data[i].qualificationVotesNumber == null ? "," : res.data[i].qualificationVotesNumber + ",";	
-                        str += res.data[i].reliability + ",";
-                        str += res.data[i].atypical + ",";
-                        if (res.data[i].tags == null)
-                            str += ",";
-                        else {
+                        str += res.data[i].apparatusId == null ? ";" : csv(res.data[i].apparatusId) + ";";
+                        str += res.data[i].apparatusVersion == null ? ";" : csv(res.data[i].apparatusVersion) + ";";
+                        str += res.data[i].apparatusSensorType == null ? ";" : csv(res.data[i].apparatusSensorType) + ";";
+                        str += res.data[i].apparatusTubeType == null ? ";" : csv(res.data[i].apparatusTubeType) + ";";
+                        str += res.data[i].temperature == null ? ";" : res.data[i].temperature + ";";
+                        str += res.data[i].value + ";";
+                        str += res.data[i].hitsNumber == null ? ";" : res.data[i].hitsNumber + ";";
+                        str += res.data[i].startTime + ";";
+                        str += res.data[i].endTime == null ? ";" : res.data[i].endTime + ";";	
+                        str += res.data[i].latitude + ";";	
+                        str += res.data[i].longitude + ";";
+                        str += res.data[i].accuracy == null ? ";" : res.data[i].accuracy + ";";	
+                        str += res.data[i].altitude == null ? ";" : res.data[i].altitude + ";";	
+                        str += res.data[i].altitudeAccuracy == null ? ";" : res.data[i].altitudeAccuracy + ";";	
+                        str += res.data[i].deviceUuid == null ? ";" : csv(res.data[i].deviceUuid) + ";";	
+                        str += res.data[i].devicePlatform == null ? ";" : csv(res.data[i].devicePlatform) + ";";	
+                        str += res.data[i].deviceVersion == null ? ";" : csv(res.data[i].deviceVersion) + ";";	
+                        str += res.data[i].deviceModel == null ? ";" : csv(res.data[i].deviceModel) + ";";	
+                        str += res.data[i].reportUuid + ";";
+                        str += res.data[i].manualReporting ? "1;" : "0;";
+                        str += res.data[i].organisationReporting == null ? ";" : csv(res.data[i].organisationReporting) + ";";		
+                        str += res.data[i].description == null ? ";" : csv(res.data[i].description) + ";";	
+                        str += res.data[i].measurementHeight == null ? ";" : res.data[i].measurementHeight + ";";	
+                        str += res.data[i].userId == null ? ";" : csv(res.data[i].userId) + ";";
+                        str += res.data[i].measurementEnvironment == null ? ";" : res.data[i].measurementEnvironment + ";";
+                        str += res.data[i].dateAndTimeOfCreation + ";";
+                        str += res.data[i].qualification == null ? ";" : res.data[i].qualification + ";";	
+                        str += res.data[i].qualificationVotesNumber == null ? ";" : res.data[i].qualificationVotesNumber + ";";	
+                        str += res.data[i].reliability + ";";
+                        str += res.data[i].atypical ? "1;" : "0;";
+                        //if (res.data[i].tags == null)
+                        //    str += ";";
+                        //else {
+                        if (res.data[i].tags != null){
                             for (t in res.data[i].tags)
-                                str += res.data[i].tags[t] + ",";
+                            {
+                                str += csv(res.data[i].tags[t]);
+                                if (t < (res.data[i].tags.length-1) )
+                                    str += ";";
+                            }
                         }
                         str += "\n";
                     }
-                    var blob = new Blob([str], {type: "text/plain;charset=utf-8"});
+                    var blob = new Blob([str], {type: "text/csv;charset=utf-8"});
                     saveAs(blob, "export_openradiation.csv");
                 },
                 error: function() {
@@ -692,7 +784,7 @@ $(function() {
                 }
             });
         } catch (e) {
-            alert("This feature is not available your old version of browser");
+            alert("This feature is not available with your old version of browser");
         }
     });
     
@@ -747,9 +839,9 @@ $(function() {
             permalink_details = "";
 
         if (permalink_details == "")
-            $( "#permalink-message" ).html("Lien vers cette carte : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span class=\"openradiation_icon icon_cross\" id=\"permalink-close\"></span> ");
+            $( "#permalink-message" ).html(t("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span class=\"openradiation_icon icon_cross\" id=\"permalink-close\"></span> ");
         else
-            $( "#permalink-message" ).html("Lien vers cette carte : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> Lien vers la carte ajustée : <a target=\"_blank\" href=\"" + link + permalink_details + "\">" + link + permalink_details + "<\/a> <span id=\"permalink-close\">X</span> ");
+            $( "#permalink-message" ).html(t("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> " + t("Link to the fitted map") + " : <a target=\"_blank\" href=\"" + link + permalink_details + "\">" + link + permalink_details + "<\/a> <span id=\"permalink-close\">X</span> ");
         
         $( "#permalink-message" ).css("display","block");
         $( "#permalink-close" ).click(function() {
@@ -788,8 +880,8 @@ $(function() {
             var openradiationTime = document.getElementById('charttime');
 
             var data = new google.visualization.DataTable();
-            data.addColumn('datetime', 'Date');
-            data.addColumn('number', 'Débit de dose (μSv/h)');
+            data.addColumn('datetime', t("Date"));
+            data.addColumn('number', t("Dose rate (μSv/h)"));
 
             var urlTemp = getUrl();                       
             $.ajax({
@@ -816,7 +908,7 @@ $(function() {
                         
                         legend : { position: "none" },
                         chartArea:{width:'85%',height:'75%'},
-                        title: 'Débit de dose (μSv/h) par date',
+                        title: t("Dose rate (μSv/h) per date"),
                         titlePosition : 'in',
                         //width: 100%,
                         //height: 100%,

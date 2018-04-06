@@ -58,13 +58,13 @@ app.all('*', function(req, res, next) {
 
 //2. load apiKeys every ten minutes
 var apiKeys = [];
-var openradiationApiKey = ""; //the mutable apikey
+var mutableOpenRadiationMapApiKey = ""; //the mutable apikey for openradiation map : it is mutable while it is visible in map
 
 var apiKeyTestCounter = 0;
 var apiKeyTestDate;
 
 getAPI = function() {
-    console.log(new Date().toISOString() + " - getAPI() : begin"); 
+    //console.log(new Date().toISOString() + " - getAPI() : begin"); 
     pg.connect(conStr, function(err, client, done) {
         if (err) {
             done();
@@ -80,13 +80,13 @@ getAPI = function() {
                     for (i = 0; i < apiKeys.length; i++)
                     {
                         if (apiKeys[i].role == "mutable")
-                            openradiationApiKey = apiKeys[i].apiKey;
+                            mutableOpenRadiationMapApiKey = apiKeys[i].apiKey;
                     }
                 }
             });
         }
     });
-    console.log(new Date().toISOString() + " - getAPI() : end");
+    //console.log(new Date().toISOString() + " - getAPI() : end");
 };
 
 getAPI();
@@ -96,7 +96,7 @@ setInterval(getAPI, properties.getAPIInterval); //every ten minutes
 var users = [];
 
 getUsers = function() {
-    console.log(new Date().toISOString() + " - getUsers() : begin");
+    //console.log(new Date().toISOString() + " - getUsers() : begin");
     pg.connect(conStr, function(err, client, done) {
         if (err) {
             done();
@@ -113,15 +113,20 @@ getUsers = function() {
             });
         }
     });
-    console.log(new Date().toISOString() + " - getUsers() : end");
+    //console.log(new Date().toISOString() + " - getUsers() : end");
 };
 
 getUsers();
 setInterval(getUsers, properties.getUsersInterval); //every ten minutes
 
 //4. common functions
-verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
-    
+verifyApiKey = function(res, apiKey, adminOnly, isSubmitAPI) {
+    // roles are the following : 
+    //      test    : only a few GET requests
+    //      get     : only GET requests
+    //      mutable : only GET request, may change in database
+    //      put     : GET or PUT/POST request
+    //      admin   : GET or PUT/POST request + admin role requests are admit
     for (i = 0; i < apiKeys.length; i++)
     {
         if (apiKeys[i].apiKey == apiKey.toLowerCase()) //apiKey should be in lowercase in the database
@@ -131,10 +136,14 @@ verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
                 res.status(401).json({ error: {code:"103", message:"apiKey is not valid for this restricted access"}});
                 return false;
             }
+
+            if (isSubmitAPI && (apiKeys[i].role != "put" && apiKeys[i].role != "admin"))  
+            {
+                res.status(401).json({ error: {code:"103", message:"apiKey is not valid for submitting data"}});
+                return false;
+            }            
             
-            apiKey_.role = apiKeys[i].role;
-            
-            //test if apiKey = test is called more often
+            //test : if apiKey = test is called more often
             if (apiKeys[i].role == "test") {
                 var maintenant = new Date();
                 if (apiKeyTestDate == null || (apiKeyTestDate.getTime() + properties.APIKeyTestInterval) < maintenant.getTime())
@@ -188,14 +197,14 @@ verifyApiKey = function(res, apiKey, adminOnly, apiKey_, isSubmitAPI) {
 //to decrease computation time password are stored 10 to 12 minutes
 var passwords = {};
 deletePasswords = function() {
-    console.log(new Date().toISOString() + " - deletePasswords() : begin");
+    //console.log(new Date().toISOString() + " - deletePasswords() : begin");
     for (var i in passwords)
     {
         var now = new Date();
         if (passwords[i].getTime() + 600000 < now.getTime())
             delete passwords[i];
     }
-    console.log(new Date().toISOString() + " - deletePasswords() : end");
+    //console.log(new Date().toISOString() + " - deletePasswords() : end");
 };
 setInterval(deletePasswords, 120000); //every 2 minutes
 
@@ -373,17 +382,23 @@ verifyData = function(res, json, isMandatory, dataName) {
             case "dateOfCreation":
             case "minStartTime":
             case "maxStartTime":
-            case "startTime":
+            case "endTime":
                 if (typeof(json[dataName]) != "string" || new Date(json[dataName]) == "Invalid Date")
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a date"}});
                     return false;
                 }
                 break;
-            case "endTime":
+            case "startTime":
                 if (typeof(json[dataName]) != "string" || new Date(json[dataName]) == "Invalid Date")
                 {
-                    res.status(400).json({ error: {code:"102", message:dataName + " is not a date"}});
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a reliable date"}});
+                    return false;
+                }
+                var now = new Date();
+                if ( (new Date(json[dataName])).getTime() > (now.getTime() + 86400000)) 
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a real date"}});
                     return false;
                 }
                 break;
@@ -648,6 +663,14 @@ verifyData = function(res, json, isMandatory, dataName) {
     return true;
 }; 
 
+// return preferred language in req request
+getLanguage = function(req) {
+    if (req.acceptsLanguages('fr', 'en') == "fr")
+        return "fr";
+    else
+        return "en";
+}
+
 //5. request API
 if (properties.requestApiFeature) {
     app.get('/measurements/:reportUuid', function (req, res, next) {
@@ -657,8 +680,7 @@ if (properties.requestApiFeature) {
             res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
         }
         else {
-            var apiKey = { "role":""};
-            if (verifyApiKey(res, req.query.apiKey, false, apiKey, false)
+            if (verifyApiKey(res, req.query.apiKey, false, false)
              && verifyData(res, req.query, false, "response")
              && verifyData(res, req.query, false, "withEnclosedObject"))
             {
@@ -738,9 +760,8 @@ if (properties.requestApiFeature) {
             res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
         }
         else {
-            var apiKey = { "role":""};
             if ( (req.query.dateOfCreation == null
-             && verifyApiKey(res, req.query.apiKey, false, apiKey, false)
+             && verifyApiKey(res, req.query.apiKey, false, false)
              && verifyData(res, req.query, false, "minValue")
              && verifyData(res, req.query, false, "maxValue")
              && verifyData(res, req.query, false, "minStartTime")
@@ -757,7 +778,7 @@ if (properties.requestApiFeature) {
              && verifyData(res, req.query, false, "withEnclosedObject")
              && verifyData(res, req.query, false, "maxNumber")) 
            ||   (req.query.dateOfCreation != null
-             && verifyApiKey(res, req.query.apiKey, true, apiKey, false)
+             && verifyApiKey(res, req.query.apiKey, true, false)
              && verifyData(res, req.query, false, "dateOfCreation") 
              && verifyData(res, req.query, false, "minValue")
              && verifyData(res, req.query, false, "maxValue")
@@ -1002,10 +1023,9 @@ if (properties.submitApiFeature) {
             res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
         }
         else {
-            var apiKey = { "role":""};
             console.log(req.body.apiKey);
             console.log(req.body.data);
-            if (verifyApiKey(res, req.body.apiKey, false, apiKey, true)
+            if (verifyApiKey(res, req.body.apiKey, false, true)
              && verifyData(res, req.body.data, false, "apparatusId")
              && verifyData(res, req.body.data, false, "apparatusVersion")
              && verifyData(res, req.body.data, false, "apparatusSensorType")
@@ -1037,7 +1057,7 @@ if (properties.submitApiFeature) {
              && verifyData(res, req.body.data, false, "measurementEnvironment"))
             {
                 console.log("ok");
-                if (apiKey.role != "test" && req.body.data.reportContext != null && req.body.data.reportContext == "routine")
+                if (req.body.data.reportContext != null && req.body.data.reportContext == "routine")
                 {
                     pg.connect(conStr, function(err, client, done) {
                         if (err) {
@@ -1224,9 +1244,7 @@ if (properties.submitApiFeature) {
             console.log("1");
         }
         else {
-            var apiKey = { "role":""};
-
-            if (verifyApiKey(res, req.body.apiKey, true, apiKey, true))
+            if (verifyApiKey(res, req.body.apiKey, true, true))
             {
                 if (! (req.body.data instanceof Array) || req.body.data.length > 1000000)
                 {
@@ -1312,9 +1330,7 @@ if (properties.submitApiFeature) {
             res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
         }
         else {
-            var apiKey = { "role":""};
-
-            if (verifyApiKey(res, req.body.apiKey, true, apiKey, true)
+            if (verifyApiKey(res, req.body.apiKey, true, true)
              && verifyData(res, req.body.data, true, "qualification")
              && verifyData(res, req.body.data, true, "qualificationVotesNumber"))
             {
@@ -1375,7 +1391,7 @@ if (properties.submitFormFeature) {
             });
             
             var json = {
-                "apiKey": openradiationApiKey,
+                "apiKey": properties.submitFormAPIKey,
                 "data": {
                     "reportUuid": uuid,
                     "latitude": parseFloat(req.query.latitude),
@@ -1408,7 +1424,7 @@ if (properties.submitFormFeature) {
                 post_res.on('end', function () {
                     if (post_res.statusCode == 201)
                     {
-                        res.render('openradiation.ejs', { apiKey: openradiationApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.query.zoom, latitude: req.query.latitude, longitude: req.query.longitude, 
+                        res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: properties.submitFormAPIKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.query.zoom, latitude: req.query.latitude, longitude: req.query.longitude, 
                                  tag:"", userId: "", qualification: "all", atypical: "all",
                                  rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100 } );                    
                         
@@ -1432,12 +1448,21 @@ if (properties.submitFormFeature) {
     });
 */
 
-    app.get('/upload', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /upload : begin");
-        res.render('uploadfile.ejs', { userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", description:"", tags: JSON.stringify([]), result: "" });
-        console.log(new Date().toISOString() + " - GET /upload : end");
+    app.get('/:lang/upload', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET :lang/upload : begin");
+        if (req.params.lang == "fr" || req.params.lang == "en") {           
+            res.render('uploadfile.ejs', { lang:req.params.lang , userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", description:"", tags: JSON.stringify([]), result: "" });
+        } else
+            res.status(404).end();
+        console.log(new Date().toISOString() + " - GET :lang/upload : end");
     });
     
+    app.get('/upload', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /upload : begin");
+        res.render('uploadfile.ejs', { lang:getLanguage(req), userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", description:"", tags: JSON.stringify([]), result: "" });
+        console.log(new Date().toISOString() + " - GET /upload : end");
+    });
+  
     app.post('/upload', upload.single('file'), function(req, res, next) {
         console.log(new Date().toISOString() + " - POST /upload : begin");
         
@@ -1454,42 +1479,47 @@ if (properties.submitFormFeature) {
                 tags.push(req.body["tag" + nbTags]);
         }
       
-        if (req.body.userId == null || typeof(req.body.userId) != "string" || req.body.userId == "" || req.body.userId.length > 100)
-            res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Username is mandatory" }); 
+        if (req.body.lang == null || typeof(req.body.lang) != "string" || (req.body.lang !="fr" && req.body.lang !="en"))
+            res.status(404).end();
+        else if (req.body.userId == null || typeof(req.body.userId) != "string" || req.body.userId == "" || req.body.userId.length > 100)
+            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Username is mandatory" }); 
         else if (req.body.userPwd == null || typeof(req.body.userPwd) != "string" || req.body.userPwd == "" || req.body.userPwd.length > 100)
-            res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Password is mandatory" }); 
+            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Password is mandatory" }); 
         else {
             var measurementEnvironmentValues = ["countryside","city","ontheroad","inside","plane"];
             if (req.body.measurementHeight == null || typeof(req.body.measurementHeight) != "string" || req.body.measurementHeight == "" || parseFloat(req.body.measurementHeight) != parseInt(req.body.measurementHeight))
-                res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement height should be an integer" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement height should be an integer" }); 
             else if (req.body.measurementEnvironment == null || typeof(req.body.measurementEnvironment) != "string" || measurementEnvironmentValues.indexOf(req.body.measurementEnvironment) == -1)
-                res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement environment should be in [countryside | city | ontheroad | inside | plane]" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement environment should be in [countryside | city | ontheroad | inside | plane]" }); 
             else if (req.body.description == null || typeof(req.body.description) != "string" || req.body.description.length > 1000)
-                res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Description is not valid" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Description is not valid" }); 
             else if (req.file == null)
-                res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "You have to choose a file" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "You have to choose a file" }); 
             else {
                 file = req.file.buffer.toString("utf-8");
                 var sha256 = SHA256(file).toString();
                 console.log(req.file);
                 lines = file.split(new RegExp('\r\n|\r|\n'));
                 
-                if (lines.length > 20000)
-                    res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Your file contains too many lines (more than 20000 lines)" }); 
+                if (lines.length > 100000)
+                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Your file contains too many lines (more than 100000 lines)" }); 
                 else {
                     var measurementsLinesValid = 0;
-                    var measurementsLinesOk = 0;
+                    var measurementsTakenInAccount = 0;
+                    var measurementsOk = 0;
                     
                     var errorMessage = "";
                     var stopIt = false;
+                    var lastEndTimeSubmitted;
 
                     //to avoid a maximum call stack size exceeded we cut the file in 1000 lines chunks
-                    var loops = [];
+                    var loops = []; // loops will contain the chunks number
                     for (var i = 0; i <= Math.floor(lines.length / 1000); i++)
                     {
                         loops.push(i);
                     }
                     
+                    // for each chunk
                     async.forEachSeries(loops, function(index, callbackLoop) {
                         var sublines = [];
                         if ( (index*1000+1000) > lines.length)
@@ -1499,6 +1529,7 @@ if (properties.submitFormFeature) {
                         
                         // treatment of the chunk
                         if (stopIt == false) {
+                            // for each line of the chunk
                             async.forEachSeries(subLines, function(line, callback) { //see https://github.com/Safecast/bGeigieMini for the format of the file
                                 
                                 if (line.match(/^#/) || stopIt) {
@@ -1512,113 +1543,125 @@ if (properties.submitFormFeature) {
                                      && isNaN(values[11]) == false && isNaN(values[13]) == false) {  // if line is valid i.e. well formatted, Radiation count validity flag = A and GPS validity = A
                                         measurementsLinesValid += 1;
                                         
+                                       
                                         var data = {};
                                         data.apparatusId = "safecast_id " + values[1];
                                         data.apparatusVersion = values[0];
                                         data.apparatusSensorType = "geiger";
-                                        data.value = Math.round(parseFloat(values[3]) / 330 * 100) / 100;
+                                        data.value = Math.round(parseFloat(values[3]) / 334 * 100) / 100;
                                         data.hitsNumber = parseInt(values[3]);
                                         data.endTime = new Date(values[2]);
                                         data.startTime = new Date(data.endTime.getTime() - 60000);
-                                        var mm = values[7].match(/\d\d\.\d*/);
-                                        var hh = /(\d*)\d\d\./.exec(values[7]);
-                                        if (hh != null && hh.length > 1 && mm != null)
-                                        {
-                                            data.latitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
-                                            if (values[8] == "S")
-                                                data.latitude = data.latitude * -1;
-                                        }
-                                        mm = values[9].match(/\d\d\.\d*/);
-                                        hh = /(\d*)\d\d\./.exec(values[9]);
-                                        if (hh != null && hh.length > 1 && mm != null)
-                                        {
-                                            data.longitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
-                                            if (values[10] == "W")
-                                                data.longitude = data.longitude * -1;
-                                        } 
-                                        data.accuracy = parseFloat(values[13]);
-                                        data.altitude = parseInt(values[11]);
-                                        var epoch = data.startTime.getTime() / 1000;
-                                        if (epoch.toString().length > 10)
-                                            epoch = epoch.toString().substr(0,10);
-                                        else if (epoch.toString().length < 10)
-                                            epoch = "0000000000".substring(0,10-epoch.toString().length) + epoch.toString();
-                                        data.reportUuid = "ff" + sha256.substr(0,6) + "-" + sha256.substr(6,4) + "-4" + sha256.substr(10,3) + "-a" + sha256.substr(13,3) + "-" + sha256.substr(16,2) + epoch.toString(); // Uuid is ffxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx with 18 characters from sha-256 file and epoch startTime
-                                        data.manualReporting = false;
-                                        data.organisationReporting = "openradiation.net/upload " + properties.version;
-                                        data.reportContext = "routine";
-                                        data.description = req.body.description;
-                                        data.measurementHeight = parseInt(req.body.measurementHeight);
-                                        data.tags = tags.slice();
-                                        data.tags.push("safecast");
-                                        data.tags.push("file_" + sha256.substr(0,18));
-                                        data.userId = req.body.userId;
-                                        data.userPwd = req.body.userPwd;
-                                        data.measurementEnvironment = req.body.measurementEnvironment;
                                         
-                                        var json = {
-                                            "apiKey": openradiationApiKey,
-                                            "data": data
-                                        }
-                                            
-                                        var options = {
-                                            host: properties.submitAPIHost,
-                                            port: properties.submitAPIPort,
-                                            path: '/measurements',
-                                            method: 'POST',
-                                            rejectUnauthorized: false, //accept autosigned certificate
-                                            headers: {
-                                              'Content-Type': 'application/json',
-                                              'Content-Length': JSON.stringify(json).length
+                                        if (!lastEndTimeSubmitted || data.startTime >= lastEndTimeSubmitted)
+                                        {
+                                            measurementsTakenInAccount += 1;
+                                            lastEndTimeSubmitted = data.endTime;
+                                            var mm = values[7].match(/\d\d\.\d*/);
+                                            var hh = /(\d*)\d\d\./.exec(values[7]);
+                                            if (hh != null && hh.length > 1 && mm != null)
+                                            {
+                                                data.latitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
+                                                if (values[8] == "S")
+                                                    data.latitude = data.latitude * -1;
                                             }
-                                        };
+                                            mm = values[9].match(/\d\d\.\d*/);
+                                            hh = /(\d*)\d\d\./.exec(values[9]);
+                                            if (hh != null && hh.length > 1 && mm != null)
+                                            {
+                                                data.longitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
+                                                if (values[10] == "W")
+                                                    data.longitude = data.longitude * -1;
+                                            } 
+                                            data.accuracy = parseFloat(values[13]);
+                                            data.altitude = parseInt(values[11]);
+                                            var epoch = data.startTime.getTime() / 1000;
+                                            if (epoch.toString().length > 10)
+                                                epoch = epoch.toString().substr(0,10);
+                                            else if (epoch.toString().length < 10)
+                                                epoch = "0000000000".substring(0,10-epoch.toString().length) + epoch.toString();
+                                            data.reportUuid = "ff" + sha256.substr(0,6) + "-" + sha256.substr(6,4) + "-4" + sha256.substr(10,3) + "-a" + sha256.substr(13,3) + "-" + sha256.substr(16,2) + epoch.toString(); // Uuid is ffxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx with 18 characters from sha-256 file and epoch startTime
+                                            data.manualReporting = false;
+                                            data.organisationReporting = "openradiation.net/upload " + properties.version;
+                                            data.reportContext = "routine";
+                                            data.description = req.body.description;
+                                            data.measurementHeight = parseInt(req.body.measurementHeight);
+                                            data.tags = tags.slice();
+                                            data.tags.push("safecast");
+                                            data.tags.push("file_" + sha256.substr(0,18));
+                                            data.userId = req.body.userId;
+                                            data.userPwd = req.body.userPwd;
+                                            data.measurementEnvironment = req.body.measurementEnvironment;
                                             
-                                        var post_req = https.request(options, function(post_res) {
-                                            var result = '';
-                                            post_res.setEncoding('utf8');
-                                            post_res.on('data', function (chunk) {
-                                                result += chunk;                                         
+                                            var json = {
+                                                "apiKey": properties.submitFormAPIKey,
+                                                "data": data
+                                            }
+                                                
+                                            var options = {
+                                                host: properties.submitAPIHost,
+                                                port: properties.submitAPIPort,
+                                                path: '/measurements',
+                                                method: 'POST',
+                                                rejectUnauthorized: false, //accept autosigned certificate
+                                                headers: {
+                                                  'Content-Type': 'application/json',
+                                                  'Content-Length': JSON.stringify(json).length
+                                                }
+                                            };
+                                                
+                                            var post_req = https.request(options, function(post_res) {
+                                                var result = '';
+                                                post_res.setEncoding('utf8');
+                                                post_res.on('data', function (chunk) {
+                                                    result += chunk;                                         
+                                                });
+                                                post_res.on('end', function () { 
+                                                    if (post_res.statusCode == 201)
+                                                    {
+                                                        measurementsOk += 1;
+                                                        callback();
+                                                    } else {
+                                                        if (measurementsLinesValid == 1) {
+                                                            stopIt = true;
+                                                            errorMessage = JSON.parse(result).error.message;
+                                                        } else {  
+                                                            errorMessage = line + "<br>" + JSON.parse(result).error.message;
+                                                        }
+                                                        callback();
+                                                    }    
+                                                });
+                                            }).on('error', function(e) {
+                                                console.error("Error while trying to post measurement : " + e.message);
+                                                stopIt = true;
+                                                res.status(500).end(); 
+                                                callback();
                                             });
-                                            post_res.on('end', function () { 
-                                                if (post_res.statusCode == 201)
-                                                {
-                                                    measurementsLinesOk += 1;
-                                                    callback();
-                                                } else {
-                                                    if (measurementsLinesValid == 1) {
-                                                        stopIt = true;
-                                                        errorMessage = JSON.parse(result).error.message;
-                                                    } else {  
-                                                        errorMessage = line + "<br>" + JSON.parse(result).error.message;
-                                                    }
-                                                    callback();
-                                                }    
-                                            });
-                                        }).on('error', function(e) {
-                                            console.error("Error while trying to post measurement : " + e.message);
-                                            res.status(500).end(); //todo callback ?
-                                        });
-                                             
-                                        // post the data
-                                        post_req.write(JSON.stringify(json),encoding='utf8');
-                                        post_req.end(); 
+                                                 
+                                            // post the data
+                                            post_req.write(JSON.stringify(json),encoding='utf8');
+                                            post_req.end(); 
+                                        }
+                                        else
+                                            callback(); //only one line all minute is treated
 
                                     } else {
+                                        
                                         callback(); //invalid lines are not treated
                                     }
                                 }
                             }, function(err) {
 
-                                console.log(req.file.originalname + " processed at " + index * 1000);  //everything is done now 
+                                console.log(req.file.originalname + " processed at " + index * 1000);  //chunk is done now 
                                 if (err) {
                                     console.log("error : " + err);
                                     stopIt = true;
-                                    res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: err });
+                                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + err });
                                     
                                 } else {
-                                    if (measurementsLinesOk == 0) {
+                                    if (measurementsOk == 0) { //we prefer to stop the treatment
                                         stopIt = true;
-                                        res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: errorMessage });
+                                        res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + errorMessage });
                                     } 
                                 }
                                 callbackLoop();
@@ -1629,18 +1672,14 @@ if (properties.submitFormFeature) {
                     }, function(err) {
                         console.log(req.file.originalname + " processed");  //everything is done now 
                         if (stopIt == false) {
-                            if (measurementsLinesValid != measurementsLinesOk) {
-                                message = "The file " + req.file.originalname + " has been processed : " + measurementsLinesOk + " measurement(s) are stored in the openradiation database.<br>";
-                                message += "<br>" + (measurementsLinesValid - measurementsLinesOk) + " line(s) of the file have been refused, like this one : <br><i>" + errorMessage + "</i><br><br>";
-                                message += "The measurements have been tagged <i>#safecast</i> <i>#file_" + sha256.substr(0,18) + "</i><br><br><br>";             
-                                message += "<iframe frameborder=\"0\" style=\"height:90%;width:90%;left:auto;right:auto;min-height:400px;\" height=\"90%\" width=\"90%\" src=\"" + properties.mappingURL + "/openradiation/file_" + sha256.substr(0,18) + "/all/all/all/0/100/0/100\"></iframe>";
-                                res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: message });
-                            } else {
-                                message = "Your file " + req.file.originalname + " has been processed : " + measurementsLinesOk + " measurements are stored in the openradiation database.<br>";
-                                message += "All the measurements have been tagged <i>#safecast</i> <i>#file_" + sha256.substr(0,18) + "</i><br><br><br>";
-                                message += "<iframe frameborder=\"0\" style=\"height:90%;width:90%;left:auto;right:auto;min-height:400px;\" height=\"90%\" width=\"90%\" src=\"" + properties.mappingURL + "/openradiation/file_" + sha256.substr(0,18) + "/all/all/all/0/100/0/100\"></iframe>";
-                                res.render('uploadfile.ejs', { userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: message });
+                            message = "The file " + req.file.originalname + " has been processed : " + measurementsOk + " measurement(s) are stored in the OpenRadiation database.<br>";
+                            message += "The file contained " + measurementsLinesValid + " valid lines, and " + measurementsTakenInAccount + " measurements have been extracted (one per minute).<br>";      
+                            if (measurementsTakenInAccount != measurementsOk) {
+                                message += "Amongst them, " + (measurementsTakenInAccount - measurementsOk) + " have been refused, like this one : <br><i>" + errorMessage + "</i><br><br>";
                             }
+                            message += "Measurements have been tagged <i>#safecast</i> <i>#file_" + sha256.substr(0,18) + "</i>. You can now close this page.<br><br><br>";             
+                            message += "<iframe frameborder=\"0\" style=\"height:90%;width:90%;left:auto;right:auto;min-height:400px;\" height=\"90%\" width=\"90%\" src=\"" + properties.mappingURL + "/openradiation/file_" + sha256.substr(0,18) + "/all/all/all/0/100/0/100\"></iframe>";
+                            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: message }); 
                         }
                     });   
                 }
@@ -1657,7 +1696,7 @@ if (properties.mappingFeature) {
     }
             
     app.get('/i/:z/:x/:y.png', function (req, res, next) { 
-        console.log(new Date().toISOString() + " - GET /i/:z/:x/:y.png : begin");
+        console.log(new Date().toISOString() + " - GET /i/" + req.params.z + "/" + req.params.x + "/" + req.params.y + ".png : begin");
 
         if (isNaN(req.params.z) || isNaN(req.params.x) || isNaN(req.params.y) 
             || parseInt(req.params.z) < 0 || parseInt(req.params.z) > 16
@@ -1716,7 +1755,24 @@ if (properties.mappingFeature) {
                                 else
                                 {
                                     if (result.rowCount == 0)
-                                        res.status(200).end();
+                                    {   
+                                        var transparentTileFileName = __dirname + '/public/transparent_tile.png';
+                                        if (z > 7)
+                                            res.status(200).end();
+                                            //res.writeHead(200, {'Content-Type': 'image/png' });
+                                            //var fileStream = fs.createReadStream(transparentTileFileName);
+                                            //fileStream.pipe(res);
+                                        else {
+                                            res.status(200).end();
+                                            //res.writeHead(200, {'Content-Type': 'image/png' });
+                                            //var fileStream = fs.createReadStream(transparentTileFileName);
+                                            //fileStream.pipe(res);
+                                            
+                                            fs.createReadStream(transparentTileFileName).pipe(fs.createWriteStream(pngFileName));
+                                            
+                                            //fs.copyFile(transparentTileFileName, pngFileName, (err) => { });
+                                        }
+                                    }
                                     else
                                     {
                                         var png = new PNG({
@@ -1834,32 +1890,53 @@ if (properties.mappingFeature) {
                                             }                           
                                         }
                                     
-                                        png.pack().pipe(fs.createWriteStream(pngFileName)).on('finish', function() {
-                                            var img = fs.readFileSync(pngFileName);
+                                        if (z > 7)
+                                        {
                                             res.writeHead(200, {'Content-Type': 'image/png' });
-                                            res.end(img, 'binary');
-                                            if (z > 6) // 6 to limit the number of files, because at this zoom level, we have 4^6 image files
-                                                fs.unlinkSync(pngFileName);
-                                        });
+                                            png.pack().pipe(res);
+                                        } else {  // 7 to limit the number of files, while at this zoom level, we have 4^7 image files
+                                            png.pack().pipe(fs.createWriteStream(pngFileName)).on('finish', function() {
+                                                //var img = fs.readFileSync(pngFileName);
+                                                //res.writeHead(200, {'Content-Type': 'image/png' });
+                                                //res.end(img, 'binary');
+                                                //if (z > 7) // 7 to limit the number of files, because at this zoom level, we have 4^7 image files
+                                                  //  fs.unlinkSync(pngFileName);
+                                                res.writeHead(200, {'Content-Type': 'image/png' });
+                                                var fileStream = fs.createReadStream(pngFileName);
+                                                fileStream.pipe(res);            
+                                            });
+                                        }
+                                            
                                     }   
                                 }
                             });
                         }   
                     });
                 } else {
-                    var img = fs.readFileSync(pngFileName);
+                    
+                    //var img = fs.readFileSync(pngFileName);
                     res.writeHead(200, {'Content-Type': 'image/png' });
-                    res.end(img, 'binary');
+                    var fileStream = fs.createReadStream(pngFileName);
+                    fileStream.pipe(res);
+                    //res.end(img, 'binary');
                 }
             });
         }        
-        console.log(new Date().toISOString() + " - GET /i/:z/:x/:y.png : end");
+        //console.log(new Date().toISOString() + " - GET /i/:z/:x/:y.png : end");
     });
 
-
     app.get('/openradiation', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /openradiation : begin");
-        res.render('openradiation.ejs', { apiKey: openradiationApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"all",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
+        console.log(new Date().toISOString() + " - GET /openradiation : begin");       
+        res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"all",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
+        console.log(new Date().toISOString() + " - GET /openradiation : end");
+    });
+            
+    app.get('/:lang/openradiation', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /:lang/openradiation : begin");
+        if (req.params.lang == "fr" || req.params.lang == "en") {           
+            res.render('openradiation.ejs', { lang:req.params.lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"all",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
+        } else
+            res.status(404).end();
         console.log(new Date().toISOString() + " - GET /openradiation : end");
     });
     
@@ -1869,7 +1946,13 @@ if (properties.mappingFeature) {
          && (isNaN(req.params.latitude) == false)
          && (isNaN(req.params.longitude) == false))
         {  
-            res.render('openradiation.ejs', { apiKey: openradiationApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
+            var lang;
+            if (req.acceptsLanguages('fr', 'en') == "fr") 
+                lang = "fr";
+            else
+                lang = "en";
+            
+            res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
                                           tag:"", userId: "", qualification: "all", atypical: "all",
                                           rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100 } );
         } else {
@@ -1898,7 +1981,7 @@ if (properties.mappingFeature) {
             else
                 userId = req.params.userId;
             
-            res.render('openradiation.ejs', { apiKey: openradiationApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:true, zoom: 1, latitude:46.609464, longitude:2.471888, 
+            res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:true, zoom: 1, latitude:46.609464, longitude:2.471888, 
                                           tag:tag, userId: userId, qualification: req.params.qualification, atypical: req.params.atypical,
                                           rangeValueMin:req.params.rangeValueMin, rangeValueMax:req.params.rangeValueMax, rangeDateMin:req.params.rangeDateMin, rangeDateMax:req.params.rangeDateMax } );
         } else
@@ -1931,7 +2014,7 @@ if (properties.mappingFeature) {
             else
                 userId = req.params.userId;
             
-            res.render('openradiation.ejs', { apiKey: openradiationApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
+            res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
                                           tag:tag, userId: userId, qualification: req.params.qualification, atypical: req.params.atypical,
                                           rangeValueMin:req.params.rangeValueMin, rangeValueMax:req.params.rangeValueMax, rangeDateMin:req.params.rangeDateMin, rangeDateMax:req.params.rangeDateMax } );
         } else
@@ -1985,6 +2068,8 @@ httpsServer.listen(properties.httpsPort, function() {
     console.log(new Date().toISOString() + " -    requestApiFeature    : [" + properties.requestApiFeature + "]"); 
     console.log(new Date().toISOString() + " -    mappingFeature       : [" + properties.mappingFeature + "]"); 
     console.log(new Date().toISOString() + " -    submitFormFeature    : [" + properties.submitFormFeature + "]");
+    if (properties.submitFormFeature)
+        console.log(new Date().toISOString() + " -    submitFormAPIKey     : [" + properties.submitFormAPIKey + "]");
     console.log(new Date().toISOString() + " -    mappingURL           : [" + properties.mappingURL + "]");
     console.log(new Date().toISOString() + " -    submitAPIHost        : [" + properties.submitAPIHost + "]");
     console.log(new Date().toISOString() + " -    submitAPIPort        : [" + properties.submitAPIPort + "]");

@@ -69,6 +69,7 @@ ul li span.openradiation_icon  { vertical-align:middle; margin-right:10px;}
 } 
 #permalink-message a { color:#2446AB; font-weight:bold; text-decoration:none; }
 
+li a { color:#2446AB !important; font-weight:bold; }
 /* Measure */
 strong, span { color:#2446AB; }
 

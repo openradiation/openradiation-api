@@ -1,5 +1,43 @@
+<%
+var translations_FR = {
+      "OpenRadiation | Import a measurements file" : "OpenRadiation | Importer un fichier de mesures",
+      "Import in OpenRadiation a measurements file from a Safecast device" : "Importer dans OpenRadiation un fichier de mesures issu d'un appareil Safecast",
+      "You are about to upload a file which may contain multiple values. " : "Vous êtes sur le point de télécharger un fichier qui peut contenir de nombreuses valeurs. ",
+      "As our aim is to create a quality collaborative data base, we ask that you be careful before uploading data into the data base. " : "Comme nous sommes préoccupés par la création d'une base de données collaborative de qualité, nous vous demandons d'être prudent avant de télécharger des fichiers dans la base de données. ", 
+      "For this reason, please carefully fill out the following form. " : "C'est pourquoi nous vous proposons de remplir soigneusement le formulaire ci-dessous. ",
+      "Loading a file from this type of sensor is another means of adding data to our data base. " : "Le chargement d'un fichier venant de ce type de capteur est un autre moyen  d'ajouter des données à notre base de données. ",
+      "Indeed, we intend to create a system able to accept measurements taken with various sensors and therefore provide Safecast owners with a quick means of contributing to our data base. " : "Nous voulons en effet construire un système qui puisse accepter les mesures faites avec différents capteurs et donc offrir aux propriétaires de Safecast un moyen rapide de remplir notre base de données. ",
+      "Only bgeigie files are compatible " : "Les seuls fichiers compatibles sont les fichiers bgeigie ",
+      ". You should be aware than the Safecast data base and the OpenRadiation data base operate independently: when using this form, you are not sending your data to the Safecast data base. " : ". Vous devez savoir que la base de données Safecast et la base de données OpenRadiation sont indépendantes: lors de l'utilisation de ce formulaire, vous n’envoyez pas vos données dans la base de Safecast.",
+      "Username" : "Nom d'utilisateur",
+      "Password" : "Mot de passe",
+      "Measurement height" : "Hauteur de la mesure",
+      "Measurement height above the ground (in meters)" : "Hauteur au-dessus du sol (en mètres)",
+      "Measurement environment" : "Environnement de la mesure",
+      "In the countryside" : "A la campagne",
+      "In a city" : "En ville",
+      "On the road" : "Sur la route",
+      "Inside" : "A l'intérieur",
+      "On a plane" : "Dans un avion",
+      "Tags" : "Tags",
+      "Add an other tag" : "Ajouter un autre tag",
+      "Your tag" : "Votre tag",
+      "Description" : "Description",
+      "Your file" : "Votre fichier",
+      "Please wait during processing ... This could last a little time (depending of the size of the file)" : "Merci de patienter ... Cela peu prendre un peu de temps (suivant la taille du fichier)",
+      "mandatory fields" : "champs obligatoires",
+      "Furthermore, Safecast produces a measurement every 5 seconds, calculated as an average of the radiation detected in the last minute : 2 consecutive measurements have 55 seconds in common. To avoid redundancy, we have chosen to take into account only one measurement per minute." : "De plus, Safecast produit une mesure toutes les 5 secondes, calculée comme une moyenne des rayonnements détectés dans la dernière minute : 2 mesures consécutives ont donc 55 secondes en commun. Pour éviter la redondance, nous avons fait le choix de ne prendre en compte qu'une mesure par minute." 
+};
+
+t = function(englishText) {
+    if ((lang == "fr") && (englishText in translations_FR))
+        return translations_FR[englishText];
+    else
+        return englishText;
+}
+%>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%- lang %>">
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,7 +45,7 @@
         <meta name="description" content="">
         <meta name="author" content="">
         <!--<link rel="shortcut icon" href="../../assets/ico/favicon.ico">-->
-        <title>Submit a file</title>
+        <title><%- t("OpenRadiation | Import a measurements file") %></title>
 
         <!-- Bootstrap core CSS -->
         <link href="/bootstrap-3.3.4.min.css" rel="stylesheet">
@@ -31,33 +69,46 @@
         <div class="container">
             <div class="container-fluid">
                 <div class="row">
+                    <div class="col-sm-10"></div>
+                    <div class="col-sm-2"><a href="/en/upload">EN</a> | <a href="/fr/upload">FR</a></div>
                     <br/>
                 </div>
                 <div class="well">
-                    <p>Import a measurements file</p>
+                    <p><%- t("Import in OpenRadiation a measurements file from a Safecast device") %>  (<a href="https://blog.safecast.org/">blog.safecast.org</a>)</p>
                     <p>
-                    <small>You are about to upload a file that may contains many values. Since we are concerned to build a quality collaborative database, we ask you to be precautious before you upload files to the openradiation database, and that's why we want you to carefully fill out the form below.
-                    Uploading file is not the most common way to add data to our database. We just want to build an interoperability system and offer to safecast owners a quick way to populate our database.  
-                    The only compatible files are the bgeigie files (see <a href="https://api.safecast.org/en-US/bgeigie_imports">api.safecast.org/en-US/bgeigie_imports</a>). You should be aware that the safecast database and the openradiation database are independant : when using this form, you do not send data to safecast.</small>
+                    <small>
+                        <%- t("You are about to upload a file which may contain multiple values. ") %>
+                        <%- t("As our aim is to create a quality collaborative data base, we ask that you be careful before uploading data into the data base. ") %>
+                        <%- t("For this reason, please carefully fill out the following form. ") %>
+                        <%- t("Loading a file from this type of sensor is another means of adding data to our data base. ") %>
+                        <%- t("Indeed, we intend to create a system able to accept measurements taken with various sensors and therefore provide Safecast owners with a quick means of contributing to our data base. ") %>
+                        <%- t("Only bgeigie files are compatible ") %>(<a href="https://api.safecast.org/en-US/bgeigie_imports">api.safecast.org/en-US/bgeigie_imports</a>)
+                        <%- t(". You should be aware than the Safecast data base and the OpenRadiation data base operate independently: when using this form, you are not sending your data to the Safecast data base. ") %>
+                        <br/><br/>
+                        <%- t("Furthermore, Safecast produces a measurement every 5 seconds, calculated as an average of the radiation detected in the last minute : 2 consecutive measurements have 55 seconds in common. To avoid redundancy, we have chosen to take into account only one measurement per minute.") %>
+                        
+                    </small>
                     </p>
                 </div>
                 <div class="row">
                     <div class="col-md-12">
+                        <small>* <%- t("mandatory fields") %></small>
                         <form id="uploadForm" class="form-inline" enctype="multipart/form-data" action="/upload" method="post">
+                            <div class="row" style="display: none;"><input required name="lang" type="text" class="form-control" value="<%- lang %>" ></input></div>
+                            
                             <div class="row">
-                                <div class="col-sm-6"><span>Username * :</span></div>
-                                <div class="col-sm-6"><input required name="userId" type="text" class="form-control" value="<%- userId %>" placeholder="Username"></input></div>
-                                <div class="col-sm-6"><span>Password * :</span></div>
-                                <div class="col-sm-6"><input required name="userPwd" type="password" class="form-control" value="<%- userPwd %>" placeholder="Password"></input></div>
-                                <div class="col-sm-6"><span>Measurement height above the ground (in meters) * :</span></div>
-                                <div class="col-sm-6"><input required name="measurementHeight" type="number" class="form-control" value="<%- measurementHeight %>" placeholder="Measurement height"></input></div>
-                                <div class="col-sm-6"><span>Measurement environment * :</span></div>
-                                <div class="col-sm-6"><select required id="measurementEnvironment" name="measurementEnvironment" class="form-control"><option value="countryside">In the countryside</option><option value="city">In a city</option><option value="ontheroad">On the road</option><option value="inside">Inside</option><option value="plane">On a plane</option></select></div>
-                                <div class="col-sm-3"><span>Tags : </span></div><div class="col-sm-3" style="text-align: right;"><span id="addTag" class="btn btn-link">Add an other tag</span></div>
-                                <div id="tags"></div>
-                                <div class="col-sm-6"><span>Description :</span></div>
+                                <div class="col-sm-6"><span><%- t("Username") %> * :</span></div>
+                                <div class="col-sm-6"><input required name="userId" type="text" class="form-control" value="<%- userId %>" placeholder="<%- t("Username") %>"></input></div>
+                                <div class="col-sm-6"><span><%- t("Password") %> * :</span></div>
+                                <div class="col-sm-6"><input required name="userPwd" type="password" class="form-control" value="<%- userPwd %>" placeholder="<%- t("Password") %>"></input></div>
+                                <div class="col-sm-6"><span><%- t("Measurement height above the ground (in meters)") %> * :</span></div>
+                                <div class="col-sm-6"><input required name="measurementHeight" type="number" class="form-control" value="<%- measurementHeight %>" placeholder="<%- t("Measurement height") %>"></input></div>
+                                <div class="col-sm-6"><span><%- t("Measurement environment") %> * :</span></div>
+                                <div class="col-sm-6"><select required id="measurementEnvironment" name="measurementEnvironment" class="form-control"><option value="countryside"><%- t("In the countryside") %></option><option value="city"><%- t("In a city") %></option><option value="ontheroad"><%- t("On the road") %></option><option value="inside"><%- t("Inside") %></option><option value="plane"><%- t("On a plane") %></option></select></div>
+                                <div class="col-sm-3"><span><%- t("Tags") %> : </span></div><div class="col-sm-3" style="text-align: right;"><span id="addTag" class="btn btn-link"><%- t("Add an other tag") %></span></div><div id="tags"></div>
+                                <div class="col-sm-6"><span><%- t("Description") %> :</span></div>
                                 <div class="col-sm-6"><textarea name="description" rows="3" cols="30" class="form-control" placeholder="Description" form="uploadForm"><%- description %></textarea></div>
-                                <div class="col-sm-6"><span>Your file :</span></div>
+                                <div class="col-sm-6"><span><%- t("Your file") %> * :</span></div>
                                 <div class="col-sm-6"><input required type="file" name="file"/></div>
                                 <div class="col-sm-12" style="text-align: center;"><input id="submit" type="submit" style="margin-top:10px;" value="Import your file" class="btn btn-large btn-primary" name="submit"><span style="margin-left:20px;" id="submit_text"></span></div>
                             </div>
@@ -74,14 +125,14 @@
             
             if (tags.length == 0) {
                 nbTags = 1;
-                $( "#tags" ).html("<div class=\"col-sm-6\"><input name=\"tag1\" type=\"text\" class=\"form-control\" placeholder=\"Your tag\"></input></div>");
+                $( "#tags" ).html("<div class=\"col-sm-6\"><input name=\"tag1\" type=\"text\" class=\"form-control\" placeholder=\"<%- t("Your tag") %>\"></input></div>");
             } else {
                 for (var t = 0; t < tags.length; t++)
                 {
                     if (t == 0)
-                        $( "#tags" ).html("<div class=\"col-sm-6\"><input name=\"tag1\" value=\"" + tags[t] + "\" type=\"text\" class=\"form-control\" placeholder=\"Your tag\"></input></div>");
+                        $( "#tags" ).html("<div class=\"col-sm-6\"><input name=\"tag1\" value=\"" + tags[t] + "\" type=\"text\" class=\"form-control\" placeholder=\"<%- t("Your tag") %>\"></input></div>");
                     else
-                        $( "#tags" ).append("<div class=\"col-sm-6 col-sm-offset-6\"><input name=\"tag" + nbTags + "\" value=\"" + tags[t] + "\" type=\"text\" class=\"form-control\" placeholder=\"Your tag\"></input></div>");
+                        $( "#tags" ).append("<div class=\"col-sm-6 col-sm-offset-6\"><input name=\"tag" + nbTags + "\" value=\"" + tags[t] + "\" type=\"text\" class=\"form-control\" placeholder=\"<%- t("Your tag") %>\"></input></div>");
                 }
                 nbTags = tags.length;
             }
@@ -100,12 +151,13 @@
                 if (nbTags < 9)
                 {
                     nbTags += 1;
-                    $( "#tags" ).append("<div class=\"col-sm-6 col-sm-offset-6\"><input name=\"tag" + nbTags + "\" type=\"text\" class=\"form-control\" placeholder=\"Your tag\"></input></div>");
+                    $( "#tags" ).append("<div class=\"col-sm-6 col-sm-offset-6\"><input name=\"tag" + nbTags + "\" type=\"text\" class=\"form-control\" placeholder=\"<%- t("Your tag") %>\"></input></div>");
                 }
             });
             
             $( "#submit" ).click(function() {
-                $( "#submit_text" ).html("Please wait ... This could be take a long time (depending of the size of your file.)");
+                if (document.getElementById('uploadForm').checkValidity() == true)
+                    $( "#submit_text" ).html("<%- t("Please wait during processing ... This could last a little time (depending of the size of the file)") %>");
             });
         </script>
     </body>
