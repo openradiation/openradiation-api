@@ -82,7 +82,7 @@ var translations_FR = {
             
     };
     
-function t(englishText)
+function translate(englishText)
 {
     if (isLanguageFR == false)
         return englishText;
@@ -113,23 +113,45 @@ function formatISODate(ISODate)
 {
     var date = new Date(ISODate);
     var str = "";
-    if (date.getDate() < 10)
-        str += "0" + date.getDate();
-    else
-        str += date.getDate();
-    if (date.getMonth() < 9)
-        str += "/0" + (date.getMonth() + 1);
-    else
-        str += "/" + (date.getMonth() + 1);
-    str += "/" + date.getFullYear() + " - ";
-    if (date.getHours() < 10)
-        str += "0" + date.getHours() + "H";
-    else
-        str += date.getHours() + "H";
-    if (date.getMinutes() < 10)
-        str += "0" + date.getMinutes();
-    else
-        str += date.getMinutes();
+    
+    if (isLanguageFR) {
+        if (date.getDate() < 10)
+            str += "0" + date.getDate();
+        else
+            str += date.getDate();
+        if (date.getMonth() < 9)
+            str += "/0" + (date.getMonth() + 1);
+        else
+            str += "/" + (date.getMonth() + 1);
+        str += "/" + date.getFullYear() + " - ";
+        if (date.getHours() < 10)
+            str += "0" + date.getHours() + "H";
+        else
+            str += date.getHours() + "H";
+        if (date.getMinutes() < 10)
+            str += "0" + date.getMinutes();
+        else
+            str += date.getMinutes();
+    } else {
+        str += date.getFullYear() + "-";
+        if (date.getMonth() < 9)
+            str += "0" + (date.getMonth() + 1);
+        else
+            str += (date.getMonth() + 1); 
+        if (date.getDate() < 10)
+            str += "-0" + date.getDate() + "   " ;
+        else
+            str += "-" + date.getDate() + "   " ;
+        if (date.getHours() < 10)
+            str += "0" + date.getHours() + "H";
+        else
+            str += date.getHours() + "H";
+        if (date.getMinutes() < 10)
+            str += "0" + date.getMinutes();
+        else
+            str += date.getMinutes();
+    }
+    
     return str;
 }
 
@@ -177,7 +199,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     
     openradiation_title.onAdd = function(openradiation_map) {
         var div = L.DomUtil.create('div', 'openradiation_title');
-        div.innerHTML = '<strong>' + t("Citizen radioactivity measurements") + '</strong>';
+        div.innerHTML = '<strong>' + translate("Citizen radioactivity measurements") + '</strong>';
         return div;
     };
     
@@ -190,14 +212,14 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     openradiation_menu.onAdd = function(openradiation_map) {
         var div = L.DomUtil.create('div', 'openradiation_menu');
         
-        // <li><span class="openradiation_icon icon_interpolation"></span><span id="interpolationlink">' + t("Interpolation") + '</span></li> 
+        // <li><span class="openradiation_icon icon_interpolation"></span><span id="interpolationlink">' + translate("Interpolation") + '</span></li> 
         div.innerHTML = '<span class="openradiation_menu_header openradiation_icon icon_menu"></span> \
                           <div class="openradiation_menu_footer"> \
                             <span class="openradiation_icon icon_cross" id="openradiation_menu_footer-close"></span> \
                             <ul> \
-                                <li><span class="openradiation_icon icon_filter"></span><span id="hide_filters">' + t("Display / Mask the filters") + '</span></li> \
-                                <li><span class="openradiation_icon icon_link"></span><span id="permalink">' + t("Get a permalink") + '</span></li> \
-                                <li><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + t("Timeline") + '</span></li> \
+                                <li><span class="openradiation_icon icon_filter"></span><span id="hide_filters">' + translate("Display / Mask the filters") + '</span></li> \
+                                <li><span class="openradiation_icon icon_link"></span><span id="permalink">' + translate("Get a permalink") + '</span></li> \
+                                <li><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + translate("Timeline") + '</span></li> \
                                 <li><span><a href="/en/openradiation">EN</a> | <a href="/fr/openradiation">FR</a> </span></li> \
                             </ul> \
                           </div>';
@@ -220,7 +242,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         div.innerHTML = '<div class=\"slider_range\">\
                             <div>\
                                 <div id=\"slider_rangevalue\"></div> \
-                                <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + t("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
+                                <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + translate("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
                             </div>\
                          </div>\
                          <div class=\"slider_range\">\
@@ -231,31 +253,31 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                          </div>\
                          <div class=\"input_tag\">\
                             <div>\
-                                <input id="tag" class="input" type="text" placeholder="# ' + t("Your tag") + '"/>  \
-                                <input id="userId" class="input" type="text" placeholder="' + t("User") + '"/> \
+                                <input id="tag" class="input" type="text" placeholder="# ' + translate("Your tag") + '"/>  \
+                                <input id="userId" class="input" type="text" placeholder="' + translate("User") + '"/> \
                             </div>\
                          </div>\
                          <div class=\"download_file\">\
                             <div id=\"export\">\
-                                <div>' + t("CSV FILE") + '</div> \
+                                <div>' + translate("CSV FILE") + '</div> \
                                 <img src=\"/images/arrow_download.png\"/> \
                             </div>\
                          </div>\
                          <div class=\"select_qualification\">\
                             <div>\
                                 <select id="qualification" name="qualification"> \
-                                    <option value="all">' + t("ALL QUALIFICATIONS") + '</option> \
-                                    <option value="seemscorrect">' + t("Seems correct") + '</option> \
-                                    <option value="mustbeverified">' + t("Must be verified") + '</option> \
-                                    <option value="noenvironmentalcontext">' + t("Non-environmental context") + '</option>\
-                                    <option value="badsensor">' + t("Bad sensor") + '</option>\
-                                    <option value="badprotocole">' + t("Bad protocol") + '</option>\
-                                    <option value="baddatatransmission">' + t("Bad data transmission") + '</option>\
+                                    <option value="all">' + translate("ALL QUALIFICATIONS") + '</option> \
+                                    <option value="seemscorrect">' + translate("Seems correct") + '</option> \
+                                    <option value="mustbeverified">' + translate("Must be verified") + '</option> \
+                                    <option value="noenvironmentalcontext">' + translate("Non-environmental context") + '</option>\
+                                    <option value="badsensor">' + translate("Bad sensor") + '</option>\
+                                    <option value="badprotocole">' + translate("Bad protocol") + '</option>\
+                                    <option value="baddatatransmission">' + translate("Bad data transmission") + '</option>\
                                 </select>\
                                 <select id="atypical" name="atypical"> \
-                                    <option value="all">' + t("ALL MEASUREMENTS") + '</option> \
-                                    <option value="false">' + t("Standard measurements") + '</option> \
-                                    <option value="true">' + t("Non-standard measurements") + '</option> \
+                                    <option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
+                                    <option value="false">' + translate("Standard measurements") + '</option> \
+                                    <option value="true">' + translate("Non-standard measurements") + '</option> \
                                 </select>\
                             </div>\
                          </div>';       
@@ -308,7 +330,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
             timeout: 15000,
             success: function(res) {
 
-                var htmlPopup = "<div style=\"width:210px; overflow:auto; min-height:130px;\"><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
+                var htmlPopup = "<div style=\"width:200px; overflow:hidden; min-height:130px;\"><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
                 
                 htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px; min-height:90px;\">";
 
@@ -316,15 +338,14 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                     htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
                 else
                     htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"/images/measure.png\"/></div>";
-                htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>" + t("More ...") + "</p><p class=\"plus\">+</p></a></div>";
+                htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>" + translate("More ...") + "</p><p class=\"plus\">+</p></a></div>";
                 htmlPopup += "</div>";
                 
-                htmlPopup += "<div style=\"width:150px; float:right; min-height:90px;\">";
+                htmlPopup += "<div style=\"width:140px; float:left; min-height:90px;\">";
                 
                 if (res.data.measurementEnvironment != null)
                     htmlPopup += "<div style=\"float:right;\"><img src=\"/images/icon-env-" + res.data.measurementEnvironment + ".png\"/></div>";
 
-                //htmlPopup += "<div style=\"float:right;\"><img src=\"/images/icon-env1-on-24px.png\"/></div>";
                 if (res.data.userId != null)
                     htmlPopup += "<div><span class=\"userId\">" + res.data.userId + "</span></div>";
                     
@@ -336,33 +357,33 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                     htmlPopup += "<div><span class=\"comment\">";
                     switch (res.data.qualification) {
                         case "seemscorrect":
-                            htmlPopup += t("Seems correct");
+                            htmlPopup += translate("Seems correct");
                             break;
                         case "mustbeverified":
-                            htmlPopup += t("Must be verified");
+                            htmlPopup += translate("Must be verified");
                             break;
                         case "noenvironmentalcontext":
-                            htmlPopup += t("Non-environmental context");
+                            htmlPopup += translate("Non-environmental context");
                             break;
                         case "badsensor":
-                            htmlPopup += t("Bad sensor");
+                            htmlPopup += translate("Bad sensor");
                             break;
                         case "badprotocole":
-                            htmlPopup += t("Bad protocol");
+                            htmlPopup += translate("Bad protocol");
                             break;
                         case "baddatatransmission":
-                            htmlPopup += t("Bad data transmission");
+                            htmlPopup += translate("Bad data transmission");
                             break;
                     };
                     htmlPopup += " <img style=\"margin-bottom:-4px;\"src=\"/images/thumb.png\"/>+ " + res.data.qualificationVotesNumber;
-                    //htmlPopup += ", " + res.data.qualificationVotesNumber + " " + t("thumb");
+                    //htmlPopup += ", " + res.data.qualificationVotesNumber + " " + translate("thumb");
                     //htmlPopup += res.data.qualificationVotesNumber < 2 ? "" : "s";
                     htmlPopup += "</span></div>"
                     
                 }
                 
                 if (res.data.atypical == true)
-                    htmlPopup += "<div><span class=\"comment\">" + t("Non-standard measurement") + "</span></div>";
+                    htmlPopup += "<div><span class=\"comment\">" + translate("Non-standard measurement") + "</span></div>";
                     
                 if (res.data.tags != null)
                 {
@@ -375,7 +396,6 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                 }
                 htmlPopup += "</div>";
                 htmlPopup += "</div>";
-                console.log(htmlPopup);
                 e.popup.setContent(htmlPopup);
                 
             },
@@ -425,7 +445,7 @@ function getUrl()
         urlTemp+= "&maxValue=" + maxValue;
     
     var minDate = $("#slider_mindate").text();
-    if (minDate != "" && minDate != "- ∞" && minDate != t("now"))
+    if (minDate != "" && minDate != "- ∞" && minDate != translate("now"))
     {
         var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 0) ) / 9) - 1;
         var NbSecond = Math.round(nbHours * 3600);
@@ -439,7 +459,7 @@ function getUrl()
     }
     
     var maxDate = $("#slider_maxdate").text();
-    if (maxDate != "" && maxDate != "- ∞" && maxDate != t("now"))
+    if (maxDate != "" && maxDate != "- ∞" && maxDate != translate("now"))
     {
         var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 1) ) / 9) - 1;
         var NbSecond = Math.round(nbHours * 3600);
@@ -480,17 +500,17 @@ function retrieve_items(urlTemp, fitBounds) {
         if (res.data.length < 2)
         {
             exhaustiveResultsPrev = true;
-            $("#nbresults").text(res.data.length + " " + t("measurement found") );
+            $("#nbresults").text(res.data.length + " " + translate("measurement found") );
         }
         else if (res.maxNumber == res.data.length)
         { 
             exhaustiveResultsPrev = false;
-            $("#nbresults").text(res.data.length + " " + t("displayed measurements (NON-EXHAUSTIVE)") );
+            $("#nbresults").text(res.data.length + " " + translate("displayed measurements (NON-EXHAUSTIVE)") );
         }
         else
         {
             exhaustiveResultsPrev = true;
-            $("#nbresults").text(res.data.length + " " + t("measurements found") );
+            $("#nbresults").text(res.data.length + " " + translate("measurements found") );
         }
         
         //list all new items
@@ -626,9 +646,9 @@ function openradiation_getItems(fitBounds)
             if (exhaustiveResultsPrev) {
                 console.log("updated results without research");
                 if (nb < 2)
-                    $("#nbresults").text(nb + " " + t("measurement found"));
+                    $("#nbresults").text(nb + " " + translate("measurement found"));
                 else
-                    $("#nbresults").text(nb + " " + t("measurements found"));
+                    $("#nbresults").text(nb + " " + translate("measurements found"));
             } else
                 console.log("not updated (not exhaustive and all the items are in the new bounds)");
         }
@@ -658,37 +678,37 @@ function val2date(val)
     var hour = Math.exp((100 - val) / 9) - 1;
     
     if (hour == 0)
-        return t("now");
+        return translate("now");
     else if (hour < 0.4)
-        return Math.round(hour*60 / 10) * 10 + " " + t("minutes");
+        return Math.round(hour*60 / 10) * 10 + " " + translate("minutes");
     else if (hour < 20)
     {
         if (Math.round(hour) == 1)
-            return "1 " + t("hour");
+            return "1 " + translate("hour");
         else
-            return Math.round(hour) + " " + t("hours");
+            return Math.round(hour) + " " + translate("hours");
     }
     else if (hour < 24*30)
     {
         if (Math.round(hour / 24) == 1)
-            return "1 " + t("day");
+            return "1 " + translate("day");
         else
-            return Math.round(hour / 24) + " " + t("days");   
+            return Math.round(hour / 24) + " " + translate("days");   
     }
     else if (hour < 24*30*9)
     {
         if (Math.round(hour / 24 / 30) == 1)
-            return "1 " + t("month");
+            return "1 " + translate("month");
         else
-            return Math.round(hour / 24 / 30) + " " + t("months");
+            return Math.round(hour / 24 / 30) + " " + translate("months");
     }
     else if (hour > 60000)
         return "- ∞";
     else {
         if (Math.round(hour /24 / 365) == 1)
-            return "1 " + t("year");
+            return "1 " + translate("year");
         else
-            return Math.round(hour /24 / 365) + " " + t("years");
+            return Math.round(hour /24 / 365) + " " + translate("years");
     }
 }
 
@@ -717,75 +737,74 @@ $(function() {
     });
     
     $( "#export" ).click(function() {
-        
-        try {
-            var isFileSaverSupported = !!new Blob;
-            var urlTemp = getUrl();
-                       
-            $.ajax({
-                type: 'GET',
-                url: '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp + "&response=complete&withEnclosedObject=no", 
-                cache: false,
-                timeout: 10000,
-                success: function(res) {
-                        
-                    
-                    var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
-                    for(var i in res.data)
-                    {
-                        str += res.data[i].apparatusId == null ? ";" : csv(res.data[i].apparatusId) + ";";
-                        str += res.data[i].apparatusVersion == null ? ";" : csv(res.data[i].apparatusVersion) + ";";
-                        str += res.data[i].apparatusSensorType == null ? ";" : csv(res.data[i].apparatusSensorType) + ";";
-                        str += res.data[i].apparatusTubeType == null ? ";" : csv(res.data[i].apparatusTubeType) + ";";
-                        str += res.data[i].temperature == null ? ";" : res.data[i].temperature + ";";
-                        str += res.data[i].value + ";";
-                        str += res.data[i].hitsNumber == null ? ";" : res.data[i].hitsNumber + ";";
-                        str += res.data[i].startTime + ";";
-                        str += res.data[i].endTime == null ? ";" : res.data[i].endTime + ";";	
-                        str += res.data[i].latitude + ";";	
-                        str += res.data[i].longitude + ";";
-                        str += res.data[i].accuracy == null ? ";" : res.data[i].accuracy + ";";	
-                        str += res.data[i].altitude == null ? ";" : res.data[i].altitude + ";";	
-                        str += res.data[i].altitudeAccuracy == null ? ";" : res.data[i].altitudeAccuracy + ";";	
-                        str += res.data[i].deviceUuid == null ? ";" : csv(res.data[i].deviceUuid) + ";";	
-                        str += res.data[i].devicePlatform == null ? ";" : csv(res.data[i].devicePlatform) + ";";	
-                        str += res.data[i].deviceVersion == null ? ";" : csv(res.data[i].deviceVersion) + ";";	
-                        str += res.data[i].deviceModel == null ? ";" : csv(res.data[i].deviceModel) + ";";	
-                        str += res.data[i].reportUuid + ";";
-                        str += res.data[i].manualReporting ? "1;" : "0;";
-                        str += res.data[i].organisationReporting == null ? ";" : csv(res.data[i].organisationReporting) + ";";		
-                        str += res.data[i].description == null ? ";" : csv(res.data[i].description) + ";";	
-                        str += res.data[i].measurementHeight == null ? ";" : res.data[i].measurementHeight + ";";	
-                        str += res.data[i].userId == null ? ";" : csv(res.data[i].userId) + ";";
-                        str += res.data[i].measurementEnvironment == null ? ";" : res.data[i].measurementEnvironment + ";";
-                        str += res.data[i].dateAndTimeOfCreation + ";";
-                        str += res.data[i].qualification == null ? ";" : res.data[i].qualification + ";";	
-                        str += res.data[i].qualificationVotesNumber == null ? ";" : res.data[i].qualificationVotesNumber + ";";	
-                        str += res.data[i].reliability + ";";
-                        str += res.data[i].atypical ? "1;" : "0;";
-                        //if (res.data[i].tags == null)
-                        //    str += ";";
-                        //else {
-                        if (res.data[i].tags != null){
-                            for (t in res.data[i].tags)
-                            {
-                                str += csv(res.data[i].tags[t]);
-                                if (t < (res.data[i].tags.length-1) )
-                                    str += ";";
-                            }
+        console.log("click sur export");
+        //var isFileSaverSupported = !!new Blob;
+        var urlTemp = getUrl();
+                   
+        $.ajax({
+            type: 'GET',
+            url: '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp + "&response=complete&withEnclosedObject=no", 
+            cache: false,
+            timeout: 10000,
+            success: function(res) {
+                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
+                for(var i in res.data)
+                {
+                    str += res.data[i].apparatusId == null ? ";" : csv(res.data[i].apparatusId) + ";";
+                    str += res.data[i].apparatusVersion == null ? ";" : csv(res.data[i].apparatusVersion) + ";";
+                    str += res.data[i].apparatusSensorType == null ? ";" : csv(res.data[i].apparatusSensorType) + ";";
+                    str += res.data[i].apparatusTubeType == null ? ";" : csv(res.data[i].apparatusTubeType) + ";";
+                    str += res.data[i].temperature == null ? ";" : res.data[i].temperature + ";";
+                    str += res.data[i].value + ";";
+                    str += res.data[i].hitsNumber == null ? ";" : res.data[i].hitsNumber + ";";
+                    str += res.data[i].startTime + ";";
+                    str += res.data[i].endTime == null ? ";" : res.data[i].endTime + ";";	
+                    str += res.data[i].latitude + ";";	
+                    str += res.data[i].longitude + ";";
+                    str += res.data[i].accuracy == null ? ";" : res.data[i].accuracy + ";";	
+                    str += res.data[i].altitude == null ? ";" : res.data[i].altitude + ";";	
+                    str += res.data[i].altitudeAccuracy == null ? ";" : res.data[i].altitudeAccuracy + ";";	
+                    str += res.data[i].deviceUuid == null ? ";" : csv(res.data[i].deviceUuid) + ";";	
+                    str += res.data[i].devicePlatform == null ? ";" : csv(res.data[i].devicePlatform) + ";";	
+                    str += res.data[i].deviceVersion == null ? ";" : csv(res.data[i].deviceVersion) + ";";	
+                    str += res.data[i].deviceModel == null ? ";" : csv(res.data[i].deviceModel) + ";";	
+                    str += res.data[i].reportUuid + ";";
+                    str += res.data[i].manualReporting ? "1;" : "0;";
+                    str += res.data[i].organisationReporting == null ? ";" : csv(res.data[i].organisationReporting) + ";";		
+                    str += res.data[i].description == null ? ";" : csv(res.data[i].description) + ";";	
+                    str += res.data[i].measurementHeight == null ? ";" : res.data[i].measurementHeight + ";";	
+                    str += res.data[i].userId == null ? ";" : csv(res.data[i].userId) + ";";
+                    str += res.data[i].measurementEnvironment == null ? ";" : res.data[i].measurementEnvironment + ";";
+                    str += res.data[i].dateAndTimeOfCreation + ";";
+                    str += res.data[i].qualification == null ? ";" : res.data[i].qualification + ";";	
+                    str += res.data[i].qualificationVotesNumber == null ? ";" : res.data[i].qualificationVotesNumber + ";";	
+                    str += res.data[i].reliability + ";";
+                    str += res.data[i].atypical ? "1;" : "0;";
+                    //if (res.data[i].tags == null)
+                    //    str += ";";
+                    //else {
+                    if (res.data[i].tags != null){
+                        for (t in res.data[i].tags)
+                        {
+                            str += csv(res.data[i].tags[t]);
+                            if (t < (res.data[i].tags.length-1) )
+                                str += ";";
                         }
-                        str += "\n";
                     }
+                    str += "\n";
+                }
+                
+                try {
                     var blob = new Blob([str], {type: "text/csv;charset=utf-8"});
                     saveAs(blob, "export_openradiation.csv");
-                },
-                error: function() {
-                    alert('Error during retrieving data'); 
-                }
-            });
-        } catch (e) {
-            alert("This feature is not available with your old version of browser");
-        }
+                } catch (e) {
+                    alert("This feature is not available with your old version of browser");
+                } 
+            },
+            error: function() {
+                alert('Error during retrieving data'); 
+            }
+        });
     });
     
     $( "#hide_filters" ).click(function() {
@@ -839,9 +858,9 @@ $(function() {
             permalink_details = "";
 
         if (permalink_details == "")
-            $( "#permalink-message" ).html(t("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span class=\"openradiation_icon icon_cross\" id=\"permalink-close\"></span> ");
+            $( "#permalink-message" ).html(translate("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span class=\"openradiation_icon icon_cross\" id=\"permalink-close\"></span> ");
         else
-            $( "#permalink-message" ).html(t("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> " + t("Link to the fitted map") + " : <a target=\"_blank\" href=\"" + link + permalink_details + "\">" + link + permalink_details + "<\/a> <span id=\"permalink-close\">X</span> ");
+            $( "#permalink-message" ).html(translate("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> " + translate("Link to the fitted map") + " : <a target=\"_blank\" href=\"" + link + permalink_details + "\">" + link + permalink_details + "<\/a> <span id=\"permalink-close\">X</span> ");
         
         $( "#permalink-message" ).css("display","block");
         $( "#permalink-close" ).click(function() {
@@ -880,8 +899,8 @@ $(function() {
             var openradiationTime = document.getElementById('charttime');
 
             var data = new google.visualization.DataTable();
-            data.addColumn('datetime', t("Date"));
-            data.addColumn('number', t("Dose rate (μSv/h)"));
+            data.addColumn('datetime', translate("Date"));
+            data.addColumn('number', translate("Dose rate (μSv/h)"));
 
             var urlTemp = getUrl();                       
             $.ajax({
@@ -908,7 +927,7 @@ $(function() {
                         
                         legend : { position: "none" },
                         chartArea:{width:'85%',height:'75%'},
-                        title: t("Dose rate (μSv/h) per date"),
+                        title: translate("Dose rate (μSv/h) per date"),
                         titlePosition : 'in',
                         //width: 100%,
                         //height: 100%,

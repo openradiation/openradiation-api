@@ -2080,7 +2080,6 @@ httpsServer.listen(properties.httpsPort, function() {
 });
 
 //10. http server
-http.createServer(http_req).listen(properties.httpPort);
 function http_req(req, res) {
     console.log(new Date().toISOString() + " - http_req(req, res) : HTTP /" + req.method + " called");
     req.on('error', function(err) {
