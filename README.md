@@ -30,9 +30,14 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>endTime</td><td>Timestamp</td><td></td><td> </td><td>Date of the end of the measurement (ISO GMT)</td></tr>
 <tr><td>latitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>latitude</td></tr>
 <tr><td>longitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>longitude</td></tr>
-<tr><td>accuracy</td><td>Real</td><td></td><td> </td><td>Position accuracy</td></tr>
+<tr><td>accuracy</td><td>Real</td><td></td><td> </td><td>Position accuracy in meters</td></tr>
 <tr><td>altitude</td><td>Integer</td><td></td><td> </td><td>Altitude above sea in meters</td></tr>
-<tr><td>altitudeAccuracy</td><td>Real</td><td></td><td> </td><td>Altitude accuracy</td></tr>
+<tr><td>altitudeAccuracy</td><td>Real</td><td></td><td> </td><td>Altitude accuracy in meters</td></tr>
+<tr><td>endLatitude</td><td>Real</td><td>Coming soon</td><td>Coming soon</td><td>latitude at the end of the measurement</td></tr>
+<tr><td>endLongitude</td><td>Real</td><td>Coming soon</td><td>Coming soon</td><td>longitude at the end of the measurement</td></tr>
+<tr><td>endAccuracy</td><td>Real</td><td>Coming soon</td><td>Coming soon</td><td>Position accuracy in meters at the end of the measurement</td></tr>
+<tr><td>endAltitude</td><td>Integer</td><td>Coming soon</td><td>Coming soon</td><td>Altitude above sea in meters at the end of the measurement</td></tr>
+<tr><td>endAltitudeAccuracy</td><td>Real</td><td>Coming soon</td><td>Coming soon</td><td>Altitude accuracy in meters at the end of the measurement</td></tr>
 <tr><td>deviceUuid</td><td>String</td><td></td><td> </td><td>Smartphone device UUID  (see http://plugins.cordova.io/#/package/org.apache.cordova.device)</td></tr>
 <tr><td>devicePlatform</td><td>String</td><td></td><td> </td><td>Smartphone device platform</td></tr>
 <tr><td>deviceVersion</td><td>String</td><td></td><td> </td><td>Smartphone device OS version</td></tr>
@@ -48,6 +53,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>userId</td><td>String</td><td></td><td></td><td>Openradiation.org user id</td></tr>
 <tr><td>userPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org plain text password (mandatory if userId is specified)</td></tr>
 <tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement environment : countryside, city, ontheroad, inside, plane. (if plane, qualification is set to noenvironmentalcontext and qualificationVotesNumber is set to 0)</td></tr>
+<tr><td>rain</td><td>Boolean</td><td>Coming soon</td><td>Coming soon</td><td>Rain : true if it rains during the measurement</td></tr>
 <tr><td>dateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
 <tr><td>qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
 <tr><td>qualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the API or the website</td><td>qualification Votes Number</td></tr>

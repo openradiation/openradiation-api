@@ -274,7 +274,7 @@ isPasswordValid = function(password, userPwd) {
         console.error("isPasswordValid detect an invalid userPwd");
         return false;
     }    
-    console.log(new Date().toISOString() + " - debut2");
+    
     var password_wordArray = CryptoJS.enc.Utf8.parse(password);
     var salt = userPwd.substring(4,12);
     var hash = SHA512(salt + password);
@@ -282,8 +282,6 @@ isPasswordValid = function(password, userPwd) {
     
     for (var i = 0; i < iterations; i++)
     {
-        if (i%1000==0)
-            console.log(new Date().toISOString() + " - " + i);
         hash = SHA512(hash.concat(password_wordArray));
     } 
     var base64 = _password_base64_encode(convertWordArrayToUint8Array(hash)); 
@@ -403,6 +401,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break;
             case "latitude":
+            case "endLatitude":
                 if (typeof(json[dataName]) != "number")
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a number"}});
@@ -410,6 +409,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break;
             case "longitude":
+            case "endLongitude":
                 if (typeof(json[dataName]) != "number")
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a number"}});
@@ -417,6 +417,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break;
             case "accuracy":
+            case "endAccuracy":
                 if (typeof(json[dataName]) != "number")
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a number"}});
@@ -424,6 +425,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break;   
             case "altitude":
+            case "endAltitude":
                 if (typeof(json[dataName]) != "number" || parseFloat(json[dataName]) != parseInt(json[dataName]))
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not an integer"}});
@@ -431,6 +433,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break; 
             case "altitudeAccuracy":
+            case "endAltitudeAccuracy":
                 if (typeof(json[dataName]) != "number")
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a number"}});
@@ -473,6 +476,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }                
                 break;
             case "manualReporting":
+            case "rain":
                 if (typeof(json[dataName]) != "boolean")
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a boolean"}});
@@ -695,15 +699,15 @@ if (properties.requestApiFeature) {
                             sql = 'SELECT "value", "startTime", "latitude", "longitude", "reportUuid", "qualification", "atypical" FROM MEASUREMENTS WHERE "reportUuid"=$1';
                         else if (req.query.withEnclosedObject == null)
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
-                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag","enclosedObject", "userId", \
-                                  "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
+                                  "measurementEnvironment","rain","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
                                   FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" WHERE MEASUREMENTS."reportUuid" = $1';
                         else
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
-                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag", "userId", \
-                                  "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
+                                  "measurementEnvironment","rain","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
                                   FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" WHERE MEASUREMENTS."reportUuid" = $1';
                        
                         var values = [ req.params.reportUuid];
@@ -811,14 +815,14 @@ if (properties.requestApiFeature) {
                             sql = 'SELECT "value", "startTime", "latitude", "longitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
                         else if (req.query.withEnclosedObject == null)
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
-                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
-                                  "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                                  "measurementEnvironment","rain","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                         else
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
-                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","userId", \
-                                  "measurementEnvironment","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                                  "measurementEnvironment","rain","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                                   
                         if (req.query.tag == null)
                             sql += ' FROM MEASUREMENTS';
@@ -1040,6 +1044,11 @@ if (properties.submitApiFeature) {
              && verifyData(res, req.body.data, false, "accuracy")
              && verifyData(res, req.body.data, false, "altitude")
              && verifyData(res, req.body.data, false, "altitudeAccuracy")
+             && verifyData(res, req.body.data, false, "endLatitude") 
+             && verifyData(res, req.body.data, false, "endLongitude")
+             && verifyData(res, req.body.data, false, "endAccuracy")
+             && verifyData(res, req.body.data, false, "endAltitude")
+             && verifyData(res, req.body.data, false, "endAltitudeAccuracy")
              && verifyData(res, req.body.data, false, "deviceUuid")
              && verifyData(res, req.body.data, false, "devicePlatform")
              && verifyData(res, req.body.data, false, "deviceVersion")
@@ -1054,7 +1063,8 @@ if (properties.submitApiFeature) {
              && verifyData(res, req.body.data, false, "enclosedObject")
              && verifyData(res, req.body.data, false, "userId")
              && verifyData(res, req.body.data, false, "userPwd")
-             && verifyData(res, req.body.data, false, "measurementEnvironment"))
+             && verifyData(res, req.body.data, false, "measurementEnvironment")
+             && verifyData(res, req.body.data, false, "rain"))
             {
                 console.log("ok");
                 if (req.body.data.reportContext != null && req.body.data.reportContext == "routine")
@@ -1066,10 +1076,10 @@ if (properties.submitApiFeature) {
                             res.status(500).end();
                         } else {
                             var sql = 'INSERT INTO MEASUREMENTS ("apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime","endTime", \
-                                       "latitude","longitude","accuracy","altitude","altitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel","reportUuid","manualReporting", \
-                                       "organisationReporting","reportContext","description","measurementHeight","enclosedObject","userId","measurementEnvironment","dateAndTimeOfCreation", \
+                                       "latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel","reportUuid","manualReporting", \
+                                       "organisationReporting","reportContext","description","measurementHeight","enclosedObject","userId","measurementEnvironment","rain","dateAndTimeOfCreation", \
                                        "qualification","qualificationVotesNumber","reliability","atypical") VALUES \
-                                       ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)';
+                                       ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38)';
                             
                             var manualReporting = req.body.data.manualReporting == null ? true : req.body.data.manualReporting;
                             var reliability = 0;
@@ -1177,10 +1187,11 @@ if (properties.submitApiFeature) {
                             var values = [ req.body.data.apparatusId, req.body.data.apparatusVersion, req.body.data.apparatusSensorType, req.body.data.apparatusTubeType, 
                                            req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, new Date(req.body.data.startTime), 
                                            req.body.data.endTime != null ? new Date(req.body.data.endTime) : req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, req.body.data.accuracy,
-                                           req.body.data.altitude, req.body.data.altitudeAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
+                                           req.body.data.altitude, req.body.data.altitudeAccuracy, req.body.data.endLatitude, req.body.data.endLongitude, req.body.data.endAccuracy,
+                                           req.body.data.endAltitude, req.body.data.endAltitudeAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
                                            req.body.data.deviceVersion, req.body.data.deviceModel, req.body.data.reportUuid, manualReporting,
                                            req.body.data.organisationReporting, req.body.data.reportContext, req.body.data.description, req.body.data.measurementHeight,
-                                           req.body.data.enclosedObject, req.body.data.userId, req.body.data.measurementEnvironment, dateAndTimeOfCreation,
+                                           req.body.data.enclosedObject, req.body.data.userId, req.body.data.measurementEnvironment, req.body.data.rain, dateAndTimeOfCreation,
                                            qualification, qualificationVotesNumber, reliability, atypical                                 
                                           ];
                                            
@@ -1367,7 +1378,7 @@ if (properties.submitApiFeature) {
 
 //7. submit Form
 if (properties.submitFormFeature) {
-/*
+    /*
     app.get('/test', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /test : begin");
         res.render('test.ejs');
@@ -1451,7 +1462,7 @@ if (properties.submitFormFeature) {
     app.get('/:lang/upload', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET :lang/upload : begin");
         if (req.params.lang == "fr" || req.params.lang == "en") {           
-            res.render('uploadfile.ejs', { lang:req.params.lang , userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", description:"", tags: JSON.stringify([]), result: "" });
+            res.render('uploadfile.ejs', { lang:req.params.lang , userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", rain:"", description:"", tags: JSON.stringify([]), result: "" });
         } else
             res.status(404).end();
         console.log(new Date().toISOString() + " - GET :lang/upload : end");
@@ -1459,7 +1470,7 @@ if (properties.submitFormFeature) {
     
     app.get('/upload', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /upload : begin");
-        res.render('uploadfile.ejs', { lang:getLanguage(req), userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", description:"", tags: JSON.stringify([]), result: "" });
+        res.render('uploadfile.ejs', { lang:getLanguage(req), userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", rain:"", description:"", tags: JSON.stringify([]), result: "" });
         console.log(new Date().toISOString() + " - GET /upload : end");
     });
   
@@ -1482,19 +1493,21 @@ if (properties.submitFormFeature) {
         if (req.body.lang == null || typeof(req.body.lang) != "string" || (req.body.lang !="fr" && req.body.lang !="en"))
             res.status(404).end();
         else if (req.body.userId == null || typeof(req.body.userId) != "string" || req.body.userId == "" || req.body.userId.length > 100)
-            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Username is mandatory" }); 
+            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Username is mandatory" }); 
         else if (req.body.userPwd == null || typeof(req.body.userPwd) != "string" || req.body.userPwd == "" || req.body.userPwd.length > 100)
-            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Password is mandatory" }); 
+            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Password is mandatory" }); 
         else {
             var measurementEnvironmentValues = ["countryside","city","ontheroad","inside","plane"];
             if (req.body.measurementHeight == null || typeof(req.body.measurementHeight) != "string" || req.body.measurementHeight == "" || parseFloat(req.body.measurementHeight) != parseInt(req.body.measurementHeight))
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement height should be an integer" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement height should be an integer" }); 
             else if (req.body.measurementEnvironment == null || typeof(req.body.measurementEnvironment) != "string" || measurementEnvironmentValues.indexOf(req.body.measurementEnvironment) == -1)
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement environment should be in [countryside | city | ontheroad | inside | plane]" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement environment should be in [countryside | city | ontheroad | inside | plane]" }); 
+            else if (req.body.rain == null || typeof(req.body.rain) != "string" || req.body.rain == "" || (req.body.rain != "true" &&  req.body.rain != "false"))
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Rain should be a boolean (true or false)" }); 
             else if (req.body.description == null || typeof(req.body.description) != "string" || req.body.description.length > 1000)
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Description is not valid" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Description is not valid" }); 
             else if (req.file == null)
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "You have to choose a file" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "You have to choose a file" }); 
             else {
                 file = req.file.buffer.toString("utf-8");
                 var sha256 = SHA256(file).toString();
@@ -1502,7 +1515,7 @@ if (properties.submitFormFeature) {
                 lines = file.split(new RegExp('\r\n|\r|\n'));
                 
                 if (lines.length > 100000)
-                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "Your file contains too many lines (more than 100000 lines)" }); 
+                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Your file contains too many lines (more than 100000 lines)" }); 
                 else {
                     var measurementsLinesValid = 0;
                     var measurementsTakenInAccount = 0;
@@ -1511,6 +1524,17 @@ if (properties.submitFormFeature) {
                     var errorMessage = "";
                     var stopIt = false;
                     var lastEndTimeSubmitted;
+                    
+                    var firstMeasurement = true;
+                    var totalHitsNumber;
+                    var linesCount;
+                    var startTime;
+                    var latitude;
+                    var longitude;
+                    var accuracy;
+                    var altitude;
+                    var mm;
+                    var hh;
 
                     //to avoid a maximum call stack size exceeded we cut the file in 1000 lines chunks
                     var loops = []; // loops will contain the chunks number
@@ -1531,7 +1555,6 @@ if (properties.submitFormFeature) {
                         if (stopIt == false) {
                             // for each line of the chunk
                             async.forEachSeries(subLines, function(line, callback) { //see https://github.com/Safecast/bGeigieMini for the format of the file
-                                
                                 if (line.match(/^#/) || stopIt) {
                                     callback(); //log line are not treated
                                 } else {
@@ -1543,38 +1566,68 @@ if (properties.submitFormFeature) {
                                      && isNaN(values[11]) == false && isNaN(values[13]) == false) {  // if line is valid i.e. well formatted, Radiation count validity flag = A and GPS validity = A
                                         measurementsLinesValid += 1;
                                         
-                                       
-                                        var data = {};
-                                        data.apparatusId = "safecast_id " + values[1];
-                                        data.apparatusVersion = values[0];
-                                        data.apparatusSensorType = "geiger";
-                                        data.value = Math.round(parseFloat(values[3]) / 334 * 100) / 100;
-                                        data.hitsNumber = parseInt(values[3]);
-                                        data.endTime = new Date(values[2]);
-                                        data.startTime = new Date(data.endTime.getTime() - 60000);
-                                        
-                                        if (!lastEndTimeSubmitted || data.startTime >= lastEndTimeSubmitted)
-                                        {
-                                            measurementsTakenInAccount += 1;
-                                            lastEndTimeSubmitted = data.endTime;
-                                            var mm = values[7].match(/\d\d\.\d*/);
-                                            var hh = /(\d*)\d\d\./.exec(values[7]);
+                                        if (firstMeasurement) {
+                                            totalHitsNumber = 0;
+                                            linesCount = 1;
+                                            startTime = new Date(values[2]);
+                                            mm = values[7].match(/\d\d\.\d*/);
+                                            hh = /(\d*)\d\d\./.exec(values[7]);
                                             if (hh != null && hh.length > 1 && mm != null)
                                             {
-                                                data.latitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
+                                                latitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
                                                 if (values[8] == "S")
-                                                    data.latitude = data.latitude * -1;
+                                                   latitude = latitude * -1;
                                             }
                                             mm = values[9].match(/\d\d\.\d*/);
                                             hh = /(\d*)\d\d\./.exec(values[9]);
                                             if (hh != null && hh.length > 1 && mm != null)
                                             {
-                                                data.longitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
+                                                longitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
                                                 if (values[10] == "W")
-                                                    data.longitude = data.longitude * -1;
+                                                    longitude = longitude * -1;
                                             } 
-                                            data.accuracy = parseFloat(values[13]);
-                                            data.altitude = parseInt(values[11]);
+                                            accuracy = parseFloat(values[13]);
+                                            altitude = parseInt(values[11]);
+
+                                            firstMeasurement = false;
+                                            callback();
+                                        } else if (linesCount < 12) {
+                                            linesCount += 1;
+                                            totalHitsNumber += parseInt(values[4]); // number of pulses given by the Geiger tube in the last 5 seconds
+                                            callback();
+                                        } else if (linesCount == 12) {
+                                            measurementsTakenInAccount += 1;
+                                            
+                                            var data = {};
+                                            data.apparatusId = "safecast_id " + values[1];
+                                            data.apparatusVersion = values[0];
+                                            data.apparatusSensorType = "geiger";
+                                            data.hitsNumber = totalHitsNumber + parseInt(values[4]); // hits number during one minute
+                                            data.value = Math.round(parseFloat(data.hitsNumber) / 334 * 100) / 100;
+                                            data.startTime = startTime;
+                                            data.endTime = new Date(values[2]);
+                                            data.latitude = latitude;
+                                            data.longitude = longitude;
+                                            data.accuracy = accuracy;
+                                            data.altitude = altitude;    
+                                            mm = values[7].match(/\d\d\.\d*/);
+                                            hh = /(\d*)\d\d\./.exec(values[7]);
+                                            if (hh != null && hh.length > 1 && mm != null)
+                                            {
+                                                data.endLatitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
+                                                if (values[8] == "S")
+                                                    data.endLatitude = data.endLatitude * -1;
+                                            }
+                                            mm = values[9].match(/\d\d\.\d*/);
+                                            hh = /(\d*)\d\d\./.exec(values[9]);
+                                            if (hh != null && hh.length > 1 && mm != null)
+                                            {
+                                                data.endLongitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
+                                                if (values[10] == "W")
+                                                    data.endLongitude = data.endLongitude * -1;
+                                            } 
+                                            data.endAccuracy = parseFloat(values[13]);
+                                            data.endAltitude = parseInt(values[11]);
                                             var epoch = data.startTime.getTime() / 1000;
                                             if (epoch.toString().length > 10)
                                                 epoch = epoch.toString().substr(0,10);
@@ -1592,6 +1645,33 @@ if (properties.submitFormFeature) {
                                             data.userId = req.body.userId;
                                             data.userPwd = req.body.userPwd;
                                             data.measurementEnvironment = req.body.measurementEnvironment;
+                                            if (req.body.rain == "true")
+                                                data.rain = true;
+                                            else
+                                                data.rain = false;
+                                                
+                                            // here we retrieve data for the next measurement
+                                            totalHitsNumber = 0;
+                                            linesCount = 1;
+                                            startTime = new Date(values[2]);
+                                            mm = values[7].match(/\d\d\.\d*/);
+                                            hh = /(\d*)\d\d\./.exec(values[7]);
+                                            if (hh != null && hh.length > 1 && mm != null)
+                                            {
+                                                latitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
+                                                if (values[8] == "S")
+                                                   latitude = latitude * -1;
+                                            }
+                                            mm = values[9].match(/\d\d\.\d*/);
+                                            hh = /(\d*)\d\d\./.exec(values[9]);
+                                            if (hh != null && hh.length > 1 && mm != null)
+                                            {
+                                                longitude = parseFloat(hh[1]) + parseFloat(mm[0]) / 60;
+                                                if (values[10] == "W")
+                                                    longitude = longitude * -1;
+                                            } 
+                                            accuracy = parseFloat(values[13]);
+                                            altitude = parseInt(values[11]);
                                             
                                             var json = {
                                                 "apiKey": properties.submitFormAPIKey,
@@ -1622,7 +1702,7 @@ if (properties.submitFormFeature) {
                                                         measurementsOk += 1;
                                                         callback();
                                                     } else {
-                                                        if (measurementsLinesValid == 1) {
+                                                        if (measurementsTakenInAccount == 1) { // if there is an error we stop at the first one
                                                             stopIt = true;
                                                             errorMessage = JSON.parse(result).error.message;
                                                         } else {  
@@ -1642,11 +1722,9 @@ if (properties.submitFormFeature) {
                                             post_req.write(JSON.stringify(json),encoding='utf8');
                                             post_req.end(); 
                                         }
-                                        else
-                                            callback(); //only one line all minute is treated
-
+                                        //else
+                                        //    callback(); //only one line all minute is treated
                                     } else {
-                                        
                                         callback(); //invalid lines are not treated
                                     }
                                 }
@@ -1656,12 +1734,12 @@ if (properties.submitFormFeature) {
                                 if (err) {
                                     console.log("error : " + err);
                                     stopIt = true;
-                                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + err });
+                                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + err });
                                     
                                 } else {
                                     if (measurementsOk == 0) { //we prefer to stop the treatment
                                         stopIt = true;
-                                        res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + errorMessage });
+                                        res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + errorMessage });
                                     } 
                                 }
                                 callbackLoop();
@@ -1679,7 +1757,7 @@ if (properties.submitFormFeature) {
                             }
                             message += "Measurements have been tagged <i>#safecast</i> <i>#file_" + sha256.substr(0,18) + "</i>. You can now close this page.<br><br><br>";             
                             message += "<iframe frameborder=\"0\" style=\"height:90%;width:90%;left:auto;right:auto;min-height:400px;\" height=\"90%\" width=\"90%\" src=\"" + properties.mappingURL + "/openradiation/file_" + sha256.substr(0,18) + "/all/all/all/0/100/0/100\"></iframe>";
-                            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, description:req.body.description, tags: JSON.stringify(tags), result: message }); 
+                            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: message }); 
                         }
                     });   
                 }

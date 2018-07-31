@@ -747,7 +747,7 @@ $(function() {
             cache: false,
             timeout: 10000,
             success: function(res) {
-                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
+                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
                 for(var i in res.data)
                 {
                     str += res.data[i].apparatusId == null ? ";" : csv(res.data[i].apparatusId) + ";";
@@ -763,7 +763,12 @@ $(function() {
                     str += res.data[i].longitude + ";";
                     str += res.data[i].accuracy == null ? ";" : res.data[i].accuracy + ";";	
                     str += res.data[i].altitude == null ? ";" : res.data[i].altitude + ";";	
-                    str += res.data[i].altitudeAccuracy == null ? ";" : res.data[i].altitudeAccuracy + ";";	
+                    str += res.data[i].altitudeAccuracy == null ? ";" : res.data[i].altitudeAccuracy + ";";
+                    str += res.data[i].endLatitude == null ? ";" : res.data[i].endLatitude + ";";	
+                    str += res.data[i].endLongitude == null ? ";" : res.data[i].endLongitude + ";";	
+                    str += res.data[i].endAccuracy == null ? ";" : res.data[i].endAccuracy + ";";	
+                    str += res.data[i].endAltitude == null ? ";" : res.data[i].endAltitude + ";";	
+                    str += res.data[i].endAltitudeAccuracy == null ? ";" : res.data[i].endAltitudeAccuracy + ";";	
                     str += res.data[i].deviceUuid == null ? ";" : csv(res.data[i].deviceUuid) + ";";	
                     str += res.data[i].devicePlatform == null ? ";" : csv(res.data[i].devicePlatform) + ";";	
                     str += res.data[i].deviceVersion == null ? ";" : csv(res.data[i].deviceVersion) + ";";	
@@ -775,6 +780,7 @@ $(function() {
                     str += res.data[i].measurementHeight == null ? ";" : res.data[i].measurementHeight + ";";	
                     str += res.data[i].userId == null ? ";" : csv(res.data[i].userId) + ";";
                     str += res.data[i].measurementEnvironment == null ? ";" : res.data[i].measurementEnvironment + ";";
+                    str += res.data[i].rain == null ? ";" : res.data[i].rain + ";";
                     str += res.data[i].dateAndTimeOfCreation + ";";
                     str += res.data[i].qualification == null ? ";" : res.data[i].qualification + ";";	
                     str += res.data[i].qualificationVotesNumber == null ? ";" : res.data[i].qualificationVotesNumber + ";";	
@@ -893,7 +899,7 @@ $(function() {
         } else {
             drawChart();
         }
-
+                 
         function drawChart() {
             
             var openradiationTime = document.getElementById('charttime');
