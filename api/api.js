@@ -2002,51 +2002,48 @@ if (properties.mappingFeature) {
         }        
         //console.log(new Date().toISOString() + " - GET /i/:z/:x/:y.png : end");
     });
-
-    app.get('/openradiation', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /openradiation : begin");       
-        res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"all",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
-        console.log(new Date().toISOString() + " - GET /openradiation : end");
-    });
-            
-    app.get('/:lang/openradiation', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /:lang/openradiation : begin");
-        if (req.params.lang == "fr" || req.params.lang == "en") {           
-            res.render('openradiation.ejs', { lang:req.params.lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"all",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
+           
+    app.get('/:lang?/openradiation', function (req, res, next) {
+        if (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en") 
+        {   
+            var lang;
+            if (req.params.lang == undefined)
+                lang = getLanguage(req);
+            else
+                lang = req.params.lang;
+            res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"all",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
         } else
             res.status(404).end();
-        console.log(new Date().toISOString() + " - GET /openradiation : end");
     });
     
-    app.get('/openradiation/:zoom/:latitude/:longitude', function (req, res, next) { 
-        console.log(new Date().toISOString() + " - GET /openradiation/:zoom/:latitude/:longitude : begin");
+    app.get('/:lang?/openradiation/:zoom/:latitude/:longitude', function (req, res, next) { 
         if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
          && (isNaN(req.params.latitude) == false)
-         && (isNaN(req.params.longitude) == false))
-        {  
+         && (isNaN(req.params.longitude) == false)
+         && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en"))
+        {       
             var lang;
-            if (req.acceptsLanguages('fr', 'en') == "fr") 
-                lang = "fr";
+            if (req.params.lang == undefined)
+                lang = getLanguage(req);
             else
-                lang = "en";
-            
-            res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
+                lang = req.params.lang;
+            res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
                                           tag:"", userId: "", qualification: "all", atypical: "all",
                                           rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100 } );
         } else {
             res.status(404).end();
         }
-        console.log(new Date().toISOString() + " - GET /openradiation/:zoom/:latitude/:longitude : end");
-    });   
+    });
        
-    app.get('/openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) { 
-        console.log(new Date().toISOString() + " - GET /openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax : begin");
+    app.get('/:lang?/openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
+        
         if ( (req.params.qualification == "all" || req.params.qualification == "seemscorrect" || req.params.qualification == "mustbeverified" || req.params.qualification == "noenvironmentalcontext" || req.params.qualification == "badsensor" || req.params.qualification == "badprotocole" || req.params.qualification == "baddatatransmission")
           && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
           && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >=0 && parseInt(req.params.rangeValueMin) <= 100)
           && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >=0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
           && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >=0 && parseInt(req.params.rangeDateMin) <= 100)
-          && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >=0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax)))
+          && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >=0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
+          && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en"))
         {  
             var tag;
             if (req.params.tag == "all")
@@ -2058,19 +2055,19 @@ if (properties.mappingFeature) {
                 userId = "";
             else
                 userId = req.params.userId;
-            
-            res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:true, zoom: 1, latitude:46.609464, longitude:2.471888, 
+            var lang;
+            if (req.params.lang == undefined)
+                lang = getLanguage(req);
+            else
+                lang = req.params.lang;
+            res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:true, zoom: 1, latitude:46.609464, longitude:2.471888, 
                                           tag:tag, userId: userId, qualification: req.params.qualification, atypical: req.params.atypical,
                                           rangeValueMin:req.params.rangeValueMin, rangeValueMax:req.params.rangeValueMax, rangeDateMin:req.params.rangeDateMin, rangeDateMax:req.params.rangeDateMax } );
         } else
             res.status(404).end();
-        console.log(new Date().toISOString() + " - GET /openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax : end");
-        
     });
     
-    app.get('/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) { 
-        console.log(new Date().toISOString() + " - GET /openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax : begin");
-        
+    app.get('/:lang?/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) { 
         if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
           && (isNaN(req.params.latitude) == false)
           && (isNaN(req.params.longitude) == false)
@@ -2079,7 +2076,8 @@ if (properties.mappingFeature) {
           && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >=0 && parseInt(req.params.rangeValueMin) <= 100)
           && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >=0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
           && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >=0 && parseInt(req.params.rangeDateMin) <= 100)
-          && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >=0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax)))
+          && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >=0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
+          && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en"))
         {  
             var tag;
             if (req.params.tag == "all")
@@ -2091,15 +2089,17 @@ if (properties.mappingFeature) {
                 userId = "";
             else
                 userId = req.params.userId;
-            
-            res.render('openradiation.ejs', { lang:getLanguage(req), apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
+            var lang;
+            if (req.params.lang == undefined)
+                lang = getLanguage(req);
+            else
+                lang = req.params.lang;
+            res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
                                           tag:tag, userId: userId, qualification: req.params.qualification, atypical: req.params.atypical,
                                           rangeValueMin:req.params.rangeValueMin, rangeValueMax:req.params.rangeValueMax, rangeDateMin:req.params.rangeDateMin, rangeDateMax:req.params.rangeDateMax } );
         } else
             res.status(404).end();
-        
-        console.log(new Date().toISOString() + " - GET /openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax : end");
-    });     
+    });
 }
 
 //9. https server
