@@ -26,6 +26,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>temperature</td><td>Integer</td><td></td><td></td><td>Temperature (°C) </td></tr>
 <tr><td>value</td><td>Real</td><td>*</td><td>Mandatory</td><td>value (µSv/h)</td></tr>
 <tr><td>hitsNumber</td><td>Integer</td><td></td><td></td><td>Hits Number</td></tr>
+<tr><td>calibrationFunction</td><td>String</td><td></td><td></td><td>Calibration function used to calculate µSv/h from cps (counts per second). Format should be inline with these symbols : cps 0-9. -+/*^(). Example : 7.543*(cps-0.02)^2+0.001*(cps-0.02)</td></tr>
 <tr><td>startTime</td><td>Timestamp</td><td>*</td><td>Mandatory</td><td>Date of the beginning of the measurement (ISO GMT)</td></tr>
 <tr><td>endTime</td><td>Timestamp</td><td></td><td> </td><td>Date of the end of the measurement (ISO GMT)</td></tr>
 <tr><td>latitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>latitude</td></tr>
@@ -54,6 +55,10 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>userPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org plain text password (mandatory if userId is specified)</td></tr>
 <tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement environment : countryside, city, ontheroad, inside, plane. (if plane, qualification is set to noenvironmentalcontext and qualificationVotesNumber is set to 0)</td></tr>
 <tr><td>rain</td><td>Boolean</td><td></td><td></td><td>Rain : true if it rains during the measurement</td></tr>
+<tr><td>flightNumber</td><td>String</td><td></td><td></td><td>if measurementEnvironment is plane, flightNumber of the commercial flight in capital letters (AITA code followed by number, example: AF179)</td></tr>
+<tr><td>seatNumber</td><td>String</td><td></td><td></td><td>if measurementEnvironment is plane, seatNumber in capital letters with row number first (example: 14C)</td></tr>
+<tr><td>windowSeat</td><td>Boolean</td><td></td><td></td><td>if measurementEnvironment is plane, windowSeat : true if the seat where is the sensor is next to the window</td></tr>
+<tr><td>storm</td><td>Boolean</td><td></td><td></td><td>Storm : true if storm crossing during the measurement</td></tr>
 <tr><td>dateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
 <tr><td>qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
 <tr><td>qualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the API or the website</td><td>qualification Votes Number</td></tr>
