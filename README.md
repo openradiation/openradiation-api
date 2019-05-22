@@ -26,7 +26,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>temperature</td><td>Integer</td><td></td><td></td><td>Temperature (°C) </td></tr>
 <tr><td>value</td><td>Real</td><td>*</td><td>Mandatory</td><td>value (µSv/h)</td></tr>
 <tr><td>hitsNumber</td><td>Integer</td><td></td><td></td><td>Hits Number</td></tr>
-<tr><td>calibrationFunction</td><td>String</td><td></td><td></td><td>Calibration function used to calculate µSv/h from cps (counts per second). Format should be inline with these symbols : cps 0-9. -+/*^(). Example : 7.543*(cps-0.02)^2+0.001*(cps-0.02)</td></tr>
+<tr><td>calibrationFunction</td><td>String</td><td></td><td></td><td>Calibration function used to calculate µSv/h from cps (counts per second). Format should be inline with these symbols : cps 0-9. -+/*^() max,. Example : 7.543*(cps-0.02)^2+0.001*(cps-0.02)</td></tr>
 <tr><td>startTime</td><td>Timestamp</td><td>*</td><td>Mandatory</td><td>Date of the beginning of the measurement (ISO GMT)</td></tr>
 <tr><td>endTime</td><td>Timestamp</td><td></td><td> </td><td>Date of the end of the measurement (ISO GMT)</td></tr>
 <tr><td>latitude</td><td>Real</td><td>*</td><td>Mandatory</td><td>latitude</td></tr>
