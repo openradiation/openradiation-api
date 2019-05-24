@@ -1,6 +1,6 @@
 .gitignore
-api/node_modules
-api/node_modules/*
+node_modules
+package-lock.json
 api/certs
 api/certs/*
 api/properties.js
@@ -17,6 +17,9 @@ extract/*
 extract
 letsencrypt/*
 letsencrypt
+api/cert.crt
+api/cert.key
+
 
 
 

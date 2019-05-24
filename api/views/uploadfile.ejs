@@ -17,6 +17,7 @@ var translations_FR = {
       "Weather" : "Météo",
       "Rain" : "Pluie",
       "No rain" : "Pas de pluie",
+	  "Flight number" : "Numéro de vol",
       "In the countryside" : "A la campagne",
       "In a city" : "En ville",
       "On the road" : "Sur la route",
@@ -104,12 +105,14 @@ t = function(englishText) {
                                 <div class="col-sm-6"><input required name="userId" type="text" class="form-control" value="<%- userId %>" placeholder="<%- t("Username") %>"></input></div>
                                 <div class="col-sm-6"><span><%- t("Password") %> * :</span></div>
                                 <div class="col-sm-6"><input required name="userPwd" type="password" class="form-control" value="<%- userPwd %>" placeholder="<%- t("Password") %>"></input></div>
-                                <div class="col-sm-6"><span><%- t("Measurement height above the ground (in meters)") %> * :</span></div>
-                                <div class="col-sm-6"><input required name="measurementHeight" type="number" class="form-control" value="<%- measurementHeight %>" placeholder="<%- t("Measurement height") %>"></input></div>
                                 <div class="col-sm-6"><span><%- t("Measurement environment") %> * :</span></div>
-                                <div class="col-sm-6"><select required id="measurementEnvironment" name="measurementEnvironment" class="form-control"><option value="countryside"><%- t("In the countryside") %></option><option value="city"><%- t("In a city") %></option><option value="ontheroad"><%- t("On the road") %></option><option value="inside"><%- t("Inside") %></option><option value="plane"><%- t("On a plane") %></option></select></div>
-                                <div class="col-sm-6"><span><%- t("Weather") %> * :</span></div>
-                                <div class="col-sm-6"><select required id="rain" name="rain" class="form-control"><option value=false><%- t("No rain") %></option><option value=true><%- t("Rain") %></option></select></div>
+                                <div class="col-sm-6"><select onchange="measurementEnvironmentSelected(this.value)" required id="measurementEnvironment" name="measurementEnvironment" class="form-control"><option value="countryside"><%- t("In the countryside") %></option><option value="city"><%- t("In a city") %></option><option value="ontheroad"><%- t("On the road") %></option><option value="inside"><%- t("Inside") %></option><option value="plane"><%- t("On a plane") %></option></select></div>
+                                <div class="col-sm-6 planeno"><span><%- t("Measurement height above the ground (in meters)") %> * :</span></div>
+                                <div class="col-sm-6 planeno"><input required name="measurementHeight" type="number" class="form-control" value="<%- measurementHeight %>" placeholder="<%- t("Measurement height") %>"></input></div>
+                                <div class="col-sm-6 planeno"><span><%- t("Weather") %> * :</span></div>
+                                <div class="col-sm-6 planeno"><select required id="rain" name="rain" class="form-control"><option value=false><%- t("No rain") %></option><option value=true><%- t("Rain") %></option></select></div>
+                                <div class="col-sm-6 planeyes"><span><%- t("Flight number") %> * :</span></div>
+                                <div class="col-sm-6 planeyes"><input required name="flightNumber" type="text" class="form-control" value="<%- userId %>" placeholder="<%- t("Flight number") %>"></input></div>
                                 <div class="col-sm-3"><span><%- t("Tags") %> : </span></div><div class="col-sm-3" style="text-align: right;"><span id="addTag" class="btn btn-link"><%- t("Add an other tag") %></span></div><div id="tags"></div>
                                 <div class="col-sm-6"><span><%- t("Description") %> :</span></div>
                                 <div class="col-sm-6"><textarea name="description" rows="3" cols="30" class="form-control" placeholder="Description" form="uploadForm"><%- description %></textarea></div>
@@ -125,6 +128,26 @@ t = function(englishText) {
         </div>
         <script src="bootstrap-3.3.4.min.js"></script>
         <script>
+			var measurementEnvironmentSelected = function(value) {
+				console.log("measurementEnvironmentSelected = " + value);
+				if (value == 'plane') {
+					$(".planeyes").css('display','block');
+					$('.planeyes > input').prop('disabled', false);
+					$(".planeno").css('display','none');
+					$('.planeno > input').prop('disabled', true);
+					$('.planeno > select').prop('disabled', true);
+					
+				} else {
+					$(".planeyes").css('display','none');
+					$('.planeyes > input').prop('disabled', true);
+					$(".planeno").css('display','block');
+					$('.planeno > input').prop('disabled', false);
+					$('.planeno > select').prop('disabled', false);
+				}
+				//+ measurementEnvironmentSelected
+				//if $("select option")
+			};
+			
             var tags = <%- tags %>;
             var nbTags;
             
@@ -144,6 +167,8 @@ t = function(englishText) {
             
             var measurementEnvironment = "<%- measurementEnvironment %>";
             var rain = "<%- rain %>";
+			var flightNumber = "<%- flightNumber %>";
+			
             $("select option").each(function(){
                 console.log(measurementEnvironment);
                 console.log($(this).attr('value'));
@@ -152,7 +177,7 @@ t = function(englishText) {
                 if ($(this).attr('value') == rain)
                     $(this).attr('selected', 'selected');
             });
-            
+            measurementEnvironmentSelected(measurementEnvironment);
             
             $( "#addTag" ).click(function() {
                 if (nbTags < 9)
