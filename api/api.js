@@ -441,27 +441,10 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break; 
             case "deviceUuid":
-                if (typeof(json[dataName]) != "string" || json[dataName].length > 100)
-                {
-                    res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
-                    return false;
-                }
-                break;
-            case "devicePlatform":
-                if (typeof(json[dataName]) != "string" || json[dataName].length > 100)
-                {
-                    res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
-                    return false;
-                }
-                break; 
-            case "deviceVersion":
-                if (typeof(json[dataName]) != "string" || json[dataName].length > 100)
-                {
-                    res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
-                    return false;
-                }
-                break; 
-            case "deviceModel":
+			case "devicePlatform":
+			case "deviceVersion":
+			case "deviceModel":
+			case "calibrationFunction":
                 if (typeof(json[dataName]) != "string" || json[dataName].length > 100)
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
@@ -477,12 +460,38 @@ verifyData = function(res, json, isMandatory, dataName) {
                 break;
             case "manualReporting":
             case "rain":
+			case "storm":
                 if (typeof(json[dataName]) != "boolean")
                 {
                     res.status(400).json({ error: {code:"102", message:dataName + " is not a boolean"}});
                     return false;
                 }
-                break; 
+                break;
+			case "flightNumber":
+			case "seatNumber":
+			    if (typeof(json["measurementEnvironment"]) != "string" || json["measurementEnvironment"] != "plane")
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " can be defined only if measurementEnvironment is plane"}});
+                    return false;
+                }
+				if (typeof(json[dataName]) != "string" || json[dataName].length > 25)
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a string"}});
+                    return false;
+                }
+                break;
+			case "windowSeat":
+			    if (typeof(json["measurementEnvironment"]) != "string" || json["measurementEnvironment"] != "plane")
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " can be defined only if measurementEnvironment is plane"}});
+                    return false;
+                }
+				if (typeof(json[dataName]) != "boolean")
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not a boolean"}});
+                    return false;
+                }
+                break;
             case "organisationReporting":
                 if (typeof(json[dataName]) != "string" || json[dataName].length > 100)
                 {
@@ -698,16 +707,16 @@ if (properties.requestApiFeature) {
                         if (req.query.response == null)
                             sql = 'SELECT "value", "startTime", "latitude", "longitude", "reportUuid", "qualification", "atypical" FROM MEASUREMENTS WHERE "reportUuid"=$1';
                         else if (req.query.withEnclosedObject == null)
-                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
+                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag","enclosedObject", "userId", \
-                                  "measurementEnvironment","rain","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
+                                  "measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
                                   FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" WHERE MEASUREMENTS."reportUuid" = $1';
                         else
-                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
+                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag", "userId", \
-                                  "measurementEnvironment","rain","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
+                                  "measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
                                   FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" WHERE MEASUREMENTS."reportUuid" = $1';
                        
                         var values = [ req.params.reportUuid];
@@ -814,15 +823,15 @@ if (properties.requestApiFeature) {
                         if (req.query.response == null)
                             sql = 'SELECT "value", "startTime", "latitude", "longitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
                         else if (req.query.withEnclosedObject == null)
-                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
+                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
-                                  "measurementEnvironment","rain","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                                  "measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                         else
-                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime", \
+                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","userId", \
-                                  "measurementEnvironment","rain","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                                  "measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                                   
                         if (req.query.tag == null)
                             sql += ' FROM MEASUREMENTS';
@@ -1037,6 +1046,7 @@ if (properties.submitApiFeature) {
              && verifyData(res, req.body.data, false, "temperature")
              && verifyData(res, req.body.data, true, "value")
              && verifyData(res, req.body.data, false, "hitsNumber") 
+			 && verifyData(res, req.body.data, false, "calibrationFunction") 
              && verifyData(res, req.body.data, true, "startTime")
              && verifyData(res, req.body.data, false, "endTime")     
              && verifyData(res, req.body.data, true, "latitude") 
@@ -1064,7 +1074,11 @@ if (properties.submitApiFeature) {
              && verifyData(res, req.body.data, false, "userId")
              && verifyData(res, req.body.data, false, "userPwd")
              && verifyData(res, req.body.data, false, "measurementEnvironment")
-             && verifyData(res, req.body.data, false, "rain"))
+             && verifyData(res, req.body.data, false, "rain")
+			 && verifyData(res, req.body.data, false, "flightNumber") 
+			 && verifyData(res, req.body.data, false, "seatNumber") 
+			 && verifyData(res, req.body.data, false, "windowSeat") 
+			 && verifyData(res, req.body.data, false, "storm") )
             {
                 console.log("ok");
                 if (req.body.data.reportContext != null && req.body.data.reportContext == "routine")
@@ -1075,11 +1089,11 @@ if (properties.submitApiFeature) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = 'INSERT INTO MEASUREMENTS ("apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","startTime","endTime", \
+                            var sql = 'INSERT INTO MEASUREMENTS ("apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime","endTime", \
                                        "latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel","reportUuid","manualReporting", \
-                                       "organisationReporting","reportContext","description","measurementHeight","enclosedObject","userId","measurementEnvironment","rain","dateAndTimeOfCreation", \
+                                       "organisationReporting","reportContext","description","measurementHeight","enclosedObject","userId","measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation", \
                                        "qualification","qualificationVotesNumber","reliability","atypical") VALUES \
-                                       ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38)';
+                                       ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43)';
                             
                             var manualReporting = req.body.data.manualReporting == null ? true : req.body.data.manualReporting;
                             var reliability = 0;
@@ -1185,13 +1199,13 @@ if (properties.submitApiFeature) {
                             var atypical = req.body.data.value < 0.2 ? false : true;
                             var dateAndTimeOfCreation = new Date();
                             var values = [ req.body.data.apparatusId, req.body.data.apparatusVersion, req.body.data.apparatusSensorType, req.body.data.apparatusTubeType, 
-                                           req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, new Date(req.body.data.startTime), 
+                                           req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, req.body.data.calibrationFunction, new Date(req.body.data.startTime), 
                                            req.body.data.endTime != null ? new Date(req.body.data.endTime) : req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, req.body.data.accuracy,
                                            req.body.data.altitude, req.body.data.altitudeAccuracy, req.body.data.endLatitude, req.body.data.endLongitude, req.body.data.endAccuracy,
                                            req.body.data.endAltitude, req.body.data.endAltitudeAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
                                            req.body.data.deviceVersion, req.body.data.deviceModel, req.body.data.reportUuid, manualReporting,
                                            req.body.data.organisationReporting, req.body.data.reportContext, req.body.data.description, req.body.data.measurementHeight,
-                                           req.body.data.enclosedObject, req.body.data.userId, req.body.data.measurementEnvironment, req.body.data.rain, dateAndTimeOfCreation,
+                                           req.body.data.enclosedObject, req.body.data.userId, req.body.data.measurementEnvironment, req.body.data.rain, req.body.data.flightNumber, req.body.data.seatNumber, req.body.data.windowSeat, req.body.data.storm, dateAndTimeOfCreation,
                                            qualification, qualificationVotesNumber, reliability, atypical                                 
                                           ];
                                            
@@ -1378,13 +1392,13 @@ if (properties.submitApiFeature) {
 
 //7. submit Form
 if (properties.submitFormFeature) {
-    /*
+    
     app.get('/test', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /test : begin");
         res.render('test.ejs');
         console.log(new Date().toISOString() + " - GET /test : end");
     });
-    
+    /*
     //sample : https://localhost:8080/test/6/46.6094640/2.4718880/0.45/2015-10-05T13:49:59Z
     //sample : https://localhost:8080/testme?zoom=6&latitude=46.6094640&longitude=2.3718880&value=0.45&startTime=2015-10-05T13:49:59Z
     //app.get('/test/:zoom/:latitude/:longitude/:value/:startTime', function (req, res, next) { 
@@ -1462,7 +1476,7 @@ if (properties.submitFormFeature) {
     app.get('/:lang/upload', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET :lang/upload : begin");
         if (req.params.lang == "fr" || req.params.lang == "en") {           
-            res.render('uploadfile.ejs', { lang:req.params.lang , userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", rain:"", description:"", tags: JSON.stringify([]), result: "" });
+            res.render('uploadfile.ejs', { lang:req.params.lang , userId:"", userPwd:"", measurementEnvironment:"", measurementHeight:"", rain:"", flightNumber:"", description:"", tags: JSON.stringify([]), result: "" });
         } else
             res.status(404).end();
         console.log(new Date().toISOString() + " - GET :lang/upload : end");
@@ -1470,7 +1484,7 @@ if (properties.submitFormFeature) {
     
     app.get('/upload', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /upload : begin");
-        res.render('uploadfile.ejs', { lang:getLanguage(req), userId:"", userPwd:"", measurementHeight:"", measurementEnvironment:"", rain:"", description:"", tags: JSON.stringify([]), result: "" });
+        res.render('uploadfile.ejs', { lang:getLanguage(req), userId:"", userPwd:"", measurementEnvironment:"", measurementHeight:"", rain:"", flightNumber:"", description:"", tags: JSON.stringify([]), result: "" });
         console.log(new Date().toISOString() + " - GET /upload : end");
     });
   
@@ -1493,21 +1507,23 @@ if (properties.submitFormFeature) {
         if (req.body.lang == null || typeof(req.body.lang) != "string" || (req.body.lang !="fr" && req.body.lang !="en"))
             res.status(404).end();
         else if (req.body.userId == null || typeof(req.body.userId) != "string" || req.body.userId == "" || req.body.userId.length > 100)
-            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Username is mandatory" }); 
+            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "Username is mandatory" }); 
         else if (req.body.userPwd == null || typeof(req.body.userPwd) != "string" || req.body.userPwd == "" || req.body.userPwd.length > 100)
-            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Password is mandatory" }); 
+            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "Password is mandatory" }); 
         else {
             var measurementEnvironmentValues = ["countryside","city","ontheroad","inside","plane"];
-            if (req.body.measurementHeight == null || typeof(req.body.measurementHeight) != "string" || req.body.measurementHeight == "" || parseFloat(req.body.measurementHeight) != parseInt(req.body.measurementHeight))
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement height should be an integer" }); 
-            else if (req.body.measurementEnvironment == null || typeof(req.body.measurementEnvironment) != "string" || measurementEnvironmentValues.indexOf(req.body.measurementEnvironment) == -1)
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement environment should be in [countryside | city | ontheroad | inside | plane]" }); 
-            else if (req.body.rain == null || typeof(req.body.rain) != "string" || req.body.rain == "" || (req.body.rain != "true" &&  req.body.rain != "false"))
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Rain should be a boolean (true or false)" }); 
+            if (req.body.measurementEnvironment == null || typeof(req.body.measurementEnvironment) != "string" || measurementEnvironmentValues.indexOf(req.body.measurementEnvironment) == -1)
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement environment should be in [countryside | city | ontheroad | inside | plane]" }); 
+            else if (req.body.measurementEnvironment != "plane" && (req.body.measurementHeight == null || typeof(req.body.measurementHeight) != "string" || req.body.measurementHeight == "" || parseFloat(req.body.measurementHeight) != parseInt(req.body.measurementHeight)))
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "Measurement height should be an integer" }); 
+            else if (req.body.measurementEnvironment != "plane" && (req.body.rain == null || typeof(req.body.rain) != "string" || req.body.rain == "" || (req.body.rain != "true" &&  req.body.rain != "false")))
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "Rain should be a boolean (true or false)" }); 
+            else if (req.body.measurementEnvironment == "plane" && (req.body.flightNumber == null || typeof(req.body.flightNumber) != "string" || req.body.flightNumber == "" || (req.body.flightNumber.length > 25)))
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "Flight Number is not valid" }); 
             else if (req.body.description == null || typeof(req.body.description) != "string" || req.body.description.length > 1000)
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Description is not valid" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "Description is not valid" }); 
             else if (req.file == null)
-                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "You have to choose a file" }); 
+                res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "You have to choose a file" }); 
             else {
                 file = req.file.buffer.toString("utf-8");
                 var sha256 = SHA256(file).toString();
@@ -1515,7 +1531,7 @@ if (properties.submitFormFeature) {
                 lines = file.split(new RegExp('\r\n|\r|\n'));
                 
                 if (lines.length > 100000)
-                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "Your file contains too many lines (more than 100000 lines)" }); 
+                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "Your file contains too many lines (more than 100000 lines)" }); 
                 else {
                     var measurementsLinesValid = 0;
                     var measurementsTakenInAccount = 0;
@@ -1638,18 +1654,22 @@ if (properties.submitFormFeature) {
                                             data.organisationReporting = "openradiation.net/upload " + properties.version;
                                             data.reportContext = "routine";
                                             data.description = req.body.description;
-                                            data.measurementHeight = parseInt(req.body.measurementHeight);
+											data.measurementEnvironment = req.body.measurementEnvironment;
+											if (req.body.measurementEnvironment == "plane")
+												data.flightNumber = req.body.flightNumber; 
+											else {
+												data.measurementHeight = parseInt(req.body.measurementHeight);
+												if (req.body.rain == "true")
+													data.rain = true;
+												else
+													data.rain = false;
+											}
                                             data.tags = tags.slice();
                                             data.tags.push("safecast");
                                             data.tags.push("file_" + sha256.substr(0,18));
                                             data.userId = req.body.userId;
                                             data.userPwd = req.body.userPwd;
-                                            data.measurementEnvironment = req.body.measurementEnvironment;
-                                            if (req.body.rain == "true")
-                                                data.rain = true;
-                                            else
-                                                data.rain = false;
-                                                
+
                                             // here we retrieve data for the next measurement
                                             totalHitsNumber = 0;
                                             linesCount = 1;
@@ -1734,12 +1754,12 @@ if (properties.submitFormFeature) {
                                 if (err) {
                                     console.log("error : " + err);
                                     stopIt = true;
-                                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + err });
+                                    res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + err });
                                     
                                 } else {
                                     if (measurementsOk == 0) { //we prefer to stop the treatment
                                         stopIt = true;
-                                        res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + errorMessage });
+                                        res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: "<strong>Error during the processing</strong> : " + errorMessage });
                                     } 
                                 }
                                 callbackLoop();
@@ -1757,7 +1777,7 @@ if (properties.submitFormFeature) {
                             }
                             message += "Measurements have been tagged <i>#safecast</i> <i>#file_" + sha256.substr(0,18) + "</i>. You can now close this page.<br><br><br>";             
                             message += "<iframe frameborder=\"0\" style=\"height:90%;width:90%;left:auto;right:auto;min-height:400px;\" height=\"90%\" width=\"90%\" src=\"" + properties.mappingURL + "/openradiation/file_" + sha256.substr(0,18) + "/all/all/all/0/100/0/100\"></iframe>";
-                            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, description:req.body.description, tags: JSON.stringify(tags), result: message }); 
+                            res.render('uploadfile.ejs', { lang:req.body.lang, userId:req.body.userId, userPwd:req.body.userPwd, measurementHeight:req.body.measurementHeight, measurementEnvironment:req.body.measurementEnvironment, rain:req.body.rain, flightNumber:req.body.flightNumber, description:req.body.description, tags: JSON.stringify(tags), result: message }); 
                         }
                     });   
                 }
@@ -2037,7 +2057,7 @@ if (properties.mappingFeature) {
        
     app.get('/:lang?/openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
         
-        if ( (req.params.qualification == "all" || req.params.qualification == "seemscorrect" || req.params.qualification == "mustbeverified" || req.params.qualification == "noenvironmentalcontext" || req.params.qualification == "badsensor" || req.params.qualification == "badprotocole" || req.params.qualification == "baddatatransmission")
+        if ( (req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "groundlevel" || req.params.qualification == "seemscorrect" || req.params.qualification == "mustbeverified" || req.params.qualification == "noenvironmentalcontext" || req.params.qualification == "badsensor" || req.params.qualification == "badprotocole" || req.params.qualification == "baddatatransmission")
           && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
           && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >=0 && parseInt(req.params.rangeValueMin) <= 100)
           && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >=0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
@@ -2060,8 +2080,14 @@ if (properties.mappingFeature) {
                 lang = getLanguage(req);
             else
                 lang = req.params.lang;
+			var qualification;
+			if (req.params.qualification == "groundlevel" || req.params.qualification == "plane")
+                qualification = "all";
+            else
+                qualification = req.params.qualification;
+			
             res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:true, zoom: 1, latitude:46.609464, longitude:2.471888, 
-                                          tag:tag, userId: userId, qualification: req.params.qualification, atypical: req.params.atypical,
+                                          tag:tag, userId: userId, qualification:qualification, atypical: req.params.atypical,
                                           rangeValueMin:req.params.rangeValueMin, rangeValueMax:req.params.rangeValueMax, rangeDateMin:req.params.rangeDateMin, rangeDateMax:req.params.rangeDateMax } );
         } else
             res.status(404).end();
@@ -2071,7 +2097,7 @@ if (properties.mappingFeature) {
         if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
           && (isNaN(req.params.latitude) == false)
           && (isNaN(req.params.longitude) == false)
-          && (req.params.qualification == "all" || req.params.qualification == "seemscorrect" || req.params.qualification == "mustbeverified" || req.params.qualification == "noenvironmentalcontext" || req.params.qualification == "badsensor" || req.params.qualification == "badprotocole" || req.params.qualification == "baddatatransmission")
+          && (req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "groundlevel" || req.params.qualification == "seemscorrect" || req.params.qualification == "mustbeverified" || req.params.qualification == "noenvironmentalcontext" || req.params.qualification == "badsensor" || req.params.qualification == "badprotocole" || req.params.qualification == "baddatatransmission")
           && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
           && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >=0 && parseInt(req.params.rangeValueMin) <= 100)
           && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >=0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
@@ -2094,8 +2120,14 @@ if (properties.mappingFeature) {
                 lang = getLanguage(req);
             else
                 lang = req.params.lang;
+			var qualification;
+			if (req.params.qualification == "groundlevel" || req.params.qualification == "plane")
+                qualification = "all";
+            else
+                qualification = req.params.qualification;
+			
             res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
-                                          tag:tag, userId: userId, qualification: req.params.qualification, atypical: req.params.atypical,
+                                          tag:tag, userId: userId, qualification:qualification, atypical: req.params.atypical,
                                           rangeValueMin:req.params.rangeValueMin, rangeValueMax:req.params.rangeValueMax, rangeDateMin:req.params.rangeDateMin, rangeDateMax:req.params.rangeDateMax } );
         } else
             res.status(404).end();
