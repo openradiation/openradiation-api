@@ -747,7 +747,7 @@ $(function() {
             cache: false,
             timeout: 10000,
             success: function(res) {
-                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
+                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;calibrationFunction;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;flightNumber;seatNumber;windowSeat;storm;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
                 for(var i in res.data)
                 {
                     str += res.data[i].apparatusId == null ? ";" : csv(res.data[i].apparatusId) + ";";
@@ -757,6 +757,7 @@ $(function() {
                     str += res.data[i].temperature == null ? ";" : res.data[i].temperature + ";";
                     str += res.data[i].value + ";";
                     str += res.data[i].hitsNumber == null ? ";" : res.data[i].hitsNumber + ";";
+                    str += res.data[i].calibrationFunction == null ? ";" : csv(res.data[i].calibrationFunction) + ";";
                     str += res.data[i].startTime + ";";
                     str += res.data[i].endTime == null ? ";" : res.data[i].endTime + ";";	
                     str += res.data[i].latitude + ";";	
@@ -781,6 +782,10 @@ $(function() {
                     str += res.data[i].userId == null ? ";" : csv(res.data[i].userId) + ";";
                     str += res.data[i].measurementEnvironment == null ? ";" : res.data[i].measurementEnvironment + ";";
                     str += res.data[i].rain == null ? ";" : res.data[i].rain + ";";
+                    str += res.data[i].flightNumber == null ? ";" : csv(res.data[i].flightNumber) + ";";		
+                    str += res.data[i].seatNumber == null ? ";" : csv(res.data[i].seatNumber) + ";";		
+                    str += res.data[i].windowSeat == null ? ";" : res.data[i].windowSeat + ";";
+                    str += res.data[i].storm == null ? ";" : res.data[i].storm + ";";
                     str += res.data[i].dateAndTimeOfCreation + ";";
                     str += res.data[i].qualification == null ? ";" : res.data[i].qualification + ";";	
                     str += res.data[i].qualificationVotesNumber == null ? ";" : res.data[i].qualificationVotesNumber + ";";	

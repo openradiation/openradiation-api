@@ -1393,12 +1393,13 @@ if (properties.submitApiFeature) {
 //7. submit Form
 if (properties.submitFormFeature) {
     
+	/*
     app.get('/test', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /test : begin");
         res.render('test.ejs');
         console.log(new Date().toISOString() + " - GET /test : end");
     });
-    /*
+    
     //sample : https://localhost:8080/test/6/46.6094640/2.4718880/0.45/2015-10-05T13:49:59Z
     //sample : https://localhost:8080/testme?zoom=6&latitude=46.6094640&longitude=2.3718880&value=0.45&startTime=2015-10-05T13:49:59Z
     //app.get('/test/:zoom/:latitude/:longitude/:value/:startTime', function (req, res, next) { 
