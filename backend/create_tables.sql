@@ -40,6 +40,14 @@ CREATE TABLE MEASUREMENTS
     "seatNumber"                  VARCHAR(25),
     "windowSeat"                  BOOLEAN,
     "storm"                       BOOLEAN,
+    "flightId"                    INTEGER,
+    "refinedLatitude"             DOUBLE PRECISION,
+    "refinedLongitude"            DOUBLE PRECISION,
+    "refinedAltitude"             INTEGER,
+    "refinedEndLatitude"          DOUBLE PRECISION,
+    "refinedEndLongitude"         DOUBLE PRECISION,
+    "refinedEndAltitude"          INTEGER,
+    "flightSearch"                BOOLEAN,
     "dateAndTimeOfCreation"       TIMESTAMP WITH TIME ZONE NOT NULL,
     "qualification"               VARCHAR(25),
     "qualificationVotesNumber"    INTEGER,
@@ -77,8 +85,34 @@ CREATE TABLE TILES
     PRIMARY KEY ("quadKey")
 );
 
+CREATE TABLE FLIGHTS
+(
+    "flightId"                    SERIAL PRIMARY KEY,
+    "flightNumber"                VARCHAR(25) NOT NULL,
+    "departureTime"               TIMESTAMP WITH TIME ZONE,
+    "arrivalTime"                 TIMESTAMP WITH TIME ZONE,
+    "airportOrigin"               VARCHAR(25),
+    "airportDestination"          VARCHAR(25),
+    "aircraftType"                VARCHAR(25),
+    "startTimeMin"                TIMESTAMP WITH TIME ZONE,
+    "startTimeMax"                TIMESTAMP WITH TIME ZONE,
+    "firstLatitude"               DOUBLE PRECISION, 
+    "firstLongitude"              DOUBLE PRECISION, 
+    "midLatitude"                 DOUBLE PRECISION, 
+    "midLongitude"                DOUBLE PRECISION, 
+    "lastLatitude"                DOUBLE PRECISION,
+    "lastLongitude"               DOUBLE PRECISION
+);
 
-
+CREATE TABLE FLIGHTSTRACK
+(
+    "flightId"                    INTEGER NOT NULL,
+    "timestamp"                   TIMESTAMP WITH TIME ZONE NOT NULL,
+    "latitude"                    DOUBLE PRECISION NOT NULL, 
+    "longitude"                   DOUBLE PRECISION NOT NULL, 
+    "altitude"                    INTEGER NOT NULL,
+    PRIMARY KEY ("flightId", "timestamp")
+);
 
 
 

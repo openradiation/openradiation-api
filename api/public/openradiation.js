@@ -212,7 +212,6 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     openradiation_menu.onAdd = function(openradiation_map) {
         var div = L.DomUtil.create('div', 'openradiation_menu');
         
-        // <li><span class="openradiation_icon icon_interpolation"></span><span id="interpolationlink">' + translate("Interpolation") + '</span></li> 
         div.innerHTML = '<span class="openradiation_menu_header openradiation_icon icon_menu"></span> \
                           <div class="openradiation_menu_footer"> \
                             <span class="openradiation_icon icon_cross" id="openradiation_menu_footer-close"></span> \
@@ -288,7 +287,10 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 
     $("#tag").val(tag);
     $("#userId").val(userId);
-    $("#qualification").val(qualification);
+    if (qualification == 'plane')
+        $("#qualification").val('noenvironmentalcontext');
+    else
+        $("#qualification").val(qualification);
     $("#atypical").val(atypical);
     $( "#slider_rangevalue" ).on( "slidecreate", function( event, ui ) {
         $( "#slider_rangevalue" ).slider("option", "values", [rangeValueMin, rangeValueMax]);
@@ -302,7 +304,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         $( "#slider_maxdate").text(val2date($( "#slider_rangedate" ).slider( "values", 1)));
     });
 
-    if (withLocate == false)
+    if (withLocate == false && qualification != 'plane') // si plane 
         $('.openradiation_filters').css('display', 'none');
     
     //add a message
@@ -318,7 +320,32 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
       
     // add a metric scale
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
-       
+    
+    //if plane get plane tracks
+    if (qualification == 'plane') {
+        $.ajax({
+            type: 'GET',
+            url: '/flights?apiKey=' + apiKey,
+            timeout: 15000,
+            success: function(res) {
+                for (i=0; i < res.data.length; i ++)
+                {
+                    var points = [
+                        [res.data[i].firstLatitude, res.data[i].firstLongitude],
+                        [res.data[i].midLatitude, res.data[i].midLongitude],
+                        [res.data[i].lastLatitude, res.data[i].lastLongitude]
+                    ];
+                    //var polyline = L.polyline(latlngs, {color: 'orange' }).addTo(openradiation_map);
+                    var geodesic = L.geodesic([], {color: 'orange' }).addTo(openradiation_map);
+                    geodesic.setLatLngs([points]);
+                }            
+            },
+            error: function(res, status, err) {
+                console.log(err + " : " + status); 
+            }
+        });          
+    }   
+    
     openradiation_map.on('popupopen', function(e) {
     
         $.ajax({
@@ -477,7 +504,7 @@ function getUrl()
 
 function retrieve_items(urlTemp, fitBounds) {
 
-    console.log("retrieve items");
+    //console.log("retrieve items");
     urlPrev = urlTemp;
     minLatitudePrev = openradiation_map.getBounds().getSouth();
     maxLatitudePrev = openradiation_map.getBounds().getNorth();
@@ -644,7 +671,7 @@ function openradiation_getItems(fitBounds)
             retrieve_items(urlTemp, fitBounds);
         else {
             if (exhaustiveResultsPrev) {
-                console.log("updated results without research");
+                //console.log("updated results without research");
                 if (nb < 2)
                     $("#nbresults").text(nb + " " + translate("measurement found"));
                 else
@@ -658,9 +685,6 @@ function openradiation_getItems(fitBounds)
 
 function val2uSv(val)
 {
-    //var uSv = Math.round((Math.exp(val / 10) - 1)) / 1000;
-    //var uSv = Math.round((Math.exp(val / 13.56) * 29)) / 1000;
-    
     //empiric method to convert from 0-100 scale to the expected scale in uSv/h
     var uSv = Math.round((Math.exp(val / 11.94) * 29)) / 1000;
     
@@ -737,7 +761,7 @@ $(function() {
     });
     
     $( "#export" ).click(function() {
-        console.log("click sur export");
+        
         //var isFileSaverSupported = !!new Blob;
         var urlTemp = getUrl();
                    
@@ -747,7 +771,7 @@ $(function() {
             cache: false,
             timeout: 10000,
             success: function(res) {
-                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;calibrationFunction;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;flightNumber;seatNumber;windowSeat;storm;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
+                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;calibrationFunction;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;flightNumber;seatNumber;windowSeat;storm;flightId;refinedLatitude;refinedLongitude;refinedAltitude;refinedEndLatitude;refinedEndLongitude;refinedEndAltitude;departureTime;arrivalTime;airportOrigin;airportDestination;aircraftType;firstLatitude;firstLongitude;midLatitude;midLongitude;lastLatitude;lastLongitude;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
                 for(var i in res.data)
                 {
                     str += res.data[i].apparatusId == null ? ";" : csv(res.data[i].apparatusId) + ";";
@@ -786,6 +810,24 @@ $(function() {
                     str += res.data[i].seatNumber == null ? ";" : csv(res.data[i].seatNumber) + ";";		
                     str += res.data[i].windowSeat == null ? ";" : res.data[i].windowSeat + ";";
                     str += res.data[i].storm == null ? ";" : res.data[i].storm + ";";
+                    str += res.data[i].flightId == null ? ";" : res.data[i].flightId + ";";	
+                    str += res.data[i].refinedLatitude == null ? ";" : res.data[i].refinedLatitude + ";";	
+                    str += res.data[i].refinedLongitude == null ? ";" : res.data[i].refinedLongitude + ";";	
+                    str += res.data[i].refinedAltitude == null ? ";" : res.data[i].refinedAltitude + ";";
+                    str += res.data[i].refinedEndLatitude == null ? ";" : res.data[i].refinedEndLatitude + ";";	
+                    str += res.data[i].refinedEndLongitude == null ? ";" : res.data[i].refinedEndLongitude + ";";	
+                    str += res.data[i].refinedEndAltitude == null ? ";" : res.data[i].refinedEndAltitude + ";";
+                    str += res.data[i].departureTime == null ? ";" : res.data[i].departureTime + ";";
+                    str += res.data[i].arrivalTime == null ? ";" : res.data[i].arrivalTime + ";";	
+                    str += res.data[i].airportOrigin == null ? ";" : csv(res.data[i].airportOrigin) + ";";	
+                    str += res.data[i].airportDestination == null ? ";" : csv(res.data[i].airportDestination) + ";";	
+                    str += res.data[i].aircraftType == null ? ";" : csv(res.data[i].aircraftType) + ";";	
+                    str += res.data[i].firstLatitude == null ? ";" : res.data[i].firstLatitude + ";";	
+                    str += res.data[i].firstLongitude == null ? ";" : res.data[i].firstLongitude + ";";	
+                    str += res.data[i].midLatitude == null ? ";" : res.data[i].midLatitude + ";";
+                    str += res.data[i].midLongitude == null ? ";" : res.data[i].midLongitude + ";";	
+                    str += res.data[i].lastLatitude == null ? ";" : res.data[i].lastLatitude + ";";	
+                    str += res.data[i].lastLongitude == null ? ";" : res.data[i].lastLongitude + ";";
                     str += res.data[i].dateAndTimeOfCreation + ";";
                     str += res.data[i].qualification == null ? ";" : res.data[i].qualification + ";";	
                     str += res.data[i].qualificationVotesNumber == null ? ";" : res.data[i].qualificationVotesNumber + ";";	
@@ -882,14 +924,16 @@ $(function() {
     
     var firstTimeGoogleChart = true;
     
-    $( ".openradiation_menu_header").click(function() {
+    $( ".openradiation_menu_header").click(function(e) {
         $(".openradiation_menu_footer").css("display","block");
         $(".openradiation_menu_header").css("display","none");
+        e.stopPropagation();
     });
     
-    $( "#openradiation_menu_footer-close" ).click(function() {
+    $( "#openradiation_menu_footer-close" ).click(function(e) {
         $(".openradiation_menu_header").css("display","block");
         $(".openradiation_menu_footer").css("display","none");
+        e.stopPropagation();
     });    
     
     $( "#timechartlink" ).click(function() {
@@ -912,7 +956,6 @@ $(function() {
             var data = new google.visualization.DataTable();
             data.addColumn('datetime', translate("Date"));
             data.addColumn('number', translate("Dose rate (μSv/h)"));
-
             var urlTemp = getUrl();                       
             $.ajax({
                 type: 'GET',

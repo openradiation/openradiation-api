@@ -5,8 +5,8 @@ module.exports = {
     password: "******", //PgSQL
     host: "localhost", //PgSQL
     maxNumber: 400, //max number for the results of the requests
-    getAPIInterval: 600000, //API Table is reloaded every ten minutes
-    getUsersInterval: 600000, //Users Table is reloaded every ten minutes
+    getAPIInterval: 300000, //API Table is reloaded every 5 minutes
+    getUsersInterval: 300000, //Users Table is reloaded every 5 minutes
     APIKeyTestInterval: 60000, //APITest every 1 minute
     APIKeyTestMaxCounter: 5, //APITest max 5 calls during APIKeyTestInterval
     nodeUserUid:"linux_user",
@@ -24,6 +24,10 @@ module.exports = {
     submitAPIPort:8080, //submitAPI contacted via post forms
     httpsPort : 8080,
     httpPort : 8083,
-    version: "v0.6"
+    flightURL : "https://userName:userPwd@flightxml.flightaware.com/json/FlightXML3/",
+    //uncomment to define a proxy for flightURL
+    //flightProxy : "http://user:pwd@host:port", 
+    flightSearchInterval: 305000, // every 5 minutes we try to attribuate measurements to a flight
+    version: "v0.7"
 }
 
