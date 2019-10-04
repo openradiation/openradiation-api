@@ -7,7 +7,6 @@ api/properties.js
 api/public/test.js
 api/views/test.ejs
 api/public/png/*
-backend/create_users.sql
 backend/insert_data_test.sql
 backend/drop_tables_and_users.sql
 backend/create_database.sql

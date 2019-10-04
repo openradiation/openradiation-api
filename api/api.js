@@ -2,8 +2,365 @@
  * OPENRADIATION API
  */
 
- //1. generic
+//1. generic
 var cluster = require('cluster');
+var request = require('request');
+var properties = require('./properties.js');
+
+
+// from measurementEnvironment, deviceUuid, flightNumber, startTime 
+// return flight_id, alternate_latitude, alternate_longitude, alternate_altitude
+// update tables : flights, flightstrack
+updateFlightInfos = function(client, measurementEnvironment, flightNumber_, startTime, endTime, latitude, longitude, updateMeasurementFunc) {
+
+    // variables to be returned
+    var flightId = null;
+    var refinedLatitude = null;
+    var refinedLongitude = null;
+    var refinedAltitude = null;
+    var refinedEndLatitude = null;
+    var refinedEndLongitude = null;
+    var refinedEndAltitude = null;
+    var flightSearch = null;
+    var flightNumber = null;
+ 
+    var hours = 3600*1000; // 1 hour in milliseconds
+    
+    if ((measurementEnvironment != null) && (measurementEnvironment == "plane") && flightNumber_ != null) {
+        
+        //0. if flight number is 'Af 038' we store 'AF38'
+        flightNumber = flightNumber_.replace(/ /g,"");
+        if (flightNumber.length > 2 && (!isNaN(flightNumber.substr(2))))
+            flightNumber = flightNumber.substr(0,2).toUpperCase() + parseFloat(flightNumber.substr(2));
+    
+        async.waterfall(
+          [
+            function(callback) { 
+                //1. is there any similar measurements, i.e. same flightNumber and less 2 hours apart
+                var sql = 'select count(*) as count FROM MEASUREMENTS WHERE "flightNumber"=$1 and "flightSearch"=true and "startTime">$2 and "startTime"<$3';
+                var values = [ flightNumber, new Date(new Date(startTime).getTime() - 2* hours), new Date(new Date(startTime).getTime() + 2* hours)];
+                client.query(sql, values, function(err, result) {
+                    if (err)
+                    {
+                        console.log("Error while running query " + sql, err);
+                        callback();
+                    } else {
+                        if (result.rows[0].count == 0) {
+                            //no similar result, so we try to connect flightradar
+                            flightSearch = true;
+                            
+                            var requestParams = {};
+                            requestParams.qs = {};
+                            requestParams.url = properties.flightURL + 'FlightInfoStatus';
+                            if (properties.flightProxy != null)
+                                requestParams.proxy = properties.flightProxy; 
+                            requestParams.qs.ident = flightNumber;
+                            
+                            request.get(requestParams, function (err, resp, body) {
+                                if (err) {
+                                    console.log("ERROR request FlightInfoStatus : " + err); 
+                                    callback();   
+                                }
+                                else if (resp.statusCode >= 400) {
+                                    console.log("ERROR status code FlightInfoStatus : " + resp.statusCode);
+                                    callback();
+                                }
+                                else {
+                                    body_json = JSON.parse(body);
+                                    if ((body_json.FlightInfoStatusResult != null) && (body_json.FlightInfoStatusResult.flights.length > 0))
+                                    {
+                                        async.forEach(body_json.FlightInfoStatusResult.flights, function(flight, callback_flights) { 
+                                            if ((new Date(flight.actual_departure_time.epoch * 1000) < new Date(new Date(startTime).getTime() + 4* hours)) 
+                                            && (new Date(flight.actual_arrival_time.epoch * 1000) > new Date(new Date(startTime).getTime() - 4* hours))) 
+                                            {
+                                                var departureTime = new Date(flight.actual_departure_time.epoch * 1000);
+                                                var arrivalTime = new Date(flight.actual_arrival_time.epoch * 1000);
+                                                
+                                                sql = 'select count(*) as count from FLIGHTS WHERE "flightNumber"=$1 and "departureTime"=$2 and "arrivalTime"=$3';
+                                                values = [ flightNumber, departureTime, arrivalTime];
+                                                client.query(sql, values, function(err, result) {
+                                                    if (err) {
+                                                        console.log("Error while running query " + sql, err);
+                                                        callback_flights();
+                                                    } else {
+                                                        if (result.rows[0].count == 0)
+                                                        {
+                                                            sql = 'insert into FLIGHTS("flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType") VALUES ($1, $2, $3, $4, $5, $6) RETURNING "flightId"';
+                                                            values = [ flightNumber, departureTime, arrivalTime, flight.origin.alternate_ident, flight.destination.alternate_ident, flight.aircrafttype ];
+                                                            client.query(sql, values, function(err, result) {
+                                                                if (err)
+                                                                    console.log("Error while running query " + sql, err);
+                                                                var flightIdInserted = result.rows[0].flightId;
+                                                                requestParams.qs.ident = flight.faFlightID;
+                                                                requestParams.url = properties.flightURL + 'GetFlightTrack';
+                                                                request.get(requestParams, function (err, resp, body) {
+                                                                    if (err) {
+                                                                        console.log("ERROR request FlightInfoStatus : " + err); 
+                                                                        callback_flights();
+                                                                    } else if (resp.statusCode >= 400) {
+                                                                        console.log("ERROR status code FlightInfoStatus : " + resp.statusCode);
+                                                                        callback_flights();
+                                                                    }
+                                                                    else {
+                                                                        body_json = JSON.parse(body);
+                                                                        if ((body_json.GetFlightTrackResult != null) && (body_json.GetFlightTrackResult.tracks.length > 0))
+                                                                        {
+                                                                            async.forEach(body_json.GetFlightTrackResult.tracks, function(track, callback_tracks) { //The second argument (callback) is the "task callback" for a specific task
+                                                                                if (track.timestamp != null && track.timestamp > 0 && track.latitude != null && track.longitude != null && track.altitude != null) {
+                                                                                    var altitude_in_meter;
+                                                                                    if (track.altitude_feet != null)
+                                                                                        altitude_in_meter = Math.round(track.altitude_feet * 0.3048);
+                                                                                    else
+                                                                                        altitude_in_meter = Math.round(track.altitude * 100 * 0.3048);
+                                                                                    
+                                                                                    sql = 'insert into FLIGHTSTRACK("flightId", "timestamp", "latitude", "longitude", "altitude") VALUES ($1, $2, $3, $4, $5)';
+                                                                                    values = [ flightIdInserted, new Date(track.timestamp * 1000), track.latitude, track.longitude, altitude_in_meter ];
+                                                                                    client.query(sql, values, function(err, result) {
+                                                                                        if (err)
+                                                                                            console.log("Error while running query insert flightstrack " + sql, err);
+                                                                                        callback_tracks();
+                                                                                    });
+                                                                                } else {
+                                                                                    callback_tracks();
+                                                                                }
+                                                                            }, function(err) {
+                                                                                if (err) {
+                                                                                    console.log("Error tracks " + err);
+                                                                                    callback_flights();
+                                                                                } else {
+                                                                                    sql = 'update FLIGHTS set "firstLatitude"=$1, "firstLongitude"=$2, "midLatitude"=$3, "midLongitude"=$4, "lastLatitude"=$5, "lastLongitude"=$6 where "flightId"=$7';
+                                                                                    values = [ body_json.GetFlightTrackResult.tracks[0].latitude, 
+                                                                                               body_json.GetFlightTrackResult.tracks[0].longitude,
+                                                                                               body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length/2)].latitude,
+                                                                                               body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length/2)].longitude,                                                                                               
+                                                                                               body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length-1].latitude,
+                                                                                               body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length-1].longitude,
+                                                                                               flightIdInserted ];
+                                                                                    client.query(sql, values, function(err, result) {
+                                                                                        if (err)
+                                                                                            console.log("Error while running query " + sql, err);
+                                                                                        
+                                                                                        callback_flights();
+                                                                                    });
+                                                                                    
+                                                                                }
+                                                                            });
+                                                                        } else
+                                                                            callback_flights();
+                                                                    }
+                                                                });
+                                                            });             
+                                                        } else {
+                                                            callback_flights();
+                                                        }
+                                                    }
+                                                });
+                                            } else {
+                                                callback_flights();
+                                            }
+                                        }, function(err) {
+                                            if (err) 
+                                                console.log("Error " + err);
+                                            callback();
+                                        });  
+                                    } else {
+                                        //console.log("No flight found in flightradar");
+                                        callback();
+                                    }
+                                }
+                            });
+                        } else {   
+                            callback();
+                        }
+                    }   
+                });                        
+             },
+            
+            function(callback) {
+                //2. is there any registred flightradar flight, with same flightNumber and less 2 hours apart
+                sql = 'select "flightId", "departureTime", "arrivalTime" FROM FLIGHTS WHERE "flightNumber"=$1 and "departureTime"<=$2 and "arrivalTime">=$3';
+                values = [ flightNumber, new Date(new Date(startTime).getTime() + 2* hours), new Date(new Date(startTime).getTime() - 2* hours)];
+                client.query(sql, values, function(err, result) {
+                    if (err)
+                    {
+                        console.log("Error while running query " + sql, err);
+                        callback(null, false);
+                    } else {
+                        if (result.rows.length == 0)
+                        {
+                            callback(null, false);           
+                        } else {
+                            var diff;  
+                            for (var i = 0; i < result.rows.length; i++)
+                            {
+                                var midTime = new Date(result.rows[i].departureTime.getTime() + ((result.rows[i].arrivalTime.getTime() - result.rows[i].departureTime.getTime()) / 2));                                         
+                                if ((i ==0) || Math.abs(midTime - new Date(startTime).getTime()) < diff) {
+                                    diff = Math.abs(midTime - new Date(startTime).getTime());
+                                    flightId = result.rows[i].flightId;
+                                }
+                            }
+                            sql = 'SELECT timestamp, latitude, longitude, altitude from FLIGHTSTRACK where "flightId"=$1 order by timestamp';
+                            values = [ flightId ];
+                            client.query(sql, values, function(err, result) {
+                                if (err) {
+                                    console.log("Error while running query " + sql, err);
+                                    callback(null, true); 
+                                } else {
+                                    var startTimeIndice = null;
+                                    var endTimeIndice = null;
+                                    for (var i = 0; i < result.rows.length; i++)
+                                    {    
+                                        if (startTimeIndice == null && (new Date(startTime) <= result.rows[i].timestamp))
+                                            startTimeIndice = i;
+                                        
+                                        if (endTimeIndice == null && (new Date(endTime) < result.rows[i].timestamp)) {
+                                            endTimeIndice = i;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (startTimeIndice == 0)
+                                    {
+                                        refinedLatitude = result.rows[0].latitude;
+                                        refinedLongitude = result.rows[0].longitude;
+                                        if (result.rows[0].altitude != 0)
+                                            refinedAltitude = result.rows[0].altitude;   
+                                    } else if (startTimeIndice == null) {
+                                        if (result.rows.length > 0) {
+                                            refinedLatitude = result.rows[result.rows.length - 1].latitude;
+                                            refinedLongitude = result.rows[result.rows.length - 1].longitude;
+                                            if (result.rows[result.rows.length - 1].altitude != 0)
+                                                refinedAltitude = result.rows[result.rows.length - 1].altitude;
+                                        }
+                                    } else {
+                                        refinedLatitude = result.rows[startTimeIndice - 1].latitude + (result.rows[startTimeIndice].latitude - result.rows[startTimeIndice - 1].latitude) * (new Date(startTime) - result.rows[startTimeIndice - 1].timestamp) / (result.rows[startTimeIndice].timestamp - result.rows[startTimeIndice - 1].timestamp);
+                                        refinedLongitude = result.rows[startTimeIndice - 1].longitude + (result.rows[startTimeIndice].longitude - result.rows[startTimeIndice - 1].longitude) * (new Date(startTime) - result.rows[startTimeIndice - 1].timestamp) / (result.rows[startTimeIndice].timestamp - result.rows[startTimeIndice - 1].timestamp); 
+                                        if (result.rows[startTimeIndice - 1].altitude != 0 && result.rows[startTimeIndice].altitude != 0)
+                                            refinedAltitude = Math.round(result.rows[startTimeIndice - 1].altitude + (result.rows[startTimeIndice].altitude - result.rows[startTimeIndice - 1].altitude) * (new Date(startTime) - result.rows[startTimeIndice - 1].timestamp) / (result.rows[startTimeIndice].timestamp - result.rows[startTimeIndice - 1].timestamp)); 
+                                    } 
+
+                                    if (endTimeIndice == 0)
+                                    {
+                                        refinedEndLatitude = result.rows[0].latitude;
+                                        refinedEndLongitude = result.rows[0].longitude;
+                                        if (result.rows[0].altitude != 0)
+                                            refinedEndAltitude = result.rows[0].altitude;   
+                                    } else if (endTimeIndice == null) {
+                                        if (result.rows.length > 0) {
+                                            refinedEndLatitude = result.rows[result.rows.length - 1].latitude;
+                                            refinedEndLongitude = result.rows[result.rows.length - 1].longitude;
+                                            if (result.rows[result.rows.length - 1].altitude != 0)
+                                                refinedEndAltitude = result.rows[result.rows.length - 1].altitude;
+                                        }
+                                    } else {
+                                        refinedEndLatitude = result.rows[endTimeIndice - 1].latitude + (result.rows[endTimeIndice].latitude - result.rows[endTimeIndice - 1].latitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp);
+                                        refinedEndLongitude = result.rows[endTimeIndice - 1].longitude + (result.rows[endTimeIndice].longitude - result.rows[endTimeIndice - 1].longitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp); 
+                                        if (result.rows[startTimeIndice - 1].altitude != 0 && result.rows[startTimeIndice].altitude != 0)
+                                            refinedEndAltitude = Math.round(result.rows[endTimeIndice - 1].altitude + (result.rows[endTimeIndice].altitude - result.rows[endTimeIndice - 1].altitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp)); 
+                                    } 
+                                    callback(null, true);
+                                }
+                            });       
+                        }
+                    }   
+                });                     
+                
+            },
+            
+            function(flightFound, callback) {
+                
+                if (flightFound == false) {
+                    //2. if not found, is there any flights, with same flightNumber and less 20 hours total duration and less 12 hours apart
+                    sql = 'select "flightId", "startTimeMin", "startTimeMax", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS WHERE "flightNumber"=$1 and (    ("startTimeMin"<=$2 and "startTimeMax">=$2) or ("startTimeMin">$2  and "startTimeMin"<=$3 and "startTimeMax"<=$4) or ("startTimeMax"<$2  and "startTimeMax">=$5 and "startTimeMin">=$6))';
+                    values = [ flightNumber, startTime, new Date(new Date(startTime).getTime() + 12* hours), new Date(new Date(startTime).getTime() + 20 * hours), new Date(new Date(startTime).getTime() - 12* hours), new Date(new Date(startTime).getTime() - 20* hours)];
+                    
+                    client.query(sql, values, function(err, result) {
+                        if (err)
+                        {
+                            console.log("Error while running query " + sql, err);
+                            callback();
+                        } else {
+                            if (result.rows.length == 0)
+                            {
+                                sql = 'insert into FLIGHTS("flightNumber", "startTimeMin", "startTimeMax", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude") VALUES ($1, $2, $2, $3, $4, $3, $4, $3, $4) RETURNING "flightId"';
+                                values = [ flightNumber, startTime, latitude, longitude ];
+                                client.query(sql, values, function(err, result) {
+                                    if (err)
+                                        console.log("Error while running query " + sql, err);
+                                    //console.log("FLIGHT NO MATCH - inserting new flight with id = " + result.rows[0].flightId);
+                                    flightId = result.rows[0].flightId;
+                                    callback();    
+                                });             
+                            } else {
+                                var diff;
+                                var startTimeMin;
+                                var startTimeMax;
+                                var firstLatitude;
+                                var firstLongitude;
+                                var midLatitude;
+                                var midLongitude;
+                                var lastLatitude;
+                                var lastLongitude;
+                                        
+                                for (var i = 0; i < result.rows.length; i++)
+                                {
+                                    var startTimeMid = new Date(result.rows[i].startTimeMin.getTime() + ((result.rows[i].startTimeMax.getTime() - result.rows[i].startTimeMin.getTime()) / 2));                                      
+                                    if ((i ==0) || Math.abs(startTimeMid - new Date(startTime).getTime()) < diff) {
+                                        diff = Math.abs(startTimeMid - new Date(startTime).getTime());
+                                        flightId = result.rows[i].flightId;
+                                        startTimeMin = result.rows[i].startTimeMin;
+                                        startTimeMax = result.rows[i].startTimeMax;
+                                        firstLatitude = result.rows[i].firstLatitude;
+                                        firstLongitude = result.rows[i].firstLongitude;
+                                        midLatitude = result.rows[i].midLatitude;
+                                        midLongitude = result.rows[i].midLongitude;
+                                        lastLatitude = result.rows[i].lastLatitude;
+                                        lastLongitude = result.rows[i].lastLongitude;
+                                        
+                                        if (new Date(startTime) < result.rows[i].startTimeMin) {
+                                            startTimeMin = new Date(startTime);
+                                            firstLatitude = latitude;
+                                            firstLongitude = longitude;
+                                        }
+                                        
+                                        if (new Date(startTime) > result.rows[i].startTimeMax) {
+                                            startTimeMax = new Date(startTime);
+                                            lastLatitude = latitude;
+                                            lastLongitude = longitude; 
+                                        }
+                                    }
+                                }
+                                
+                                //todo : we should update midLatitude/midLongitude maybe when a user retrieve measurements from a flights
+                                sql = 'update FLIGHTS set "startTimeMin"=$1, "startTimeMax"=$2, "firstLatitude"=$3, "firstLongitude"=$4, "midLatitude"=$5, "midLongitude"=$6, "lastLatitude"=$7, "lastLongitude"=$8 where "flightId"=$9';
+                                values = [ startTimeMin, startTimeMax, firstLatitude, firstLongitude, midLatitude, midLongitude, lastLatitude, lastLongitude, flightId ];
+                                client.query(sql, values, function(err, result) {
+                                    if (err)
+                                        console.log("Error while running query " + sql, err);
+                                    callback();    
+                                });       
+                            }
+                        }   
+                    });
+                } else {
+                    callback();   
+                }
+             }, 
+             
+             function() { //success
+                updateMeasurementFunc({flightId, refinedLatitude, refinedLongitude, refinedAltitude, refinedEndLatitude, refinedEndLongitude, refinedEndAltitude, flightSearch, flightNumber});     
+             }
+          ],
+          // Erreur
+          function(err) { 
+            console.log('FAIL: ' + err.message); 
+            updateMeasurementFunc({flightId, refinedLatitude, refinedLongitude, refinedAltitude, refinedEndLatitude, refinedEndLongitude, refinedEndAltitude, flightSearch, flightNumber}); 
+           }
+        );
+    } else {
+        updateMeasurementFunc({flightId, refinedLatitude, refinedLongitude, refinedAltitude, refinedEndLatitude, refinedEndLongitude, refinedEndAltitude, flightSearch, flightNumber});  
+    }
+}
 
 // Code to run if we're in the master process
 if (cluster.isMaster) {
@@ -19,14 +376,55 @@ if (cluster.isMaster) {
         console.log('A worker process died, restarting...');
         cluster.fork();
     });
-// Code to run if we're in a worker process
-} else {
+    
+    var pg = require('pg');
+    var async = require('async');
+    
+    var conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
+    
+    majFlights = function() {
+        pg.connect(conStr, function(err, client, done) {
+            if (err) {
+                done();
+                console.log("Could not connect to PostgreSQL", err);
+            } else {
+                var sql = 'SELECT "reportUuid","measurementEnvironment","flightNumber","startTime","endTime","latitude","longitude" from MEASUREMENTS WHERE "measurementEnvironment"=\'plane\' AND "flightNumber" is not null AND "flightId" is null';
+                client.query(sql, [], function(err, result) {
+                    if (err) {
+                        console.log("Error while running query " + sql, err);
+                        done();
+                    }
+                    else {
+                        async.forEachSeries(result.rows, function(measure, callbackLoop) {
+                            
+                            updateFlightInfos(client, measure.measurementEnvironment, measure.flightNumber, measure.startTime, measure.endTime, measure.latitude, measure.longitude, function(flightInfos) {   
+                                //console.log(flightInfos);
+                                var sql = 'update MEASUREMENTS set "flightNumber"=$1, "flightId"=$2, "refinedLatitude"=$3, "refinedLongitude"=$4,"refinedAltitude"=$5,"refinedEndLatitude"=$6,"refinedEndLongitude"=$7, "refinedEndAltitude"=$8,"flightSearch"=$9 WHERE "reportUuid"=$10';
+                                var values = [ flightInfos.flightNumber, flightInfos.flightId, flightInfos.refinedLatitude, flightInfos.refinedLongitude,flightInfos.refinedAltitude,flightInfos.refinedEndLatitude,flightInfos.refinedEndLongitude, flightInfos.refinedEndAltitude,flightInfos.flightSearch, measure.reportUuid];
+                                client.query(sql, values, function(err, result) {
+                                    if (err)
+                                        console.log("Error while running query " + sql, err);
+                                    callbackLoop();
+                                });
+                            });
+                        }, function(err) {
+                            if (err) 
+                                console.log("Error " + err);
+                            done();
+                        });
+                    }
+                });
+            }
+        }); 
+    }
+    if (properties.submitApiFeature)
+        setInterval(majFlights, properties.flightSearchInterval);       
+} else { // Code to run if we're in a worker process
 
 var pg = require('pg');
 var express = require('express');
 var bodyParser = require('body-parser');
 var multer = require('multer');  
-var properties = require('./properties.js');
 var async = require('async');
 var fs = require('fs');
 var PNG = require('node-png/lib/png').PNG;
@@ -36,6 +434,7 @@ var CryptoJS = require("crypto-js");
 var SHA256 = require("crypto-js/sha256");
 var SHA512 = require("crypto-js/sha512");
 var itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
     
 var conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
 var app = express();
@@ -295,6 +694,7 @@ isPasswordValid = function(password, userPwd) {
         return false;
     }   
 }
+
 
 verifyData = function(res, json, isMandatory, dataName) {
        
@@ -651,6 +1051,13 @@ verifyData = function(res, json, isMandatory, dataName) {
                     return false;
                 }
                 break;
+            case "flightId":
+                if (typeof(json[dataName]) != "string" || isNaN(json[dataName]) || parseFloat(json[dataName]) != parseInt(json[dataName]))
+                {
+                    res.status(400).json({ error: {code:"102", message:dataName + " is not an integer"}});
+                    return false;                
+                }
+                break;
             case "maxNumber":
                 if (typeof(json[dataName]) != "string" || isNaN(json[dataName]) || parseFloat(json[dataName]) != parseInt(json[dataName]) || parseInt(json[dataName]) < 1)
                 {
@@ -710,21 +1117,23 @@ if (properties.requestApiFeature) {
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag","enclosedObject", "userId", \
-                                  "measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
-                                  FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" WHERE MEASUREMENTS."reportUuid" = $1';
+                                  "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
+                                  "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
+                                  FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId" WHERE MEASUREMENTS."reportUuid" = $1';
                         else
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","tag", "userId", \
-                                  "measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
-                                  FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" WHERE MEASUREMENTS."reportUuid" = $1';
+                                  "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
+                                  "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
+                                  FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId" WHERE MEASUREMENTS."reportUuid" = $1';
                        
                         var values = [ req.params.reportUuid];
                         client.query(sql, values, function(err, result) {
                             done();
                             if (err)
                             {
-                                console.console.error("Error while running query " + sql + values, err);
+                                console.error("Error while running query " + sql + values, err);
                                 res.status(500).end();
                             }
                             else
@@ -786,7 +1195,8 @@ if (properties.requestApiFeature) {
              && verifyData(res, req.query, false, "userId_request")
              && verifyData(res, req.query, false, "qualification")
              && verifyData(res, req.query, false, "tag")
-             && verifyData(res, req.query, false, "atypical")    
+             && verifyData(res, req.query, false, "atypical") 
+             && verifyData(res, req.query, false, "flightId")              
              && verifyData(res, req.query, false, "response")
              && verifyData(res, req.query, false, "withEnclosedObject")
              && verifyData(res, req.query, false, "maxNumber")) 
@@ -805,6 +1215,7 @@ if (properties.requestApiFeature) {
              && verifyData(res, req.query, false, "qualification")
              && verifyData(res, req.query, false, "tag")
              && verifyData(res, req.query, false, "atypical")
+             && verifyData(res, req.query, false, "flightId")
              && verifyData(res, req.query, false, "response")
              && verifyData(res, req.query, false, "withEnclosedObject")
              && verifyData(res, req.query, false, "maxNumber") ) )
@@ -826,17 +1237,19 @@ if (properties.requestApiFeature) {
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
-                                  "measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                                  "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
+                                  "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                         else
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","userId", \
-                                  "measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                                  "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
+                                  "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                                   
                         if (req.query.tag == null)
-                            sql += ' FROM MEASUREMENTS';
+                            sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId"';
                         else
-                            sql += ' FROM MEASUREMENTS,TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
+                            sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId",TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
                             
                         var where = '';
                         var values = [ ]; 
@@ -900,6 +1313,11 @@ if (properties.requestApiFeature) {
                             values.push(req.query.atypical);
                             where += ' AND MEASUREMENTS."atypical" = $' + values.length;
                         }
+                        if (req.query.flightId != null)
+                        {
+                            values.push(req.query.flightId);
+                            where += ' AND MEASUREMENTS."flightId" = $' + values.length;
+                        }
                         if (req.query.dateOfCreation != null)
                         {
                             var date = new Date(req.query.dateOfCreation);
@@ -918,7 +1336,7 @@ if (properties.requestApiFeature) {
                         sql += where;
                         sql += ' ORDER BY "startTime" desc, MEASUREMENTS."reportUuid"';
                         
-                        if (req.query.dateOfCreation == null)
+                        if (req.query.dateOfCreation == null && req.query.flightId == null)
                             sql += ' LIMIT ' + limit;
                         else
                             limit = -1;
@@ -1023,6 +1441,54 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /measurements : end");
     });
+    
+    app.get('/flights', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /flights : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = 'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS ORDER BY "flightId"';
+                        var values = [ ]; 
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                var data = [];
+                                done();
+                                for (r = 0; r < result.rows.length; r++)
+                                {
+                                    data.push(result.rows[r]);
+                                    
+                                    for (i in data[data.length - 1])
+                                    {
+                                        if (data[data.length - 1][i] == null)
+                                            delete data[data.length - 1][i];
+                                    }
+                                }
+                                res.json( { data:data} );
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /flights : end");
+    });
 }
 
 //6. submit API
@@ -1080,7 +1546,6 @@ if (properties.submitApiFeature) {
 			 && verifyData(res, req.body.data, false, "windowSeat") 
 			 && verifyData(res, req.body.data, false, "storm") )
             {
-                console.log("ok");
                 if (req.body.data.reportContext != null && req.body.data.reportContext == "routine")
                 {
                     pg.connect(conStr, function(err, client, done) {
@@ -1089,166 +1554,173 @@ if (properties.submitApiFeature) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = 'INSERT INTO MEASUREMENTS ("apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime","endTime", \
-                                       "latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel","reportUuid","manualReporting", \
-                                       "organisationReporting","reportContext","description","measurementHeight","enclosedObject","userId","measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm","dateAndTimeOfCreation", \
-                                       "qualification","qualificationVotesNumber","reliability","atypical") VALUES \
-                                       ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43)';
                             
-                            var manualReporting = req.body.data.manualReporting == null ? true : req.body.data.manualReporting;
-                            var reliability = 0;
-                            //+1 for each filled field
-                            if (req.body.data.apparatusId != null) 
-                                reliability += 1;
-                            if (req.body.data.apparatusVersion != null)
-                                reliability +=1;
-                            if (req.body.data.apparatusSensorType != null)
-                                reliability +=1;
-                            if (req.body.data.apparatusTubeType != null)
-                                reliability +=1;
-                            if (req.body.data.temperature != null)
-                                reliability +=1;
-                            if (req.body.data.value != null)
-                                reliability +=1;
-                            if (req.body.data.hitsNumber != null)
-                                reliability +=1; 
-                            if (req.body.data.startTime != null)
-                                reliability +=1;
-                            if (req.body.data.endTime != null)
-                                reliability +=1;     
-                            if (req.body.data.latitude != null)
-                                reliability +=1; 
-                            if (req.body.data.longitude != null)
-                                reliability +=1;
-                            if (req.body.data.accuracy != null)
-                                reliability +=1;
-                            if (req.body.data.altitude != null)
-                                reliability +=1;
-                            if (req.body.data.altitudeAccuracy != null)
-                                reliability +=1;
-                            if (req.body.data.deviceUuid != null)
-                                reliability +=1;
-                            if (req.body.data.devicePlatform != null)
-                                reliability +=1;
-                            if (req.body.data.deviceVersion != null)
-                                reliability +=1;
-                            if (req.body.data.deviceModel != null)
-                                reliability +=1;
-                            if (req.body.data.reportUuid != null)
-                                reliability +=1;
-                            if (req.body.data.manualReporting != null)
-                                reliability +=1;
-                            if (req.body.data.organisationReporting != null)
-                                reliability +=1;
-                            if (req.body.data.reportContext != null)
-                                reliability +=1;
-                            if (req.body.data.description != null)
-                                reliability +=1;
-                            if (req.body.data.measurementHeight != null)
-                                reliability +=1;
-                            if (req.body.data.tags != null)
-                                reliability +=1;  
-                            if (req.body.data.enclosedObject != null)
-                                reliability +=1;
-                            if (req.body.data.userId != null)
-                                reliability +=1;
-                            if (req.body.data.userPwd != null)
-                                reliability +=1;
-                            if (req.body.data.measurementEnvironment != null)
-                                reliability +=1;
-                            // + min(30,hitsNumber) if hitsNumber not null, 
-                            if (req.body.data.hitsNumber != null)
-                            {
-                                if (req.body.data.hitsNumber > 30)
-                                    reliability += 30;
-                                else
-                                    reliability += req.body.data.hitsNumber;
-                            }
-                            //+10 if userId not null
-                            if (req.body.data.userId != null)
-                                reliability += 10;
-                            //+20 if manualReporting=false
-                            if (manualReporting == false)
-                                reliability += 20;
-                            //+20 if measurementEnvironment=countryside / +10 if measurementEnvironment=city or ontheroad 
-                            if (req.body.data.measurementEnvironment != null)
-                            {
-                                if (req.body.data.measurementEnvironment == "countryside")
-                                    reliability += 20;
-                                else if (req.body.data.measurementEnvironment == "city" || req.body.data.measurementEnvironment == "ontheroad")
-                                    reliability += 10;
-                            }
-                            //+20 if measurementHeight=1 
-                            if (req.body.data.measurementHeight != null && req.body.data.measurementHeight == 1)
-                                reliability += 10;
-
-                            // Expecting > 78 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)
-                            var qualification;
-                            var qualificationVotesNumber;
-                            if (req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane") {
-                                qualification = "noenvironmentalcontext";
-                                qualificationVotesNumber = 0;
-                            } else if (reliability <= 78) {
-                                qualification = "mustbeverified";
-                                qualificationVotesNumber = 0;
-                            } else {
-                                delete qualification;
-                                delete qualificationVotesNumber;
-                            }
+                            //updateFlightInfos(client, req.body.data.measurementEnvironment, req.body.data.flightNumber, req.body.data.startTime, req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, function(flightInfos) {
+                               
+                                var sql = 'INSERT INTO MEASUREMENTS ("apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime","endTime", \
+                                           "latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel","reportUuid","manualReporting", \
+                                           "organisationReporting","reportContext","description","measurementHeight","enclosedObject","userId","measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm", \
+                                           "flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude","flightSearch", "dateAndTimeOfCreation", \
+                                           "qualification","qualificationVotesNumber","reliability","atypical") VALUES \
+                                           ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51)';
                                 
-                            var atypical = req.body.data.value < 0.2 ? false : true;
-                            var dateAndTimeOfCreation = new Date();
-                            var values = [ req.body.data.apparatusId, req.body.data.apparatusVersion, req.body.data.apparatusSensorType, req.body.data.apparatusTubeType, 
-                                           req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, req.body.data.calibrationFunction, new Date(req.body.data.startTime), 
-                                           req.body.data.endTime != null ? new Date(req.body.data.endTime) : req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, req.body.data.accuracy,
-                                           req.body.data.altitude, req.body.data.altitudeAccuracy, req.body.data.endLatitude, req.body.data.endLongitude, req.body.data.endAccuracy,
-                                           req.body.data.endAltitude, req.body.data.endAltitudeAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
-                                           req.body.data.deviceVersion, req.body.data.deviceModel, req.body.data.reportUuid, manualReporting,
-                                           req.body.data.organisationReporting, req.body.data.reportContext, req.body.data.description, req.body.data.measurementHeight,
-                                           req.body.data.enclosedObject, req.body.data.userId, req.body.data.measurementEnvironment, req.body.data.rain, req.body.data.flightNumber, req.body.data.seatNumber, req.body.data.windowSeat, req.body.data.storm, dateAndTimeOfCreation,
-                                           qualification, qualificationVotesNumber, reliability, atypical                                 
-                                          ];
-                                           
-                            client.query(sql, values, function(err, result) {
-                                if (err)
+                                var manualReporting = req.body.data.manualReporting == null ? true : req.body.data.manualReporting;
+                                var reliability = 0;
+                                //+1 for each filled field
+                                if (req.body.data.apparatusId != null) 
+                                    reliability += 1;
+                                if (req.body.data.apparatusVersion != null)
+                                    reliability +=1;
+                                if (req.body.data.apparatusSensorType != null)
+                                    reliability +=1;
+                                if (req.body.data.apparatusTubeType != null)
+                                    reliability +=1;
+                                if (req.body.data.temperature != null)
+                                    reliability +=1;
+                                if (req.body.data.value != null)
+                                    reliability +=1;
+                                if (req.body.data.hitsNumber != null)
+                                    reliability +=1; 
+                                if (req.body.data.startTime != null)
+                                    reliability +=1;
+                                if (req.body.data.endTime != null)
+                                    reliability +=1;     
+                                if (req.body.data.latitude != null)
+                                    reliability +=1; 
+                                if (req.body.data.longitude != null)
+                                    reliability +=1;
+                                if (req.body.data.accuracy != null)
+                                    reliability +=1;
+                                if (req.body.data.altitude != null)
+                                    reliability +=1;
+                                if (req.body.data.altitudeAccuracy != null)
+                                    reliability +=1;
+                                if (req.body.data.deviceUuid != null)
+                                    reliability +=1;
+                                if (req.body.data.devicePlatform != null)
+                                    reliability +=1;
+                                if (req.body.data.deviceVersion != null)
+                                    reliability +=1;
+                                if (req.body.data.deviceModel != null)
+                                    reliability +=1;
+                                if (req.body.data.reportUuid != null)
+                                    reliability +=1;
+                                if (req.body.data.manualReporting != null)
+                                    reliability +=1;
+                                if (req.body.data.organisationReporting != null)
+                                    reliability +=1;
+                                if (req.body.data.reportContext != null)
+                                    reliability +=1;
+                                if (req.body.data.description != null)
+                                    reliability +=1;
+                                if (req.body.data.measurementHeight != null)
+                                    reliability +=1;
+                                if (req.body.data.tags != null)
+                                    reliability +=1;  
+                                if (req.body.data.enclosedObject != null)
+                                    reliability +=1;
+                                if (req.body.data.userId != null)
+                                    reliability +=1;
+                                if (req.body.data.userPwd != null)
+                                    reliability +=1;
+                                if (req.body.data.measurementEnvironment != null)
+                                    reliability +=1;
+                                // + min(30,hitsNumber) if hitsNumber not null, 
+                                if (req.body.data.hitsNumber != null)
                                 {
-                                    done();
-                                    if (err.code == "23505")
-                                        res.status(400).json({ error: {code:"104", message:"duplicate key : reportUuid already exists"}});  
-                                    else {
-                                        console.error("Error while running query " + sql + values, err);
-                                        res.status(500).end();
-                                    }
+                                    if (req.body.data.hitsNumber > 30)
+                                        reliability += 30;
+                                    else
+                                        reliability += req.body.data.hitsNumber;
                                 }
-                                else
+                                //+10 if userId not null
+                                if (req.body.data.userId != null)
+                                    reliability += 10;
+                                //+20 if manualReporting=false
+                                if (manualReporting == false)
+                                    reliability += 20;
+                                //+20 if measurementEnvironment=countryside / +10 if measurementEnvironment=city or ontheroad 
+                                if (req.body.data.measurementEnvironment != null)
                                 {
-                                    if (req.body.data.tags != null)
+                                    if (req.body.data.measurementEnvironment == "countryside")
+                                        reliability += 20;
+                                    else if (req.body.data.measurementEnvironment == "city" || req.body.data.measurementEnvironment == "ontheroad")
+                                        reliability += 10;
+                                }
+                                //+20 if measurementHeight=1 
+                                if (req.body.data.measurementHeight != null && req.body.data.measurementHeight == 1)
+                                    reliability += 10;
+
+                                // Expecting > 78 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)
+                                var qualification;
+                                var qualificationVotesNumber;
+                                if (req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane") {
+                                    qualification = "noenvironmentalcontext";
+                                    qualificationVotesNumber = 0;
+                                } else if (reliability <= 78) {
+                                    qualification = "mustbeverified";
+                                    qualificationVotesNumber = 0;
+                                } else {
+                                    delete qualification;
+                                    delete qualificationVotesNumber;
+                                }
+                                    
+                                var atypical = req.body.data.value < 0.2 ? false : true;
+                                var dateAndTimeOfCreation = new Date();
+                                var values = [ req.body.data.apparatusId, req.body.data.apparatusVersion, req.body.data.apparatusSensorType, req.body.data.apparatusTubeType, 
+                                               req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, req.body.data.calibrationFunction, new Date(req.body.data.startTime), 
+                                               req.body.data.endTime != null ? new Date(req.body.data.endTime) : req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, req.body.data.accuracy,
+                                               req.body.data.altitude, req.body.data.altitudeAccuracy, req.body.data.endLatitude, req.body.data.endLongitude, req.body.data.endAccuracy,
+                                               req.body.data.endAltitude, req.body.data.endAltitudeAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
+                                               req.body.data.deviceVersion, req.body.data.deviceModel, req.body.data.reportUuid, manualReporting,
+                                               req.body.data.organisationReporting, req.body.data.reportContext, req.body.data.description, req.body.data.measurementHeight,
+                                               req.body.data.enclosedObject, req.body.data.userId, req.body.data.measurementEnvironment, req.body.data.rain, req.body.data.flightNumber, req.body.data.seatNumber, req.body.data.windowSeat, req.body.data.storm, 
+                                               //flightInfos.flightId, flightInfos.refinedLatitude, flightInfos.refinedLongitude,flightInfos.refinedAltitude,flightInfos.refinedEndLatitude,flightInfos.refinedEndLongitude, flightInfos.refinedEndAltitude,flightInfos.flightSearch,
+                                               null, null, null, null, null, null, null, null,
+                                               dateAndTimeOfCreation, qualification, qualificationVotesNumber, reliability, atypical                                 
+                                              ];
+                                               
+                                client.query(sql, values, function(err, result) {
+                                    if (err)
                                     {
-                                        async.forEach(req.body.data.tags, function(tag, callback) { //The second argument (callback) is the "task callback" for a specific task
-                                                var sql = 'INSERT INTO TAGS ("reportUuid", "tag") VALUES ($1, $2)';
-                                                var values = [ req.body.data.reportUuid, tag.toLowerCase() ];
-                                                client.query(sql, values, function(err, result) {
-                                                    if (err) {
-                                                        console.error("Error while running query " + sql + values, err);
-                                                        callback(err);
-                                                    } else
-                                                        callback();
-                                                });
-                                        }, function(err) {
-                                            done();
-                                            if (err) 
-                                                res.status(500).end();
-                                            else
-                                                res.status(201).end();
-                                        });
+                                        done();
+                                        if (err.code == "23505")
+                                            res.status(400).json({ error: {code:"104", message:"duplicate key : reportUuid already exists"}});  
+                                        else {
+                                            console.error("Error while running query " + sql + values, err);
+                                            res.status(500).end();
+                                        }
                                     }
-                                    else {
-                                       done(); 
-                                       res.status(201).end();
+                                    else
+                                    {
+                                        if (req.body.data.tags != null)
+                                        {
+                                            async.forEach(req.body.data.tags, function(tag, callback) { //The second argument (callback) is the "task callback" for a specific task
+                                                    var sql = 'INSERT INTO TAGS ("reportUuid", "tag") VALUES ($1, $2)';
+                                                    var values = [ req.body.data.reportUuid, tag.toLowerCase() ];
+                                                    client.query(sql, values, function(err, result) {
+                                                        if (err) {
+                                                            console.error("Error while running query " + sql + values, err);
+                                                            callback(err);
+                                                        } else
+                                                            callback();
+                                                    });
+                                            }, function(err) {
+                                                done();
+                                                if (err) 
+                                                    res.status(500).end();
+                                                else
+                                                    res.status(201).end();
+                                            });
+                                        }
+                                        else {
+                                           done(); 
+                                           res.status(201).end();
+                                        }
                                     }
-                                }
-                            });
-                        }
+                                }); 
+                            //});//end updateFlightInfos  
+                        }//end else
                     });
                 }
                 else
@@ -1393,13 +1865,13 @@ if (properties.submitApiFeature) {
 //7. submit Form
 if (properties.submitFormFeature) {
     
-	/*
+	
     app.get('/test', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /test : begin");
         res.render('test.ejs');
         console.log(new Date().toISOString() + " - GET /test : end");
     });
-    
+    /*
     //sample : https://localhost:8080/test/6/46.6094640/2.4718880/0.45/2015-10-05T13:49:59Z
     //sample : https://localhost:8080/testme?zoom=6&latitude=46.6094640&longitude=2.3718880&value=0.45&startTime=2015-10-05T13:49:59Z
     //app.get('/test/:zoom/:latitude/:longitude/:value/:startTime', function (req, res, next) { 
@@ -2082,7 +2554,7 @@ if (properties.mappingFeature) {
             else
                 lang = req.params.lang;
 			var qualification;
-			if (req.params.qualification == "groundlevel" || req.params.qualification == "plane")
+			if (req.params.qualification == "groundlevel")
                 qualification = "all";
             else
                 qualification = req.params.qualification;
@@ -2122,7 +2594,7 @@ if (properties.mappingFeature) {
             else
                 lang = req.params.lang;
 			var qualification;
-			if (req.params.qualification == "groundlevel" || req.params.qualification == "plane")
+			if (req.params.qualification == "groundlevel")
                 qualification = "all";
             else
                 qualification = req.params.qualification;
@@ -2186,6 +2658,10 @@ httpsServer.listen(properties.httpsPort, function() {
     console.log(new Date().toISOString() + " -    submitAPIPort        : [" + properties.submitAPIPort + "]");
     console.log(new Date().toISOString() + " -    httpsPort            : [" + properties.httpsPort + "]");
     console.log(new Date().toISOString() + " -    httpPort             : [" + properties.httpPort + "]");    
+    console.log(new Date().toISOString() + " -    version              : [" + properties.version + "]");
+    console.log(new Date().toISOString() + " -    flightURL            : [" + properties.flightURL + "]");
+    console.log(new Date().toISOString() + " -    flightProxy          : [" + properties.flightProxy + "]");    
+    console.log(new Date().toISOString() + " -    flightSearchInterval : [" + properties.flightSearchInterval + "]");    
     console.log(new Date().toISOString() + " -    version              : [" + properties.version + "]");
     console.log(new Date().toISOString() + " - ****** ");
 });

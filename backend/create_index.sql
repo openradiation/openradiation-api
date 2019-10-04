@@ -11,3 +11,15 @@ CREATE INDEX ON MEASUREMENTS("reportUuid", "latitude","longitude");
 
 -- request on dateAndTimeOfCreation are usually on one single date
 CREATE INDEX ON MEASUREMENTS("dateAndTimeOfCreation");
+
+-- request by the API to retrieve measurements by flight id
+CREATE INDEX ON MEASUREMENTS("flightId", "startTime");
+
+--request to seak measurement with same flightNumber 
+CREATE INDEX ON MEASUREMENTS("flightNumber", "measurementEnvironment", "flightId", "flightSearch", "startTime");
+
+-- request to retrieve flights with departure dates
+CREATE INDEX ON FLIGHTS("flightNumber", "departureTime", "arrivalTime");
+
+-- request to retrieve flights with measurements dates
+CREATE INDEX ON FLIGHTS("flightNumber", "startTimeMin", "startTimeMax");

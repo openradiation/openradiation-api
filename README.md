@@ -59,6 +59,24 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>seatNumber</td><td>String</td><td></td><td></td><td>if measurementEnvironment is plane, seatNumber in capital letters with row number first (example: 14C)</td></tr>
 <tr><td>windowSeat</td><td>Boolean</td><td></td><td></td><td>if measurementEnvironment is plane, windowSeat : true if the seat where is the sensor is next to the window</td></tr>
 <tr><td>storm</td><td>Boolean</td><td></td><td></td><td>Storm : true if storm crossing during the measurement</td></tr>
+<tr><td>flightId</td><td>Integer</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, measurement is associated to a flightId (flightId permits to retrieve all measurements in a same flight)</td></tr>
+<tr><td>refinedLatitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, latitude is refined with the track of the plane</td></tr>
+<tr><td>refinedLongitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, longitude is refined with the track of the plane</td></tr>
+<tr><td>refinedAltitude</td><td>Integer</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, altitude is refined with the track of the plane</td></tr>
+<tr><td>refinedEndLatitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, endLatitude is refined with the track of the plane</td></tr>
+<tr><td>refinedEndLongitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, endLongitude is refined with the track of the plane</td></tr>	
+<tr><td>refinedEndAltitude</td><td>Integer</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, endAltitude is refined with the track of the plane</td></tr>
+<tr><td>departureTime</td><td>Timestamp</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, actual departure time of the plane</td></tr>
+<tr><td>arrivalTime</td><td>Timestamp</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, actual arrival time of the plane</td></tr>
+<tr><td>airportOrigin</td><td>String</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, airport origin (AITA) of the plane</td></tr>
+<tr><td>airportDestination</td><td>String</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, airport destination (AITA) of the plane</td></tr>	
+<tr><td>aircraftType</td><td>String</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber recognize, aircraft type of the plane</td></tr>
+<tr><td>firstLatitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, latitude of the first measurement or latitude of the origin airport</td></tr>
+<tr><td>firstLongitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, longitude of the first measurement or longitude of the origin airport</td></tr>
+<tr><td>midLatitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, latitude picked up from a measurement or in the middle of the plane track</td></tr>
+<tr><td>midLongitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, longitude picked up from a measurement or in the middle of the plane track</td></tr>
+<tr><td>lastLatitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, latitude of the last measurement or latitude of the destination airport</td></tr>
+<tr><td>lastLongitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, longitude of the last measurement or longitude of the destination airport</td></tr>
 <tr><td>dateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
 <tr><td>qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>qualification : seemscorrect, mustbeverified, noenvironmentalcontext, badsensor, badprotocole, baddatatransmission</td></tr>
 <tr><td>qualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the API or the website</td><td>qualification Votes Number</td></tr>
@@ -132,7 +150,7 @@ Response will look like :
 To get a multiple measurements with combined complex criterias : 
 
 * with min/max bounds : value, startTime, latitude, longitude (sample : minValue/maxValue)
-* with an unique criteria : userId, qualification, tag, atypical
+* with an unique criteria : userId, qualification, tag, atypical, flightId
 
 All these criterias can be combined :
 
@@ -170,7 +188,50 @@ Response will look like :
             ...
         ]
     }
+    
+To get all flights : 
+
+    GET /flights?apiKey=`apiKey`
+    
+Response will look like : 
+    
+    {
+        "data": [
+            {
+                "flightId": "`flightId`", 
+                "flightNumber": `flightNumber`, 
+                "departureTime": "`departureTime`", 
+                "arrivalTime": "`arrivalTime`", 
+                "airportOrigin": "`airportOrigin`", 
+                "airportDestination": "`airportDestination`", 
+                "aircraftType": "`aircraftType`", 
+                "firstLatitude": `firstLatitude`, 
+                "firstLongitude": `firstLongitude`, 
+                "midLatitude": `midLatitude`, 
+                "midLongitude": `midLongitude`, 
+                "lastLatitude": `lastLatitude`, 
+                "lastLongitude": `lastLongitude`
+            }, 
+            {
+                "flightId": "`flightId`", 
+                "flightNumber": `flightNumber`, 
+                "departureTime": "`departureTime`", 
+                "arrivalTime": "`arrivalTime`", 
+                "airportOrigin": "`airportOrigin`", 
+                "airportDestination": "`airportDestination`", 
+                "aircraftType": "`aircraftType`", 
+                "firstLatitude": `firstLatitude`, 
+                "firstLongitude": `firstLongitude`, 
+                "midLatitude": `midLatitude`, 
+                "midLongitude": `midLongitude`, 
+                "lastLatitude": `lastLatitude`, 
+                "lastLongitude": `lastLongitude`
+            },
+            ...
+        ]
+    }
         
+       
 #### Restricted access to the API
 
 *This restricted access is only available for openradiation.org website with a special secret key*
