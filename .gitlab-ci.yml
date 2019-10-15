@@ -11,13 +11,11 @@ variables:
 
 NPM:
   stage: install
-  image: node:latest
+  image: node:6.9.3
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - src/public/bundles/
-      - src/vendor/
-      - src/bin/
+      - node_modules/
   script:
     - npm install
 
@@ -30,33 +28,13 @@ NPM:
 #     refs:
 #       - master
 
-PHP Mess Detector:
-  stage: test
-  image: $DOCKER_REGISTRY/digital-factory/gitlab/php-quality-tools:alpine
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - src/public/bundles/
-      - src/vendor/
-      - src/bin/
-      - reports/
-  before_script:
-    - mkdir -p reports
-  script:
-    - phpmd . xml codesize --exclude 'vendor' --reportfile 'reports/phpmd-report.xml' --ignore-violations-on-exit
-  except:
-    refs:
-      - master
-
 Sonar:
   extends: .sonar-publish
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     policy: pull
     paths:
-      - src/public/bundles/
-      - src/vendor/
-      - src/bin/
+      - node_modules/
   script:
     - gitlab-sonar-scanner
 
@@ -67,20 +45,7 @@ Preview:
     key: ${CI_COMMIT_REF_SLUG}
     policy: pull
     paths:
-      - src/public/bundles/
-      - src/vendor/
-      - src/bin/
-
-Socle:php-fpm:
-  stage: build
-  extends: .docker-publish
-  variables:
-    IMAGE_NAME: backend-socle
-    build_context: php/
-    build_args: --build-arg php_version=7.2-fpm-alpine-nginx-latest
-  only:
-    changes:
-      - php/**/*
+      - node_modules/
 
 Database:
   stage: publish
