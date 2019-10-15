@@ -1,0 +1,143 @@
+stages:
+  - install
+  - test
+  - analyse
+  - build
+  - publish
+  - deploy
+
+variables:
+  IMAGE_NAME: backend
+
+NPM:
+  stage: install
+  image: node:latest
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - src/public/bundles/
+      - src/vendor/
+      - src/bin/
+  script:
+    - npm install
+
+# Unit:
+#   stage: test
+#   image: node:latest
+#   script:
+#     - npm test
+#   except:
+#     refs:
+#       - master
+
+PHP Mess Detector:
+  stage: test
+  image: $DOCKER_REGISTRY/digital-factory/gitlab/php-quality-tools:alpine
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - src/public/bundles/
+      - src/vendor/
+      - src/bin/
+      - reports/
+  before_script:
+    - mkdir -p reports
+  script:
+    - phpmd . xml codesize --exclude 'vendor' --reportfile 'reports/phpmd-report.xml' --ignore-violations-on-exit
+  except:
+    refs:
+      - master
+
+Sonar:
+  extends: .sonar-publish
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    policy: pull
+    paths:
+      - src/public/bundles/
+      - src/vendor/
+      - src/bin/
+  script:
+    - gitlab-sonar-scanner
+
+Preview:
+  extends: .sonar-preview
+  allow_failure: true
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    policy: pull
+    paths:
+      - src/public/bundles/
+      - src/vendor/
+      - src/bin/
+
+Socle:php-fpm:
+  stage: build
+  extends: .docker-publish
+  variables:
+    IMAGE_NAME: backend-socle
+    build_context: php/
+    build_args: --build-arg php_version=7.2-fpm-alpine-nginx-latest
+  only:
+    changes:
+      - php/**/*
+
+Database:
+  stage: publish
+  extends: .docker-publish
+  variables:
+    IMAGE_NAME: backend-database
+    build_context: database/
+    build_args: --build-arg db_version=mysql:5.6
+  only:
+    refs:
+      - web
+    changes:
+      - database/**/*
+
+Backend:
+  stage: publish
+  extends: .docker-publish
+  artifacts:
+    name: $IMAGE_NAME-$CI_COMMIT_REF_SLUG
+    paths:
+      - $IMAGE_NAME-$CI_COMMIT_REF_SLUG.tar
+  script:
+    - echo "FROM $DOCKER_REGISTRY/$IMAGE_NAMESPACE/${IMAGE_NAME}-socle:$CI_COMMIT_REF_SLUG"
+      |
+      docker build --rm
+      -f -
+      -t $DOCKER_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$CI_COMMIT_REF_SLUG .
+  after_script:
+    - docker save --output $IMAGE_NAME-$CI_COMMIT_REF_SLUG.tar $DOCKER_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    - docker push $DOCKER_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$CI_COMMIT_REF_SLUG
+    - docker rmi $DOCKER_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$CI_COMMIT_REF_SLUG
+
+Documentation:
+  stage: publish
+  image: maven:3.6.0-jdk-8-alpine
+  artifacts:
+    name: $IMAGE_NAME-$CI_COMMIT_REF_SLUG-DOC
+    paths:
+      - maven/$IMAGE_NAME-$CI_COMMIT_REF_SLUG-DOC.tar
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - src/vendor/
+      - src/bin/
+      - $CI_PROJECT_DIR/.m2/repository
+  before_script:
+    - apk --no-cache add graphviz ttf-droid ttf-droid-nonlatin ttf-freefont 
+  script:
+    - cd maven
+    - mvn $MAVEN_CLI_OPTS process-resources   
+    - tar -cvf $IMAGE_NAME-$CI_COMMIT_REF_SLUG-DOC.tar docs/target
+  only:
+    refs:
+      - /^release\/.*$/
+      - tags
+      - web
+include:
+  - project: 'cordon/msf-online/msf-deploy'
+    ref: master
+    file: '.gitlab-cd.yml'
