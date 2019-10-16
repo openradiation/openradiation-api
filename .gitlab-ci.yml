@@ -78,30 +78,6 @@ Backend:
     - docker push $DOCKER_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$CI_COMMIT_REF_SLUG
     - docker rmi $DOCKER_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$CI_COMMIT_REF_SLUG
 
-Documentation:
-  stage: publish
-  image: maven:3.6.0-jdk-8-alpine
-  artifacts:
-    name: $IMAGE_NAME-$CI_COMMIT_REF_SLUG-DOC
-    paths:
-      - maven/$IMAGE_NAME-$CI_COMMIT_REF_SLUG-DOC.tar
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - src/vendor/
-      - src/bin/
-      - $CI_PROJECT_DIR/.m2/repository
-  before_script:
-    - apk --no-cache add graphviz ttf-droid ttf-droid-nonlatin ttf-freefont 
-  script:
-    - cd maven
-    - mvn $MAVEN_CLI_OPTS process-resources   
-    - tar -cvf $IMAGE_NAME-$CI_COMMIT_REF_SLUG-DOC.tar docs/target
-  only:
-    refs:
-      - /^release\/.*$/
-      - tags
-      - web
 include:
   - project: 'cordon/msf-online/msf-deploy'
     ref: master
