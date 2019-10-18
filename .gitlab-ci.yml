@@ -79,6 +79,6 @@ Backend:
     - docker rmi $DOCKER_REGISTRY/$IMAGE_NAMESPACE/$IMAGE_NAME:$CI_COMMIT_REF_SLUG
 
 include:
-  - project: 'cordon/msf-online/msf-deploy'
+  - project: 'irsn/sirse/openradiation/openradiation-deploiement'
     ref: master
     file: '.gitlab-cd.yml'
