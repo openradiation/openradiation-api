@@ -255,7 +255,7 @@ updateFlightInfos = function(client, measurementEnvironment, flightNumber_, star
                                     } else {
                                         refinedEndLatitude = result.rows[endTimeIndice - 1].latitude + (result.rows[endTimeIndice].latitude - result.rows[endTimeIndice - 1].latitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp);
                                         refinedEndLongitude = result.rows[endTimeIndice - 1].longitude + (result.rows[endTimeIndice].longitude - result.rows[endTimeIndice - 1].longitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp); 
-                                        if (result.rows[startTimeIndice - 1].altitude != 0 && result.rows[startTimeIndice].altitude != 0)
+                                        if (result.rows[endTimeIndice - 1].altitude != 0 && result.rows[endTimeIndice].altitude != 0)
                                             refinedEndAltitude = Math.round(result.rows[endTimeIndice - 1].altitude + (result.rows[endTimeIndice].altitude - result.rows[endTimeIndice - 1].altitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp)); 
                                     } 
                                     callback(null, true);
