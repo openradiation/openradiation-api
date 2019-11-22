@@ -1,0 +1,7 @@
+FROM postgres:9.4
+
+
+# Commande à exécuter dans le container posgres pour dump de la bbd :
+# pg_restore -Fc -i -U postgres -d openradiation -c /openradiation.dmp
+#COPY
+# docker cp openradiation.dmp openradiation-api_postgres_1:/openradiation.dmp

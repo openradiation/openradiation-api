@@ -1,4 +1,35 @@
 # OpenRadiation
+
+## Install with Docker 
+This project can be start with docker 
+* install docker https://docs.docker.com/docker-for-windows/install/ 
+
+* Create your images and containers for PostreSQL 9.4 :
+```
+    docker-compose up -d postgres
+```
+* copy of your dump into the postgres container : 
+```
+   docker cp openradiation.dmp openradiation-api_postgres_1:/openradiation.dmp
+```
+
+* create database openradiation :
+```
+    docker exec -it <postresID> bash
+    psql -U postgres
+    create database openradiation
+```
+
+* dump of database :
+```
+    pg_restore -Fc -i -U postgres -d openradiation -c /openradiation.dmp
+```
+
+* create your container nodeJS 6.9.3 :
+```
+    docker-compose up -d app
+```
+
 ## Abstract
 This project aims to develop a database to store environmental radioactivity measurements. It's shared in 2 parts : 
 * backend : the postgresql backend database

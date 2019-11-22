@@ -1,0 +1,21 @@
+version: "3"
+services:
+  app:
+    build: ../openradiation-api-github
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+      - "8083:8083"
+    restart: always
+  postgres:
+    build:
+      context: ../openradiation-api-github
+      dockerfile: DockerfilePostgres
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    restart: always

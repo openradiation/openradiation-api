@@ -2640,8 +2640,8 @@ httpsServer.listen(properties.httpsPort, function() {
     console.log(new Date().toISOString() + " -    APIKeyTestMaxCounter : [" + properties.APIKeyTestMaxCounter + "]"); 
     console.log(new Date().toISOString() + " -    measurementURL       : [" + properties.measurementURL + "]"); 
     if (properties.nodeUserUid != null && properties.nodeUserGid != null && process.getuid && process.setuid && process.getgid && process.setgid) {
-        process.setgid(properties.nodeUserGid);
-        process.setuid(properties.nodeUserUid);
+       // process.setgid(properties.nodeUserGid);
+       // process.setuid(properties.nodeUserUid);
         console.log(new Date().toISOString() + " -    nodeUserUid          : [" + properties.nodeUserUid + "]");
         console.log(new Date().toISOString() + " -    nodeUserGid          : [" + properties.nodeUserGid + "]"); 
     }
@@ -2667,7 +2667,7 @@ httpsServer.listen(properties.httpsPort, function() {
 });
 
 //10. http server
-http.createServer(http_req).listen(properties.httpPort); // replace http_req by app to listen on http port
+http.createServer(app).listen(properties.httpPort); // replace http_req by app to listen on http port
 function http_req(req, res) {
     console.log(new Date().toISOString() + " - http_req(req, res) : HTTP /" + req.method + " called");
     req.on('error', function(err) {
