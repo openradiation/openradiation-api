@@ -1,7 +1,7 @@
 version: "3"
 services:
   app:
-    build: ../openradiation-api-github
+    build: .
     depends_on:
       - postgres
     ports:
@@ -10,7 +10,7 @@ services:
     restart: always
   postgres:
     build:
-      context: ../openradiation-api-github
+      context: .
       dockerfile: DockerfilePostgres
     environment:
       - POSTGRES_PASSWORD=root
