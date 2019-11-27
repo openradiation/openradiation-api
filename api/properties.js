@@ -3,7 +3,7 @@ module.exports = {
     
     login: "postgres", //PgSQL
     password: "root", //PgSQL
-    host: "posgres", //PgSQL
+    host: "postgres", //PgSQL
     maxNumber: 400, //max number for the results of the requests
     getAPIInterval: 300000, //API Table is reloaded every 5 minutes
     getUsersInterval: 300000, //Users Table is reloaded every 5 minutes
