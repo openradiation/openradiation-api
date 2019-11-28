@@ -15,18 +15,21 @@ This project can be start with docker
 
 * create database openradiation :
 ```
+    docker ps --all //to see <postresID>
     docker exec -it <postresID> bash
     psql -U postgres
-    create database openradiation
+    create database openradiation;
 ```
 
 * dump of database :
 ```
+    \q
     pg_restore -Fc -i -U postgres -d openradiation -c /openradiation.dmp
 ```
 
 * create your container nodeJS 6.9.3 :
 ```
+    exit
     docker-compose up -d app
 ```
 
