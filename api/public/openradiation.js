@@ -49,12 +49,10 @@ var translations_FR = {
       "User" : "Utilisateur",
       "CSV FILE" : "FICHIER CSV",     
       "ALL QUALIFICATIONS" : "TOUTES QUALIFICATIONS",
-      "Seems correct" : "Semble correcte",
-      "Must be verified" : "Doit être vérifiée",
-      "Non-environmental context" : "Mesure non environnementale",
-      "Bad sensor" : "Défaut de capteur",
-      "Bad protocol" : "Protocole non respecté",
-      "Bad data transmission" : "Problème de transmission de données",
+      "Plane" : "Avion",
+      "Wrong measurement" : "Mesure incorrect",
+      "Temporary source" : "Mesure d'une source temporaire",
+      "Ground level" : "Mesure au niveau du sol",
       "ALL MEASUREMENTS" : "TOUTES MESURES",    
       "Standard measurements" : "Mesures standard",
       "Non-standard measurement" : "Mesure atypique",  
@@ -266,12 +264,10 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                             <div>\
                                 <select id="qualification" name="qualification"> \
                                     <option value="all">' + translate("ALL QUALIFICATIONS") + '</option> \
-                                    <option value="seemscorrect">' + translate("Seems correct") + '</option> \
-                                    <option value="mustbeverified">' + translate("Must be verified") + '</option> \
-                                    <option value="noenvironmentalcontext">' + translate("Non-environmental context") + '</option>\
-                                    <option value="badsensor">' + translate("Bad sensor") + '</option>\
-                                    <option value="badprotocole">' + translate("Bad protocol") + '</option>\
-                                    <option value="baddatatransmission">' + translate("Bad data transmission") + '</option>\
+                                    <option value="plane">' + translate("Plane") + '</option> \
+                                    <option value="wrongmeasurement">' + translate("Wrong measurement") + '</option> \
+                                    <option value="temporarysource">' + translate("Temporary source") + '</option>\
+                                    <option value="groundlevel">' + translate("Ground level") + '</option>\
                                 </select>\
                                 <select id="atypical" name="atypical"> \
                                     <option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
@@ -383,32 +379,26 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                 if (res.data.qualification != null) {
                     htmlPopup += "<div><span class=\"comment\">";
                     switch (res.data.qualification) {
-                        case "seemscorrect":
-                            htmlPopup += translate("Seems correct");
+                        case "plane":
+                            htmlPopup += translate("Plane");
                             break;
-                        case "mustbeverified":
-                            htmlPopup += translate("Must be verified");
+                        case "wrongmeasurement":
+                            htmlPopup += translate("Wrong measurement");
                             break;
-                        case "noenvironmentalcontext":
-                            htmlPopup += translate("Non-environmental context");
+                        case "temporarysource":
+                            htmlPopup += translate("Temporary source");
                             break;
-                        case "badsensor":
-                            htmlPopup += translate("Bad sensor");
-                            break;
-                        case "badprotocole":
-                            htmlPopup += translate("Bad protocol");
-                            break;
-                        case "baddatatransmission":
-                            htmlPopup += translate("Bad data transmission");
+                        case "groundlevel":
+                            htmlPopup += translate("Ground level");
                             break;
                     };
-                    htmlPopup += " <img style=\"margin-bottom:-4px;\"src=\"/images/thumb.png\"/>+ " + res.data.qualificationVotesNumber;
-                    //htmlPopup += ", " + res.data.qualificationVotesNumber + " " + translate("thumb");
-                    //htmlPopup += res.data.qualificationVotesNumber < 2 ? "" : "s";
-                    htmlPopup += "</span></div>"
-                    
+                    if (res.data.qualificationVotesNumber > 0){
+                        htmlPopup += " <img style=\"margin-bottom:-4px;\"src=\"/images/thumb.png\"/>+ " + res.data.qualificationVotesNumber;
+                        htmlPopup += "</span></div>"
+                    }
+
                 }
-                
+
                 if (res.data.atypical == true)
                     htmlPopup += "<div><span class=\"comment\">" + translate("Non-standard measurement") + "</span></div>";
                     
@@ -1024,14 +1014,5 @@ $(function() {
     
     closeChartTime = function() {
         $("#openradiation_time").css("display","none");
-    }   
-    
+    }
 });
-
-   
-
-
-            
-
-
-
