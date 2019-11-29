@@ -255,7 +255,7 @@ updateFlightInfos = function(client, measurementEnvironment, flightNumber_, star
                                     } else {
                                         refinedEndLatitude = result.rows[endTimeIndice - 1].latitude + (result.rows[endTimeIndice].latitude - result.rows[endTimeIndice - 1].latitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp);
                                         refinedEndLongitude = result.rows[endTimeIndice - 1].longitude + (result.rows[endTimeIndice].longitude - result.rows[endTimeIndice - 1].longitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp); 
-                                        if (result.rows[startTimeIndice - 1].altitude != 0 && result.rows[startTimeIndice].altitude != 0)
+                                        if (result.rows[endTimeIndice - 1].altitude != 0 && result.rows[endTimeIndice].altitude != 0)
                                             refinedEndAltitude = Math.round(result.rows[endTimeIndice - 1].altitude + (result.rows[endTimeIndice].altitude - result.rows[endTimeIndice - 1].altitude) * (new Date(endTime) - result.rows[endTimeIndice - 1].timestamp) / (result.rows[endTimeIndice].timestamp - result.rows[endTimeIndice - 1].timestamp)); 
                                     } 
                                     callback(null, true);
@@ -1023,10 +1023,10 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break;
             case "qualification":
-                var qualificationValues = ["seemscorrect", "mustbeverified", "noenvironmentalcontext", "badsensor", "badprotocole", "baddatatransmission"];
+                var qualificationValues = ["groundlevel", "plane", "wrongmeasurement", "temporarysource"];
                 if (typeof(json[dataName]) != "string" || qualificationValues.indexOf(json[dataName]) == -1)
                 {
-                    res.status(400).json({ error: {code:"102", message:dataName + " should be in [seemscorrect | mustbeverified | noenvironmentalcontext | badsensor | badprotocole | baddatatransmission]"}});
+                    res.status(400).json({ error: {code:"102", message:dataName + " should be in [groundlevel | plane | wrongmeasurement | temporarysource"}});
                     return false;
                 }
                 break;
@@ -2530,7 +2530,7 @@ if (properties.mappingFeature) {
        
     app.get('/:lang?/openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
         
-        if ( (req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "groundlevel" || req.params.qualification == "seemscorrect" || req.params.qualification == "mustbeverified" || req.params.qualification == "noenvironmentalcontext" || req.params.qualification == "badsensor" || req.params.qualification == "badprotocole" || req.params.qualification == "baddatatransmission")
+        if ( (req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "wrongmeasurement" || req.params.qualification == "groundlevel" || req.params.qualification == "temporarysource")
           && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
           && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >=0 && parseInt(req.params.rangeValueMin) <= 100)
           && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >=0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
@@ -2570,7 +2570,7 @@ if (properties.mappingFeature) {
         if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
           && (isNaN(req.params.latitude) == false)
           && (isNaN(req.params.longitude) == false)
-          && (req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "groundlevel" || req.params.qualification == "seemscorrect" || req.params.qualification == "mustbeverified" || req.params.qualification == "noenvironmentalcontext" || req.params.qualification == "badsensor" || req.params.qualification == "badprotocole" || req.params.qualification == "baddatatransmission")
+          && (req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "wrongmeasurement" || req.params.qualification == "groundlevel" || req.params.qualification == "temporarysource")
           && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
           && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >=0 && parseInt(req.params.rangeValueMin) <= 100)
           && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >=0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))

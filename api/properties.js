@@ -18,7 +18,7 @@ module.exports = {
     mappingFeature:true, //if the feature requestAPI is available
     submitFormFeature:true, //if the feature submitForm is available
     submitFormAPIKey:"490242ab4978ea6da6548974522121c8", //API key for submitting data; TABLE apiKey (comment: submit.openRadiation.net)
-    measurementURL: "http://localhost/import-measure/{reportUuid}",
+    measurementURL: "http://localhost:8080/import-measure/{reportUuid}",
     mappingURL:"https://localhost:8080", //mapping URL
     submitAPIHost:"127.0.0.1", //submitAPI contacted via post forms
     submitAPIPort:8080, //submitAPI contacted via post forms
