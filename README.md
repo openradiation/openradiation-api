@@ -3,7 +3,7 @@
 This project aims to develop a database to store environmental radioactivity measurements. It's shared in 2 parts : 
 * backend : the postgresql backend database
 * api : a JSON Rest-like API developed in node.js to request the database
-
+test
 Source code is under licence Apache 2.0 (cf https://www.openradiation.org/fr/conditions-dutilisation#licence_apache2)
 
 First at all, to use the API you need a key. Please ask by sending an email to [dev@openradiation.net](mailto:dev@openradiation.net)
