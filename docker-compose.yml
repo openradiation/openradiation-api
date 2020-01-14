@@ -2,19 +2,21 @@ version: "3"
 services:
   app:
     build: .
-    depends_on:
-      - postgres
+    working_dir: /home/node/app
+    volumes:
+      - ./:/home/node/app
+    command: "node api/api.js"
     ports:
       - "8083:8083"
-    restart: always
+    environment:
+      PHP_IDE_CONFIG: serverName=test-app
+    depends_on:
+      - postgres
   postgres:
-    build:
-      context: .
-      dockerfile: DockerfilePostgres
+    image: postgres:9.4
     environment:
       - POSTGRES_PASSWORD=root
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
     ports:
       - "5432:5432"
-    restart: always

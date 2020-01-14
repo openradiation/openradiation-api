@@ -7,7 +7,6 @@ var cluster = require('cluster');
 var request = require('request');
 var properties = require('./properties.js');
 
-
 // from measurementEnvironment, deviceUuid, flightNumber, startTime 
 // return flight_id, alternate_latitude, alternate_longitude, alternate_altitude
 // update tables : flights, flightstrack
@@ -697,7 +696,6 @@ isPasswordValid = function(password, userPwd) {
 
 
 verifyData = function(res, json, isMandatory, dataName) {
-       
     if (json[dataName] != null && typeof(json[dataName]) == "string" && json[dataName] == "")
         json[dataName] = null;
     
@@ -1175,6 +1173,97 @@ if (properties.requestApiFeature) {
     });
 
     //http://localhost:8080/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434&minLatitude=3.4&maxStartTime=2015-04-19T11:49:59Z&minStartTime=2015-04-19T11:49:59.005Z&response=complete
+    app.get('/measurements/byFlightId/:flightId', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /measurements with flightId : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        let sql = 'SELECT * FROM measurements WHERE "flightId"=$1';
+                        let values = [ req.params.flightId];
+                        console.log(values)
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                let data = [];
+                                
+                                //methode 1 : with where
+                                if (req.query.response == null || result.rows.length == 0) // no need to retrieve tags
+                                {
+                                    done();
+                                    for (let r = 0; r < result.rows.length; r++)
+                                    {
+                                        data.push(result.rows[r]);
+                                        
+                                        for (i in data[data.length - 1])
+                                        {
+                                            if (data[data.length - 1][i] == null)
+                                                delete data[data.length - 1][i];
+                                        }
+                                    }
+                                    res.json( {data:data} );
+                                } else { // here we do an other request to retrieve tags
+                                    let sql = 'select "reportUuid", "tag" FROM TAGS WHERE "reportUuid" IN (';
+                                    for (let r = 0; r < result.rows.length; r++)
+                                    {
+                                        if (r == 0)
+                                            sql += "'" + result.rows[r].reportUuid + "'";
+                                        else
+                                            sql += ",'" + result.rows[r].reportUuid + "'";
+                                    }
+                                    sql += ') ORDER BY "reportUuid"';
+                                    client.query(sql, [], function(err, result2) {
+                                        done();
+                                        if (err)
+                                        {
+                                            console.error("Error while running query " + sql, err);
+                                            res.status(500).end();
+                                        } else {
+                                            var tmp_tags = {};
+                                            for (let t = 0; t < result2.rows.length; t++)
+                                            {
+                                                if (tmp_tags[result2.rows[t].reportUuid] == null)
+                                                    tmp_tags[result2.rows[t].reportUuid] = [];
+                                                tmp_tags[result2.rows[t].reportUuid].push(result2.rows[t].tag);
+                                            }
+                                            
+                                            for (let r = 0; r < result.rows.length; r++)
+                                            {
+                                                data.push(result.rows[r]);
+                                                if (tmp_tags[result.rows[r].reportUuid] != null)
+                                                   data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
+                                                    
+                                                for (i in data[data.length - 1])
+                                                {
+                                                    if (data[data.length - 1][i] == null)
+                                                        delete data[data.length - 1][i];
+                                                }
+                                            }
+                                            res.json( {data:data} );
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+        }
+        console.log(new Date().toISOString() + " - GET /measurements with flightId : end");
+    });
+
     app.get('/measurements', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /measurements : begin");
         if (typeof(req.query.apiKey) != "string")
@@ -1183,42 +1272,42 @@ if (properties.requestApiFeature) {
         }
         else {
             if ( (req.query.dateOfCreation == null
-             && verifyApiKey(res, req.query.apiKey, false, false)
-             && verifyData(res, req.query, false, "minValue")
-             && verifyData(res, req.query, false, "maxValue")
-             && verifyData(res, req.query, false, "minStartTime")
-             && verifyData(res, req.query, false, "maxStartTime")
-             && verifyData(res, req.query, false, "minLatitude")
-             && verifyData(res, req.query, false, "maxLatitude")
-             && verifyData(res, req.query, false, "minLongitude")
-             && verifyData(res, req.query, false, "maxLongitude")
-             && verifyData(res, req.query, false, "userId_request")
-             && verifyData(res, req.query, false, "qualification")
-             && verifyData(res, req.query, false, "tag")
-             && verifyData(res, req.query, false, "atypical") 
-             && verifyData(res, req.query, false, "flightId")              
-             && verifyData(res, req.query, false, "response")
-             && verifyData(res, req.query, false, "withEnclosedObject")
-             && verifyData(res, req.query, false, "maxNumber")) 
-           ||   (req.query.dateOfCreation != null
-             && verifyApiKey(res, req.query.apiKey, true, false)
-             && verifyData(res, req.query, false, "dateOfCreation") 
-             && verifyData(res, req.query, false, "minValue")
-             && verifyData(res, req.query, false, "maxValue")
-             && verifyData(res, req.query, false, "minStartTime")
-             && verifyData(res, req.query, false, "maxStartTime")
-             && verifyData(res, req.query, false, "minLatitude")
-             && verifyData(res, req.query, false, "maxLatitude")
-             && verifyData(res, req.query, false, "minLongitude")
-             && verifyData(res, req.query, false, "maxLongitude")
-             && verifyData(res, req.query, false, "userId_request")
-             && verifyData(res, req.query, false, "qualification")
-             && verifyData(res, req.query, false, "tag")
-             && verifyData(res, req.query, false, "atypical")
-             && verifyData(res, req.query, false, "flightId")
-             && verifyData(res, req.query, false, "response")
-             && verifyData(res, req.query, false, "withEnclosedObject")
-             && verifyData(res, req.query, false, "maxNumber") ) )
+                && verifyApiKey(res, req.query.apiKey, false, false)
+                && verifyData(res, req.query, false, "minValue")
+                && verifyData(res, req.query, false, "maxValue")
+                && verifyData(res, req.query, false, "minStartTime")
+                && verifyData(res, req.query, false, "maxStartTime")
+                && verifyData(res, req.query, false, "minLatitude")
+                && verifyData(res, req.query, false, "maxLatitude")
+                && verifyData(res, req.query, false, "minLongitude")
+                && verifyData(res, req.query, false, "maxLongitude")
+                && verifyData(res, req.query, false, "userId_request")
+                && verifyData(res, req.query, false, "qualification")
+                && verifyData(res, req.query, false, "tag")
+                && verifyData(res, req.query, false, "atypical")
+                && verifyData(res, req.query, false, "flightId")
+                && verifyData(res, req.query, false, "response")
+                && verifyData(res, req.query, false, "withEnclosedObject")
+                && verifyData(res, req.query, false, "maxNumber"))
+                ||   (req.query.dateOfCreation != null
+                    && verifyApiKey(res, req.query.apiKey, true, false)
+                    && verifyData(res, req.query, false, "dateOfCreation")
+                    && verifyData(res, req.query, false, "minValue")
+                    && verifyData(res, req.query, false, "maxValue")
+                    && verifyData(res, req.query, false, "minStartTime")
+                    && verifyData(res, req.query, false, "maxStartTime")
+                    && verifyData(res, req.query, false, "minLatitude")
+                    && verifyData(res, req.query, false, "maxLatitude")
+                    && verifyData(res, req.query, false, "minLongitude")
+                    && verifyData(res, req.query, false, "maxLongitude")
+                    && verifyData(res, req.query, false, "userId_request")
+                    && verifyData(res, req.query, false, "qualification")
+                    && verifyData(res, req.query, false, "tag")
+                    && verifyData(res, req.query, false, "atypical")
+                    && verifyData(res, req.query, false, "flightId")
+                    && verifyData(res, req.query, false, "response")
+                    && verifyData(res, req.query, false, "withEnclosedObject")
+                    && verifyData(res, req.query, false, "maxNumber") ) )
             {
                 pg.connect(conStr, function(err, client, done) {
                     if (err) {
@@ -1230,9 +1319,9 @@ if (properties.requestApiFeature) {
                         var limit = properties.maxNumber;
                         if (req.query.maxNumber != null && parseInt(req.query.maxNumber) < properties.maxNumber)
                             limit = parseInt(req.query.maxNumber);
-                        
+
                         if (req.query.response == null)
-                            sql = 'SELECT "value", "startTime", "latitude", "longitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
+                            sql = 'SELECT "value", "startTime", "latitude", "longitude", "altitude", "refinedAltitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
                         else if (req.query.withEnclosedObject == null)
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
@@ -1245,14 +1334,14 @@ if (properties.requestApiFeature) {
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","userId", \
                                   "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
                                   "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
-                                  
+
                         if (req.query.tag == null)
                             sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId"';
                         else
                             sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId",TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
-                            
+
                         var where = '';
-                        var values = [ ]; 
+                        var values = [ ];
                         if (req.query.minLatitude != null)
                         {
                             values.push(req.query.minLatitude);
@@ -1329,18 +1418,18 @@ if (properties.requestApiFeature) {
                             values.push(date2);
                             where += ' AND MEASUREMENTS."dateAndTimeOfCreation" < $' + values.length;
                         }
-                        
+
                         if (req.query.tag == null)
                             where = where.replace('AND', 'WHERE');
-                        
+
                         sql += where;
                         sql += ' ORDER BY "startTime" desc, MEASUREMENTS."reportUuid"';
-                        
+
                         if (req.query.dateOfCreation == null && req.query.flightId == null)
                             sql += ' LIMIT ' + limit;
                         else
                             limit = -1;
-                            
+
                         client.query(sql, values, function(err, result) {
                             if (err)
                             {
@@ -1351,7 +1440,7 @@ if (properties.requestApiFeature) {
                             else
                             {
                                 var data = [];
-                                
+
                                 //methode 1 : with where
                                 if (req.query.response == null || result.rows.length == 0) // no need to retrieve tags
                                 {
@@ -1359,7 +1448,7 @@ if (properties.requestApiFeature) {
                                     for (r = 0; r < result.rows.length; r++)
                                     {
                                         data.push(result.rows[r]);
-                                        
+
                                         for (i in data[data.length - 1])
                                         {
                                             if (data[data.length - 1][i] == null)
@@ -1391,13 +1480,13 @@ if (properties.requestApiFeature) {
                                                     tmp_tags[result2.rows[t].reportUuid] = [];
                                                 tmp_tags[result2.rows[t].reportUuid].push(result2.rows[t].tag);
                                             }
-                                            
+
                                             for (r = 0; r < result.rows.length; r++)
                                             {
                                                 data.push(result.rows[r]);
                                                 if (tmp_tags[result.rows[r].reportUuid] != null)
-                                                   data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
-                                                    
+                                                    data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
+
                                                 for (i in data[data.length - 1])
                                                 {
                                                     if (data[data.length - 1][i] == null)
@@ -1430,9 +1519,9 @@ if (properties.requestApiFeature) {
                                     lastReportUuid = result.rows[r].reportUuid;
                                 }
                                 res.json( { maxNumber:limit, data:data} );*/
-                                
-                                
-                                
+
+
+
                             }
                         });
                     }
@@ -1441,7 +1530,7 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /measurements : end");
     });
-    
+
     app.get('/flights', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /flights : begin");
         if (typeof(req.query.apiKey) != "string")
@@ -1457,8 +1546,9 @@ if (properties.requestApiFeature) {
                         console.error("Could not connect to PostgreSQL", err);
                         res.status(500).end();
                     } else {
-                        var sql = 'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS ORDER BY "flightId"';
-                        var values = [ ]; 
+                        let sql = 'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS ORDER BY "flightId"';
+
+                        let values = [ ];
                         client.query(sql, values, function(err, result) {
                             if (err)
                             {
@@ -1468,9 +1558,9 @@ if (properties.requestApiFeature) {
                             }
                             else
                             {
-                                var data = [];
+                                let data = [];
                                 done();
-                                for (r = 0; r < result.rows.length; r++)
+                                for (let r = 0; r < result.rows.length; r++)
                                 {
                                     data.push(result.rows[r]);
                                     
@@ -1489,10 +1579,107 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /flights : end");
     });
+
+    app.get('/flight/:flightId', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /flight with flightId : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        let sql =   'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" ' +
+                                    'FROM FLIGHTS ' +
+                                    'WHERE "flightId"=$1 ' +
+                                    'ORDER BY "flightId"';
+
+                        let values = [ req.params.flightId];
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                let data = [];
+                                done();
+                                for (let r = 0; r < result.rows.length; r++)
+                                {
+                                    data.push(result.rows[r]);
+
+                                    for (i in data[data.length - 1])
+                                    {
+                                        if (data[data.length - 1][i] == null)
+                                            delete data[data.length - 1][i];
+                                    }
+                                }
+                                res.json( { data:data} );
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /flight : end");
+    });
+
+
+    app.get('/measurements/number/:flightId', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /measurements/number/:flightId : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if (verifyApiKey(res, req.query.apiKey, false, false)
+                && verifyData(res, req.query, false, "response")
+                && verifyData(res, req.query, false, "withEnclosedObject"))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        let sql = 'SELECT COUNT (*) FROM MEASUREMENTS WHERE "flightId"=$1';
+                        let values = [ req.params.flightId];
+                        client.query(sql, values, function(err, result) {
+                            done();
+                            if (err)
+                            {
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                if (result.rowCount == 0)
+                                    res.status(400).json({ error: {code:"104", message:"flightId does not exists"}});
+                                else
+                                {
+                                    res.json( { data:result.rows[0]} );
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /measurements/number/:flightId : end");
+    });
 }
 
 //6. submit API
 if (properties.submitApiFeature) {
+    console.log("submit");
     app.post('/measurements', function (req, res, next) {
         console.log(new Date().toISOString() + " - POST /measurements : begin");
         if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
@@ -1864,7 +2051,7 @@ if (properties.submitApiFeature) {
 
 //7. submit Form
 if (properties.submitFormFeature) {
-    
+
 	
     app.get('/test', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /test : begin");
@@ -2509,7 +2696,7 @@ if (properties.mappingFeature) {
             res.status(404).end();
     });
     
-    app.get('/:lang?/openradiation/:zoom/:latitude/:longitude', function (req, res, next) { 
+    app.get('/:lang?/openradiation/:zoom/:latitude/:longitude', function (req, res, next) {
         if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
          && (isNaN(req.params.latitude) == false)
          && (isNaN(req.params.longitude) == false)
@@ -2529,7 +2716,6 @@ if (properties.mappingFeature) {
     });
        
     app.get('/:lang?/openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
-        
         if ( (req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "wrongmeasurement" || req.params.qualification == "groundlevel" || req.params.qualification == "temporarysource")
           && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
           && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >=0 && parseInt(req.params.rangeValueMin) <= 100)
@@ -2566,7 +2752,7 @@ if (properties.mappingFeature) {
             res.status(404).end();
     });
     
-    app.get('/:lang?/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) { 
+    app.get('/:lang?/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
         if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >=0 && parseInt(req.params.zoom) <= 18)
           && (isNaN(req.params.latitude) == false)
           && (isNaN(req.params.longitude) == false)
@@ -2577,7 +2763,7 @@ if (properties.mappingFeature) {
           && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >=0 && parseInt(req.params.rangeDateMin) <= 100)
           && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >=0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
           && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en"))
-        {  
+        {
             var tag;
             if (req.params.tag == "all")
                 tag = "";

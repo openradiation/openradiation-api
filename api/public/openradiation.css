@@ -3,12 +3,37 @@
 body {
     padding: 0;
     margin: 0;
-    
 }
+
 html, body {
     height: 100%;
     width: 100%;
 }
+
+#seeflightId {
+    cursor: pointer;
+}
+
+.topSlider {
+    background-color: rgba(240, 240, 240, 0.8);
+}
+
+.question {
+    text-decoration: underline;
+    font-size: 11px;
+    color: gray;
+    float: right;
+    margin-right: 10px;
+}
+
+#nbresult {
+    margin-right: 10px;
+}
+
+.floatright {
+    float: right;
+}
+
 
 /* Title */
 .leaflet-top .openradiation_title {
@@ -19,41 +44,70 @@ html, body {
     background-color:white;
 }
 
-/* Menu */
-.leaflet-top .openradiation_menu {
-    padding: 5px 8px 3px 8px;
-    background: white;
-    background: rgba(255,255,255, 0.9);
-    box-shadow: 0 0 15px rgba(0,0,0,0.3);
-    border-radius: 5px;
-    min-height:20px;
+/* Select Qualification */
+.select_qualification_container {
+    position: absolute;
+    margin-left: -45%;
+    width: 320px !important;
+    padding: 5px;
+    border: transparent;
+    color: darkblue;
+    font-size: large;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.6);
+    text-align-last:center;
 }
+/*
+margin-left: -25px;
+margin-right: auto;
+*/
 
 .openradiation_icon {
-width:16px;
-height:16px;
-display: inline-block;
-background: url("images/picto.png") no-repeat;
-background-position:right top;
+    width:16px;
+    height:16px;
+    display: inline-block;
+    background: url("images/picto.png") no-repeat;
+    background-position:right top;
 }
 
+.icon-toggle-up {
+    margin-bottom:0px;
+    width:16px;
+    height:16px;
+    display: inline-block;
+    background: url("images/picto.png") no-repeat;
+    color: #2e6da4;
+}
+
+.icon-toggle-down {
+    margin-bottom:0px;
+    width:16px;
+    height:16px;
+    display: inline-block;
+    background: url("images/picto.png") no-repeat;
+    color: #2e6da4;
+}
+
+/* links */
+.get_links > ul {
+    margin-block-start: 0em;
+    margin-block-end: 0em;
+    margin-left: 50px;
+}
+
+
 .icon_menu  { background-position:left top;}
-.icon_filter { background-position:-16px top;}
 .icon_cross { background-position:-32px top;}
 .icon_arrow { background-position:-48px top;}
+.icon-toggle-down { background-position:-48px top }
+.icon-toggle-up { background-position:right top }
 .icon_link { background-position:-64px top;}
 .icon_timeline { background-position:-80px top;}
 .icon_interpolation { background-position:-96px top;}
 
-.openradiation_menu_header {   cursor:pointer; }
+.openradiation_menu_header { cursor:pointer; }
 
 .leaflet-top .openradiation_menu_footer { display:none;}
-/*.leaflet-top .openradiation_menu:hover .openradiation_menu_footer {
-    display:block;
-}
-.leaflet-top .openradiation_menu:hover .openradiation_menu_header {
-    display:none;
-}*/
 
 ul {list-style:none; padding-left:5px;}
 ul li { margin:5px; height:25px; line-height:25px;}
@@ -104,8 +158,6 @@ strong, span { color:#2446AB; }
 .openradiation_filters > div.slider_range > div { width:150px; }
 .openradiation_filters > div.input_tag { width:16%; }
 .openradiation_filters > div.input_tag > div { width:100px; }
-.openradiation_filters > div.select_qualification { width:28%; }
-.openradiation_filters > div.select_qualification > div { width:190px;}
 .openradiation_filters > div.download_file { margin-top:5px; float:right; width:8%;}
 .openradiation_filters > div.download_file > div { width:50px; font-size:90%; background:white; font-weight:bold; text-align:center;  line-height:1.3; border-width:1px; border-style:solid; border-color:lightgrey;  cursor:pointer;}
 
@@ -115,7 +167,6 @@ strong, span { color:#2446AB; }
 @media only screen and (max-width:700px) {
     .openradiation_filters > div.slider_range {width:49%; }
     .openradiation_filters > div.input_tag {clear:both; width:30%;}
-    .openradiation_filters > div.select_qualification { width:55%; }
     .openradiation_filters > div.download_file { width:15%; margin-bottom:10px;}
 }
 
@@ -127,7 +178,6 @@ strong, span { color:#2446AB; }
     .openradiation_filters > div.slider_range {width:100%;}
     .openradiation_filters > div.input_tag {width:60%;}
     .openradiation_filters > div.download_file { width:40%;}
-    .openradiation_filters > div.select_qualification { width:100%; margin-bottom:20px;}
 }
 
 #slider_rangedate {border-style:none; margin-top:10px; border-radius: 0px; background: black; width:150px; height:4px; margin-bottom:5px;}
@@ -217,3 +267,9 @@ input::-moz-placeholder { /* Mozilla Firefox 19+ */
 input:-ms-input-placeholder { /* Internet Explorer 10+ */
    color:    white !important; 
 }
+
+.flightPopup {
+    margin-top: 50px;
+    visibility: visible;
+}
+

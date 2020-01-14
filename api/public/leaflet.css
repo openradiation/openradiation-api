@@ -121,7 +121,7 @@
 
 .leaflet-control {
 	position: relative;
-	z-index: 800;
+	z-index: 1000;
 	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
 	pointer-events: auto;
 	}
@@ -151,13 +151,13 @@
 	float: right;
 	}
 .leaflet-top .leaflet-control {
-	margin-top: 10px;
+	margin-top:35px;
 	}
 .leaflet-bottom .leaflet-control {
-	margin-bottom: 10px;
+
 	}
 .leaflet-left .leaflet-control {
-	margin-left: 10px;
+	width: 100%;
 	}
 .leaflet-right .leaflet-control {
 	margin-right: 10px;
@@ -254,7 +254,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	outline: 0;
 	}
 .leaflet-container a {
-	color: #0078A8;
+	color: darkblue;
 	}
 .leaflet-container a.leaflet-active {
 	outline: 2px solid orange;
@@ -456,7 +456,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	}
 .leaflet-touch .leaflet-control-layers,
 .leaflet-touch .leaflet-bar {
-	border: 2px solid rgba(0,0,0,0.2);
+	margin-left: 10px;
 	background-clip: padding-box;
 	}
 
