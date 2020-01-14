@@ -238,7 +238,7 @@ function showPlaneLine(data, points) {
  * @param numberMeasures
  */
 function constructFlightPopup(data, numberMeasures) {
-    //add flightId on url
+    //add flightId on url for permalink
     window.location.flightId = data.flightId;
 
     let html =
@@ -326,10 +326,10 @@ function constructMarkerPopup(res, measurementURL, e) {
         htmlPopup += "<div><span class=\"comment\">";
         switch (res.data.qualification) {
             case "plane":
-                htmlPopup += translate("Plane");
+                htmlPopup += translate("in Flight measurements");
                 break;
             case "wrongmeasurement":
-                htmlPopup += translate("Wrong measurement");
+                htmlPopup += translate("Wrong measurements");
                 break;
             case "temporarysource":
                 htmlPopup += translate("Temporary source");
@@ -421,78 +421,15 @@ function drawPlotlyWithFlightId(flightId) {
                 altitude.y.push(alt/1000);
             }
 
-            let values = [debit];
-            let values2 = [altitude];
-
-            Plotly.plot('charttime', values, layout);
-            Plotly.plot('charttime', values2, layout);
-            document.getElementById('charttime').focus();
+            Plotly.newPlot('charttime', [debit], layout);
+            Plotly.plot('charttime', [altitude], layout);
+            $('#charttime').focus();
         },
         error: function (res, status, err) {
             console.log(err + " : " + status);
         }
     })
 }
-
-/*
-function drawChart() {
-    let openradiationTime = document.getElementById('charttime');
-
-    let data = new google.visualization.DataTable();
-    data.addColumn('datetime', translate("Date"));
-    data.addColumn('number', translate("Dose rate (μSv/h)"));
-    let urlTemp = getUrl();
-    console.log('/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp);
-    $.ajax({
-        type: 'GET',select_qualification
-        url: '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp,
-        cache: false,
-        timeout: 10000,
-        success: function(res) {
-            let layout = {title:translate("Timeline"), fileopt : "overwrite", filename : "simple-node-example"};
-            let layout2 = {title:translate("Timeline"), fileopt : "overwrite", filename : "simple-node-example"};
-
-            let debit = {
-                x: [],
-                y: [],
-                name: translate("Dose rate (μSv/h)"),
-                mode: 'markers',
-                side: 'left'
-            };
-
-            let altitude = {
-                x: [],
-                y: [],
-                name: 'Altitude (km)',
-                mode: 'lines',
-                side: 'right'
-            };
-
-            let rows = [];
-            // results are sorted by startTime so we can add them directly
-            for(let i in res.data)
-            {
-                let alt = (res.data[i].refinedAltitude != undefined) ? res.data[i].refinedAltitude : res.data[i].altitude;
-                debit.x.push(new Date(res.data[i].startTime));
-                debit.y.push(res.data[i].value);
-                altitude.x.push(new Date(res.data[i].startTime));
-                altitude.y.push(alt/1000);
-            }
-            let values = [debit];
-            let values2 = [altitude];
-
-            console.log(values)
-            console.log(rows)
-            Plotly.plot('charttime', values, layout);
-            Plotly.plot('charttime', values2, layout2);
-
-            document.getElementById('charttime').focus();
-        },
-        error: function() {
-            alert('Error during retrieving data');
-        }
-    });
-}*/
 
 function showMarker(res, fitBounds) {
     let points = new Array();
