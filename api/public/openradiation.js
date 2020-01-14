@@ -1,11 +1,11 @@
 
-var isLanguageFR = false;
+let isLanguageFR = false;
 
 //if (navigator.language.indexOf('fr') != -1)
 if (document.documentElement.lang == "fr")
     isLanguageFR = true; // true
     
-var icon_c = L.Icon.extend({
+let icon_c = L.Icon.extend({
     options: {
         shadowUrl: '/images/marker-shadow_1.png',
         shadowRetinaUrl: '/images/marker-shadow_1-2x.png',
@@ -17,7 +17,7 @@ var icon_c = L.Icon.extend({
     }
 });
 
-var icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/images/icon_2x_1.png'}),
+let icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/images/icon_2x_1.png'}),
     icon_2 = new icon_c({iconUrl: '/images/icon_1x_2.png', iconRetinaUrl: '/images/icon_2x_2.png'}),
     icon_3 = new icon_c({iconUrl: '/images/icon_1x_3.png', iconRetinaUrl: '/images/icon_2x_3.png'}),
     icon_4 = new icon_c({iconUrl: '/images/icon_1x_4.png', iconRetinaUrl: '/images/icon_2x_4.png'}),
@@ -37,26 +37,23 @@ var icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/imag
     icon_18 = new icon_c({iconUrl: '/images/icon_1x_18.png', iconRetinaUrl: '/images/icon_2x_18.png'}),
     icon_19 = new icon_c({iconUrl: '/images/icon_1x_19.png', iconRetinaUrl: '/images/icon_2x_19.png'});
     
-var interpolation;
+let interpolation;
 
-var translations_FR = {
+let translations_FR = {
       "Citizen radioactivity measurements" : "Les citoyens mesurent la radioactivité",
-      "Display / Mask the filters" : "Afficher / Masquer les filtres",
-      "Get a permalink" : "Obtenir un permalien",
-      "Timeline" : "Représentation temporelle",
+      "Permalink" : "Permalien",
+      "Timeline" : "Profil temporel",
       "VALUE IN µSv/h" : "VALEUR EN μSv/h",
       "Your tag" : "Votre tag",
       "User" : "Utilisateur",
       "CSV FILE" : "FICHIER CSV",     
-      "ALL QUALIFICATIONS" : "TOUTES QUALIFICATIONS",
-      "Plane" : "Avion",
-      "Wrong measurement" : "Mesure incorrect",
-      "Temporary source" : "Mesure d'une source temporaire",
-      "Ground level" : "Mesure au niveau du sol",
+      "All measures" : "Toutes mesures",
+      "Plane" : "Mesures en vol",
+      "Wrong measurement" : "Mesures incorrects",
+      "Temporary source" : "Mesures d'une source temporaire",
+      "Ground level" : "Mesures au sol",
       "ALL MEASUREMENTS" : "TOUTES MESURES",    
       "Standard measurements" : "Mesures standard",
-      "Non-standard measurement" : "Mesure atypique",  
-      "Non-standard measurements" : "Mesures atypiques", 
       "thumb" : "pouce",
       "More ..." : "Voir plus",
       "measurement found" : "mesure trouvée",
@@ -64,6 +61,7 @@ var translations_FR = {
       "displayed measurements (NON-EXHAUSTIVE)" : "mesures affichées (NON EXHAUSTIF)",
       "Link to this map" : "Lien vers cette carte",
       "Link to the fitted map" : "Lien vers la carte ajustée",
+      "Why don't I see all measurements ?" : "Pourquoi je ne vois pas toutes les mesures ?",
       "Date" : "Date",
       "Dose rate (μSv/h)" : "Débit de dose (μSv/h)",
       "Dose rate (μSv/h) per date" : "Débit de dose (μSv/h) par date",
@@ -76,7 +74,12 @@ var translations_FR = {
       "month" : "mois",
       "months" : "mois",
       "year" : "an",
-      "years" : "ans"
+      "years" : "ans",
+      "Flight" : "Vol",
+      "From :" : "De :",
+      "To :" : "A :",
+      "See flight profile" : "Voir le profil de vol",
+      "measurements" : "mesures",
             
     };
     
@@ -97,7 +100,7 @@ function csv(text)
 { 
     // if text contains ; \n \r " it is surrounded by "
     // if text contains "
-    var result = text;
+    let result = text;
     if (text.indexOf(';') > -1 || text.indexOf('\n') > -1 || text.indexOf('\r') > -1 || text.indexOf('"') > -1) 
     {
         result = result.replace(/"/g, '""');
@@ -109,8 +112,8 @@ function csv(text)
 
 function formatISODate(ISODate)
 {
-    var date = new Date(ISODate);
-    var str = "";
+    let date = new Date(ISODate);
+    let str = "";
     
     if (isLanguageFR) {
         if (date.getDate() < 10)
@@ -155,7 +158,12 @@ function formatISODate(ISODate)
 
 function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax)
 {
-    
+    //default value
+    qualification = 'plane';
+    //get url of parents page to init options
+    const parentUrl = (window.location != window.parent.location) ? document.referrer : document.location.href
+
+
     // create a map in the "map" div, set the view to a given place and zoom
     openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true, minZoom:2, maxZoom:17 }).setView([latitude, longitude], zoom);
    
@@ -163,21 +171,13 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     if (withLocate)
         openradiation_map.locate({ setView : true, maxZoom:12 });
     
-    // add an OpenStreetMap tile layer
-    //L.tileLayer('http://bissorte.irsn.fr/mapcache/tms/1.0.0/osm@g/{z}/{x}/{y}.png', { tms:true,
-    //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// https
-    //L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { // http
     if (isLanguageFR) {
         L.tileLayer('https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
-            //attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span> | <span id="\timechartlink\">tT</span> | <span id="\interpolationlink\">int</span>'
-            //attribution: '&copy; <a href=\"http:\/\/osm.org\/copyright\">OpenStreetMap<\/a> contributors | &copy; <a href=\"http:\/\/www.openradiation.org\/copyright\">OpenRadiation</a> | <span id=\"hide_filters\">Filtres +\/-</span> | <span id=\"permalink\">Permalink</span> | <span id=\"timechartlink\">t</span> | <span id=\"interpolationlink\">i</span>'
-            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>' 
+            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>'
         }).addTo(openradiation_map);
     } else {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
-            //attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors | &copy; <a href="http://www.openradiation.org/copyright">OpenRadiation</a> | <span id="\hide_filters\">Filtres +/-</span> | <span id="\permalink\">Permalink</span> | <span id="\timechartlink\">tT</span> | <span id="\interpolationlink\">int</span>'
-            //attribution: '&copy; <a href=\"http:\/\/osm.org\/copyright\">OpenStreetMap<\/a> contributors | &copy; <a href=\"http:\/\/www.openradiation.org\/copyright\">OpenRadiation</a> | <span id=\"hide_filters\">Filtres +\/-</span> | <span id=\"permalink\">Permalink</span> | <span id=\"timechartlink\">t</span> | <span id=\"interpolationlink\">i</span>'
-            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/en/\data\">OpenRadiation</a>' 
+            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/en/\data\">OpenRadiation</a>'
         }).addTo(openradiation_map);
 
 
@@ -191,103 +191,129 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     //openradiation_map.addLayer(interpolation);
     
     //Add title control
-    var openradiation_title = L.control({
+    let openradiation_title = L.control({
         position : 'topleft'
     });
     
     openradiation_title.onAdd = function(openradiation_map) {
-        var div = L.DomUtil.create('div', 'openradiation_title');
+        let div = L.DomUtil.create('div', 'openradiation_title');
         div.innerHTML = '<strong>' + translate("Citizen radioactivity measurements") + '</strong>';
         return div;
     };
     
     openradiation_title.addTo(openradiation_map);
     
-    //Add menu control
-    var openradiation_menu = L.control({
-        position : 'topright'
+    //Add select qualification
+    let openradiation_qualification = L.control({
+        position: 'topleft'
     });
-    openradiation_menu.onAdd = function(openradiation_map) {
-        var div = L.DomUtil.create('div', 'openradiation_menu');
-        
-        div.innerHTML = '<span class="openradiation_menu_header openradiation_icon icon_menu"></span> \
-                          <div class="openradiation_menu_footer"> \
-                            <span class="openradiation_icon icon_cross" id="openradiation_menu_footer-close"></span> \
-                            <ul> \
-                                <li><span class="openradiation_icon icon_filter"></span><span id="hide_filters">' + translate("Display / Mask the filters") + '</span></li> \
-                                <li><span class="openradiation_icon icon_link"></span><span id="permalink">' + translate("Get a permalink") + '</span></li> \
-                                <li><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + translate("Timeline") + '</span></li> \
-                                <li><span><a href="/en/openradiation">EN</a> | <a href="/fr/openradiation">FR</a> </span></li> \
-                            </ul> \
-                          </div>';
-        return div;
-    };
-    openradiation_menu.addTo(openradiation_map);
-    
+
+    openradiation_qualification.onAdd = function(openradiation_map) {
+        let select = L.DomUtil.create('select', 'openradiation_qualification');
+        select.classList.add("select_qualification_container");
+        select.innerHTML = '<option value="plane">' + translate("Plane") + '</option> \
+                            <option value="all">' + translate("All measures") + '</option> \
+                            <option value="wrongmeasurement">' + translate("Wrong measurement") + '</option>\
+                            <option value="temporarysource">' + translate("Temporary source") + '</option>\
+                            <option value="groundlevel">' + translate("Ground level") + '</option>';
+
+        select.addEventListener('change', function() {
+            openradiation_getItems(false);
+            qualification = $(this).val();
+        });
+        return select;
+    }
+    openradiation_qualification.addTo(openradiation_map);
+
+    //remove plane if page ground measurements
+    let pageDrupal = parentUrl.substring(parentUrl.lastIndexOf('/') + 1)
+    switch (pageDrupal) {
+        case 'afficher-la-carte-sol':
+            qualification='all';
+            $(".select_qualification_container option[value='plane']").remove();
+            break;
+        case 'afficher-la-carte-vol':
+            qualification='plane';
+            $(".select_qualification_container option[value='temporarysource']").remove();
+            $(".select_qualification_container option[value='all']").remove();
+            $(".select_qualification_container option[value='plane']").remove();
+            $(".select_qualification_container option[value='wrongmeasurement']").remove();
+            break;
+        default:
+            qualification = 'plane';
+    }
+
+
+
     // Add zoom control
-    var zoomControl = L.control.zoom({ position: 'topleft'});
+    let zoomControl = L.control.zoom({ position: 'topleft'});
     openradiation_map.addControl(zoomControl);
 
     // Add openradiation filters control
-    var openradiation_filters = L.control({
+    let openradiation_filters = L.control({
         position : 'bottomleft'
     });
-    
+
+    //init events of user in map
+    $(document).ready(function(){
+        $(".toggle").click(function(){
+            $(".openradiation_filters").slideToggle();
+            $(this).toggleClass('icon-toggle-down');
+            $(this).toggleClass('icon-toggle-up');
+            $('.leaflet-control-attribution').toggle();
+        });
+
+        document.querySelectorAll("input").forEach((elem) => {
+            elem.addEventListener("input", function() {
+                openradiation_getItems(false);
+            });
+        });
+
+    });
+
     openradiation_filters.onAdd = function(openradiation_map) {
-        var div = L.DomUtil.create('div', 'openradiation_filters');
+        let div = L.DomUtil.create('div', 'openradiation_filters');
+
         L.DomEvent.disableClickPropagation(div);      
-        div.innerHTML = '<div class=\"slider_range\">\
-                            <div>\
-                                <div id=\"slider_rangevalue\"></div> \
-                                <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + translate("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
-                            </div>\
-                         </div>\
-                         <div class=\"slider_range\">\
-                            <div>\
-                                <div id=\"slider_rangedate\"></div> \
-                                <div><span id=\"slider_mindate\"></span><span id=\"slider_maxdate\"></span></div>\
-                            </div>\
-                         </div>\
-                         <div class=\"input_tag\">\
-                            <div>\
-                                <input id="tag" class="input" type="text" placeholder="# ' + translate("Your tag") + '"/>  \
-                                <input id="userId" class="input" type="text" placeholder="' + translate("User") + '"/> \
-                            </div>\
-                         </div>\
-                         <div class=\"download_file\">\
-                            <div id=\"export\">\
-                                <div>' + translate("CSV FILE") + '</div> \
-                                <img src=\"/images/arrow_download.png\"/> \
-                            </div>\
-                         </div>\
-                         <div class=\"select_qualification\">\
-                            <div>\
-                                <select id="qualification" name="qualification"> \
-                                    <option value="all">' + translate("ALL QUALIFICATIONS") + '</option> \
-                                    <option value="plane">' + translate("Plane") + '</option> \
-                                    <option value="wrongmeasurement">' + translate("Wrong measurement") + '</option> \
-                                    <option value="temporarysource">' + translate("Temporary source") + '</option>\
-                                    <option value="groundlevel">' + translate("Ground level") + '</option>\
-                                </select>\
-                                <select id="atypical" name="atypical"> \
-                                    <option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
-                                    <option value="false">' + translate("Standard measurements") + '</option> \
-                                    <option value="true">' + translate("Non-standard measurements") + '</option> \
-                                </select>\
-                            </div>\
-                         </div>';       
+        div.innerHTML =
+            '<div class=\"slider_range\">\
+                <div>\
+                    <div id=\"slider_rangevalue\"></div> \
+                    <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + translate("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
+                </div>\
+             </div>\
+             <div class=\"slider_range\">\
+                <div>\
+                    <div id=\"slider_rangedate\"></div> \
+                    <div><span id=\"slider_mindate\"></span><span id=\"slider_maxdate\"></span></div>\
+                </div>\
+             </div>\
+             <div class=\"input_tag\">\
+                <div>\
+                    <input id="tag" class="input" type="text" placeholder="# ' + translate("Your tag") + '"/>\
+                    <input id="userId" class="input" type="text" placeholder="' + translate("User") + '"/>\
+                </div>\
+             </div>\
+             <div class=\"download_file\">\
+                <div id=\"export\">\
+                    <div>' + translate("CSV FILE") + '</div> \
+                    <img src=\"/images/arrow_download.png\"/> \
+                </div>\
+             </div>\
+             <div class="get_links">\
+               <ul><span class="openradiation_icon icon_link"></span><span id="permalink">' + translate("Permalink") + '</span></ul>\
+               <ul><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + translate("Timeline") + '</span></ul>\
+             </div>';
+
         return div;
     };
-       
+
     openradiation_filters.addTo(openradiation_map);
 
     $("#tag").val(tag);
     $("#userId").val(userId);
-    if (qualification == 'plane')
-        $("#qualification").val('noenvironmentalcontext');
-    else
-        $("#qualification").val(qualification);
-    $("#atypical").val(atypical);
+    $("#qualification").val(qualification);
+
     $( "#slider_rangevalue" ).on( "slidecreate", function( event, ui ) {
         $( "#slider_rangevalue" ).slider("option", "values", [rangeValueMin, rangeValueMax]);
         $( "#slider_minvalue").text(val2uSv($( "#slider_rangevalue" ).slider( "values", 0)));
@@ -302,190 +328,97 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 
     if (withLocate == false && qualification != 'plane') // si plane 
         $('.openradiation_filters').css('display', 'none');
-    
-    //add a message
-    var openradiation_message = L.control({
+
+
+    //icon for hidden footer of map
+    let openradiation_toggle = L.control({
         position : 'bottomleft'
     });
-    openradiation_message.onAdd = function(openradiation_map) {
-        var div = L.DomUtil.create('div', 'openradiation_message');
-        div.innerHTML = '<strong id="nbresults"></strong>';
+    openradiation_toggle.onAdd = function(openradiation_map) {
+        let urlFlightMap = window.location.ancestorOrigins[0] + "/la-carte-et-ses-limites";
+        let div = L.DomUtil.create('div', 'openradiation_toggle');
+        div.innerHTML =
+            '\
+                <strong id="nbresults"></strong>\
+                <div class="icon-toggle-down toggle floatright"></div>\
+                <span class="floatright"><a href="/en/openradiation">EN</a> | <a href="/fr/openradiation">FR</a> </span>\
+                <a id="getFlightMap" class="floatright" target=\\"_blank\\" href="'+ urlFlightMap +'"> \
+                <span class="question">' + translate("Why don't I see all measurements ?") + '</span>\
+                </a>\
+            ';
+        div.classList.add("topSlider");
         return div;
     };
-    openradiation_message.addTo(openradiation_map); 
-      
+    openradiation_toggle.addTo(openradiation_map);
+
     // add a metric scale
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
-    
-    //if plane get plane tracks
-    if (qualification == 'plane') {
-        $.ajax({
-            type: 'GET',
-            url: '/flights?apiKey=' + apiKey,
-            timeout: 15000,
-            success: function(res) {
-                for (i=0; i < res.data.length; i ++)
-                {
-                    var points = [
-                        [res.data[i].firstLatitude, res.data[i].firstLongitude],
-                        [res.data[i].midLatitude, res.data[i].midLongitude],
-                        [res.data[i].lastLatitude, res.data[i].lastLongitude]
-                    ];
-                    //var polyline = L.polyline(latlngs, {color: 'orange' }).addTo(openradiation_map);
-                    var geodesic = L.geodesic([], {color: 'orange' }).addTo(openradiation_map);
-                    geodesic.setLatLngs([points]);
-                }            
-            },
-            error: function(res, status, err) {
-                console.log(err + " : " + status); 
-            }
-        });          
-    }   
-    
+
     openradiation_map.on('popupopen', function(e) {
-    
-        $.ajax({
-            type: 'GET',
-            url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=' + apiKey + '&response=complete',
-            //dataType: "jsonp",
-            //jsonpCallback: "_test",
-            //cache: false,
-            timeout: 15000,
-            success: function(res) {
-
-                var htmlPopup = "<div style=\"width:200px; overflow:hidden; min-height:130px;\"><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
-                
-                htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px; min-height:90px;\">";
-
-                if (typeof(res.data.enclosedObject) != "undefined") 
-                    htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
-                else
-                    htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"/images/measure.png\"/></div>";
-                htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>" + translate("More ...") + "</p><p class=\"plus\">+</p></a></div>";
-                htmlPopup += "</div>";
-                
-                htmlPopup += "<div style=\"width:140px; float:left; min-height:90px;\">";
-                
-                if (res.data.measurementEnvironment != null)
-                    htmlPopup += "<div style=\"float:right;\"><img src=\"/images/icon-env-" + res.data.measurementEnvironment + ".png\"/></div>";
-
-                if (res.data.userId != null)
-                    htmlPopup += "<div><span class=\"userId\">" + res.data.userId + "</span></div>";
-                    
-                
-                htmlPopup += "<div style=\"margin-bottom:5px;\"><span class=\"value\">" + res.data.value.toFixed(3).toString().replace(".",",") + " µSv/h</span></div>";
-                
-                
-                if (res.data.qualification != null) {
-                    htmlPopup += "<div><span class=\"comment\">";
-                    switch (res.data.qualification) {
-                        case "plane":
-                            htmlPopup += translate("Plane");
-                            break;
-                        case "wrongmeasurement":
-                            htmlPopup += translate("Wrong measurement");
-                            break;
-                        case "temporarysource":
-                            htmlPopup += translate("Temporary source");
-                            break;
-                        case "groundlevel":
-                            htmlPopup += translate("Ground level");
-                            break;
-                    };
-                    if (res.data.qualificationVotesNumber > 0){
-                        htmlPopup += " <img style=\"margin-bottom:-4px;\"src=\"/images/thumb.png\"/>+ " + res.data.qualificationVotesNumber;
-                        htmlPopup += "</span></div>"
-                    }
-
-                }
-
-                if (res.data.atypical == true)
-                    htmlPopup += "<div><span class=\"comment\">" + translate("Non-standard measurement") + "</span></div>";
-                    
-                if (res.data.tags != null)
-                {
-                    htmlPopup += "<div>";
-                    for (var i = 0; i < res.data.tags.length; i++)
-                    {
-                        htmlPopup += "<span class=\"tag\">#" + res.data.tags[i] + " </span>";
-                    }
-                    htmlPopup += "</div>";
-                }
-                htmlPopup += "</div>";
-                htmlPopup += "</div>";
-                e.popup.setContent(htmlPopup);
-                
-            },
-            error: function(res, status, err) {
-                console.log(err + " : " + status); 
-            }
-        });           
+        if(e.popup._source.flightData) {
+            if(e.target.flightData != undefined) //do nothing if popup already open
+                clickOnLine(e);
+        } else {
+            clickOnMarker(e, measurementURL);
+        }
     });
 };
 
-var urlPrev = "null";
-var minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -10000, maxLongitudePrev = +10000;
-var exhaustiveResultsPrev = false;
+let urlPrev = "null";
+let minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -10000, maxLongitudePrev = +10000;
+let exhaustiveResultsPrev = false;
 
-setInterval(function(){ openradiation_getItems(false); }, 5000);
+//setInterval(function(){ openradiation_getItems(false); }, 5000);
 
 function getUrl()
 {
-    //var urlTemp = "&minLatitude=" + openradiation_map.getBounds().getSouth() 
-    //            + "&maxLatitude=" + openradiation_map.getBounds().getNorth() 
-    //            + "&minLongitude=" + openradiation_map.getBounds().getWest() 
-    //            + "&maxLongitude=" + openradiation_map.getBounds().getEast();
-    var urlTemp = "";
+    let urlTemp = "";
     
-    var tag = $("#tag").val();
+    let tag = $("#tag").val();
     if (tag != "")
         urlTemp+= "&tag=" + tag;
 
-    var userId = $("#userId").val();
+    let userId = $("#userId").val();
     if (userId != "")
         urlTemp+= "&userId=" + userId;
         
-    var qualification = $("#qualification").val();
+    let qualification = $(".select_qualification_container").val();
     if (qualification != "" && qualification != "all")
         urlTemp+= "&qualification=" + qualification;
 
-    var atypical = $("#atypical").val();
-    if (atypical != "" && atypical != "all")
-        urlTemp+= "&atypical=" + atypical;
-        
-    var minValue = $("#slider_minvalue").text();
+    let minValue = $("#slider_minvalue").text();
     if (minValue != "" && minValue != "0")
         urlTemp+= "&minValue=" + minValue;
 
-    var maxValue = $("#slider_maxvalue").text();
+    let maxValue = $("#slider_maxvalue").text();
     if (maxValue != "" && maxValue != "+ ∞")
         urlTemp+= "&maxValue=" + maxValue;
     
-    var minDate = $("#slider_mindate").text();
+    let minDate = $("#slider_mindate").text();
     if (minDate != "" && minDate != "- ∞" && minDate != translate("now"))
     {
-        var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 0) ) / 9) - 1;
-        var NbSecond = Math.round(nbHours * 3600);
-        var now =  new Date();
+        let nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 0) ) / 9) - 1;
+        let NbSecond = Math.round(nbHours * 3600);
+        let now =  new Date();
         now.setMilliseconds(0);
         now.setSeconds(0);
         now.setMinutes(now.getMinutes() - now.getMinutes() % 10);
        
-        var minStartTime = new Date(now.getTime() - (NbSecond * 1000) );
+        let minStartTime = new Date(now.getTime() - (NbSecond * 1000) );
         urlTemp+= "&minStartTime=" + minStartTime.toISOString();
     }
     
-    var maxDate = $("#slider_maxdate").text();
+    let maxDate = $("#slider_maxdate").text();
     if (maxDate != "" && maxDate != "- ∞" && maxDate != translate("now"))
     {
-        var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 1) ) / 9) - 1;
-        var NbSecond = Math.round(nbHours * 3600);
-        var now =  new Date();
+        let nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 1) ) / 9) - 1;
+        let NbSecond = Math.round(nbHours * 3600);
+        let now =  new Date();
         now.setMilliseconds(0);
         now.setSeconds(0);
         now.setMinutes(now.getMinutes() - now.getMinutes() % 10);
        
-        var maxStartTime = new Date(now.getTime() - (NbSecond * 1000) );
+        let maxStartTime = new Date(now.getTime() - (NbSecond * 1000) );
         urlTemp+= "&maxStartTime=" + maxStartTime.toISOString();
     }
     
@@ -494,140 +427,42 @@ function getUrl()
 
 function retrieve_items(urlTemp, fitBounds) {
 
-    //console.log("retrieve items");
     urlPrev = urlTemp;
+
     minLatitudePrev = openradiation_map.getBounds().getSouth();
     maxLatitudePrev = openradiation_map.getBounds().getNorth();
     minLongitudePrev = openradiation_map.getBounds().getWest();
     maxLongitudePrev = openradiation_map.getBounds().getEast();
-    
+
     $("#nbresults").text("...");
     $.ajax({
     type: 'GET',
-    url: '/measurements?apiKey=' + apiKey 
-            + "&minLatitude=" + openradiation_map.getBounds().getSouth() 
-            + "&maxLatitude=" + openradiation_map.getBounds().getNorth() 
-            + "&minLongitude=" + openradiation_map.getBounds().getWest() 
-            + "&maxLongitude=" + openradiation_map.getBounds().getEast() 
-            + urlTemp, 
+    url: '/measurements?apiKey=' + apiKey
+            + "&minLatitude=" + openradiation_map.getBounds().getSouth()
+            + "&maxLatitude=" + openradiation_map.getBounds().getNorth()
+            + "&minLongitude=" + openradiation_map.getBounds().getWest()
+            + "&maxLongitude=" + openradiation_map.getBounds().getEast()
+            + urlTemp,
     //cache: false,
     timeout: 15000,
-    success: function(res, statut) {
-        
-        if (res.data.length < 2)
-        {
-            exhaustiveResultsPrev = true;
-            $("#nbresults").text(res.data.length + " " + translate("measurement found") );
-        }
-        else if (res.maxNumber == res.data.length)
-        { 
-            exhaustiveResultsPrev = false;
-            $("#nbresults").text(res.data.length + " " + translate("displayed measurements (NON-EXHAUSTIVE)") );
-        }
-        else
-        {
-            exhaustiveResultsPrev = true;
-            $("#nbresults").text(res.data.length + " " + translate("measurements found") );
-        }
-        
-        //list all new items
-        var openradiation_newitems = [];
-        for (i=0; i < res.data.length; i++)
-        {
-            openradiation_newitems.push(res.data[i].reportUuid);
-        }
-        
-        //for each old item
-        var openradiation_olditems = [];
-        openradiation_map.eachLayer(function (layer) {               
-            if (layer.reportUuid != null)
-            {
-                if (openradiation_newitems.indexOf(layer.reportUuid) == -1)
-                    openradiation_map.removeLayer(layer);
-                else
-                    openradiation_olditems.push(layer.reportUuid);
-            }
-        });
-        
-        //for each new item
-        for (i=0; i < res.data.length; i++)
-        {
-            if (openradiation_olditems.indexOf(res.data[i].reportUuid) == -1)
-            {
-                var htmlPopup = "<div></div>";
-                var icon;
-                
-                var nSvValue = res.data[i].value * 1000;
-                //16 colours classes depending value in nSv/h
-                if (nSvValue < 45)
-                    icon = icon_1;
-                else if (nSvValue < 72) 
-                    icon = icon_2;
-                else if (nSvValue < 114)
-                    icon = icon_3;
-                else if (nSvValue < 181) 
-                    icon = icon_4;
-                else if (nSvValue < 287) 
-                    icon = icon_5;
-                else if (nSvValue < 454) 
-                    icon = icon_6;
-                else if (nSvValue < 720) 
-                    icon = icon_7;
-                else if (nSvValue < 1142) 
-                    icon = icon_8;
-                else if (nSvValue < 1809) 
-                    icon = icon_9;
-                else if (nSvValue < 2867) 
-                    icon = icon_10;
-                else if (nSvValue < 4545)
-                    icon = icon_11;
-                else if (nSvValue < 7203) 
-                    icon = icon_12;
-                else if (nSvValue < 11416) 
-                    icon = icon_13;
-                else if (nSvValue < 18092) 
-                    icon = icon_14;
-                else if (nSvValue < 28675) 
-                    icon = icon_15;
-                else if (nSvValue < 45446) 
-                    icon = icon_16;
-                else if (nSvValue < 72027) 
-                    icon = icon_17;
-                else if (nSvValue < 114155) 
-                    icon = icon_18;
-                else 
-                    icon = icon_19;
-          
-                var marker = L.marker([res.data[i].latitude, res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
-                    .bindPopup(htmlPopup);
-                marker.reportUuid = res.data[i].reportUuid;
-                //for chart time
-                marker.value = res.data[i].value;
-                marker.startTime = new Date(res.data[i].startTime);
-            }
-        }
-        
-        if (fitBounds)
-        {
-            var bounds = [];
-            for (i=0; i < res.data.length; i++)
-            {
-                bounds.push([res.data[i].latitude, res.data[i].longitude]);
-            }
-            openradiation_map.fitBounds(bounds, { maxZoom: 13 } );
-        }
-        
+    success: function(res) {
+        showMarker(res, fitBounds);
     },
     error: function() {
-        //alert('Error during retrieving data'); 
+        //alert('Error during retrieving data');
         }
     });
 }
 
 function openradiation_getItems(fitBounds)
 {
-    var urlTemp = getUrl();
-    
+    let urlTemp = getUrl();
+
+    removeOtherPlaneTrack();
+    if(urlTemp == '&qualification=plane') {
+        initPlaneTrack();
+    }
+
     // we retrieve results if filters are differents
     //     or one of the geographical bounds are the bounds of the last request
     //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds    
@@ -643,8 +478,8 @@ function openradiation_getItems(fitBounds)
        || openradiation_map.getBounds().getWest() > minLongitudePrev
        || openradiation_map.getBounds().getEast() < maxLongitudePrev)
     {
-        var nb = 0;
-        var not_included = false;
+        let nb = 0;
+        let not_included = false;
         openradiation_map.eachLayer(function (layer) {
             
             if (layer.reportUuid != null) {
@@ -676,7 +511,7 @@ function openradiation_getItems(fitBounds)
 function val2uSv(val)
 {
     //empiric method to convert from 0-100 scale to the expected scale in uSv/h
-    var uSv = Math.round((Math.exp(val / 11.94) * 29)) / 1000;
+    let uSv = Math.round((Math.exp(val / 11.94) * 29)) / 1000;
     
     if (uSv > 120)
         return "+ ∞";
@@ -688,8 +523,8 @@ function val2uSv(val)
 
 function val2date(val)
 {    
-    //var hour = Math.exp((40 - val) / 3) - 1; // this is the nb hour from now
-    var hour = Math.exp((100 - val) / 9) - 1;
+    //let hour = Math.exp((40 - val) / 3) - 1; // this is the nb hour from now
+    let hour = Math.exp((100 - val) / 9) - 1;
     
     if (hour == 0)
         return translate("now");
@@ -736,6 +571,7 @@ $(function() {
         slide: function( event, ui ) {
             $( "#slider_minvalue").text(val2uSv(ui.values[0]));
             $( "#slider_maxvalue").text(val2uSv(ui.values[1]));
+
         }
     });
     
@@ -749,11 +585,19 @@ $(function() {
             $( "#slider_maxdate").text(val2date(ui.values[1]));
         }
     });
-    
+    $("#slider_rangedate").on('mouseup', function (){
+        openradiation_getItems(false);
+    })
+
+
+    $("#slider_rangevalue").on('mouseup', function (){
+        openradiation_getItems(false);
+    })
+
     $( "#export" ).click(function() {
         
-        //var isFileSaverSupported = !!new Blob;
-        var urlTemp = getUrl();
+        //let isFileSaverSupported = !!new Blob;
+        let urlTemp = getUrl();
                    
         $.ajax({
             type: 'GET',
@@ -761,76 +605,73 @@ $(function() {
             cache: false,
             timeout: 10000,
             success: function(res) {
-                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;calibrationFunction;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;flightNumber;seatNumber;windowSeat;storm;flightId;refinedLatitude;refinedLongitude;refinedAltitude;refinedEndLatitude;refinedEndLongitude;refinedEndAltitude;departureTime;arrivalTime;airportOrigin;airportDestination;aircraftType;firstLatitude;firstLongitude;midLatitude;midLongitude;lastLatitude;lastLongitude;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
-                for(var i in res.data)
+                let str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;calibrationFunction;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;flightNumber;seatNumber;windowSeat;storm;flightId;refinedLatitude;refinedLongitude;refinedAltitude;refinedEndLatitude;refinedEndLongitude;refinedEndAltitude;departureTime;arrivalTime;airportOrigin;airportDestination;aircraftType;firstLatitude;firstLongitude;midLatitude;midLongitude;lastLatitude;lastLongitude;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;tags list\n";
+                for(let i in res.data)
                 {
-                    str += res.data[i].apparatusId == null ? ";" : csv(res.data[i].apparatusId) + ";";
-                    str += res.data[i].apparatusVersion == null ? ";" : csv(res.data[i].apparatusVersion) + ";";
-                    str += res.data[i].apparatusSensorType == null ? ";" : csv(res.data[i].apparatusSensorType) + ";";
-                    str += res.data[i].apparatusTubeType == null ? ";" : csv(res.data[i].apparatusTubeType) + ";";
-                    str += res.data[i].temperature == null ? ";" : res.data[i].temperature + ";";
-                    str += res.data[i].value + ";";
-                    str += res.data[i].hitsNumber == null ? ";" : res.data[i].hitsNumber + ";";
-                    str += res.data[i].calibrationFunction == null ? ";" : csv(res.data[i].calibrationFunction) + ";";
-                    str += res.data[i].startTime + ";";
-                    str += res.data[i].endTime == null ? ";" : res.data[i].endTime + ";";	
-                    str += res.data[i].latitude + ";";	
-                    str += res.data[i].longitude + ";";
-                    str += res.data[i].accuracy == null ? ";" : res.data[i].accuracy + ";";	
-                    str += res.data[i].altitude == null ? ";" : res.data[i].altitude + ";";	
-                    str += res.data[i].altitudeAccuracy == null ? ";" : res.data[i].altitudeAccuracy + ";";
-                    str += res.data[i].endLatitude == null ? ";" : res.data[i].endLatitude + ";";	
-                    str += res.data[i].endLongitude == null ? ";" : res.data[i].endLongitude + ";";	
-                    str += res.data[i].endAccuracy == null ? ";" : res.data[i].endAccuracy + ";";	
-                    str += res.data[i].endAltitude == null ? ";" : res.data[i].endAltitude + ";";	
-                    str += res.data[i].endAltitudeAccuracy == null ? ";" : res.data[i].endAltitudeAccuracy + ";";	
-                    str += res.data[i].deviceUuid == null ? ";" : csv(res.data[i].deviceUuid) + ";";	
-                    str += res.data[i].devicePlatform == null ? ";" : csv(res.data[i].devicePlatform) + ";";	
-                    str += res.data[i].deviceVersion == null ? ";" : csv(res.data[i].deviceVersion) + ";";	
-                    str += res.data[i].deviceModel == null ? ";" : csv(res.data[i].deviceModel) + ";";	
-                    str += res.data[i].reportUuid + ";";
-                    str += res.data[i].manualReporting ? "1;" : "0;";
-                    str += res.data[i].organisationReporting == null ? ";" : csv(res.data[i].organisationReporting) + ";";		
-                    str += res.data[i].description == null ? ";" : csv(res.data[i].description) + ";";	
-                    str += res.data[i].measurementHeight == null ? ";" : res.data[i].measurementHeight + ";";	
-                    str += res.data[i].userId == null ? ";" : csv(res.data[i].userId) + ";";
-                    str += res.data[i].measurementEnvironment == null ? ";" : res.data[i].measurementEnvironment + ";";
-                    str += res.data[i].rain == null ? ";" : res.data[i].rain + ";";
-                    str += res.data[i].flightNumber == null ? ";" : csv(res.data[i].flightNumber) + ";";		
-                    str += res.data[i].seatNumber == null ? ";" : csv(res.data[i].seatNumber) + ";";		
-                    str += res.data[i].windowSeat == null ? ";" : res.data[i].windowSeat + ";";
-                    str += res.data[i].storm == null ? ";" : res.data[i].storm + ";";
-                    str += res.data[i].flightId == null ? ";" : res.data[i].flightId + ";";	
-                    str += res.data[i].refinedLatitude == null ? ";" : res.data[i].refinedLatitude + ";";	
-                    str += res.data[i].refinedLongitude == null ? ";" : res.data[i].refinedLongitude + ";";	
-                    str += res.data[i].refinedAltitude == null ? ";" : res.data[i].refinedAltitude + ";";
-                    str += res.data[i].refinedEndLatitude == null ? ";" : res.data[i].refinedEndLatitude + ";";	
-                    str += res.data[i].refinedEndLongitude == null ? ";" : res.data[i].refinedEndLongitude + ";";	
-                    str += res.data[i].refinedEndAltitude == null ? ";" : res.data[i].refinedEndAltitude + ";";
-                    str += res.data[i].departureTime == null ? ";" : res.data[i].departureTime + ";";
-                    str += res.data[i].arrivalTime == null ? ";" : res.data[i].arrivalTime + ";";	
-                    str += res.data[i].airportOrigin == null ? ";" : csv(res.data[i].airportOrigin) + ";";	
-                    str += res.data[i].airportDestination == null ? ";" : csv(res.data[i].airportDestination) + ";";	
-                    str += res.data[i].aircraftType == null ? ";" : csv(res.data[i].aircraftType) + ";";	
-                    str += res.data[i].firstLatitude == null ? ";" : res.data[i].firstLatitude + ";";	
-                    str += res.data[i].firstLongitude == null ? ";" : res.data[i].firstLongitude + ";";	
-                    str += res.data[i].midLatitude == null ? ";" : res.data[i].midLatitude + ";";
-                    str += res.data[i].midLongitude == null ? ";" : res.data[i].midLongitude + ";";	
-                    str += res.data[i].lastLatitude == null ? ";" : res.data[i].lastLatitude + ";";	
-                    str += res.data[i].lastLongitude == null ? ";" : res.data[i].lastLongitude + ";";
-                    str += res.data[i].dateAndTimeOfCreation + ";";
-                    str += res.data[i].qualification == null ? ";" : res.data[i].qualification + ";";	
-                    str += res.data[i].qualificationVotesNumber == null ? ";" : res.data[i].qualificationVotesNumber + ";";	
-                    str += res.data[i].reliability + ";";
-                    str += res.data[i].atypical ? "1;" : "0;";
-                    //if (res.data[i].tags == null)
-                    //    str += ";";
-                    //else {
-                    if (res.data[i].tags != null){
-                        for (t in res.data[i].tags)
+                    let data = res.data[i];
+                    str += data.apparatusId == null ? ";" : csv(data.apparatusId) + ";";
+                    str += data.apparatusVersion == null ? ";" : csv(data.apparatusVersion) + ";";
+                    str += data.apparatusSensorType == null ? ";" : csv(data.apparatusSensorType) + ";";
+                    str += data.apparatusTubeType == null ? ";" : csv(data.apparatusTubeType) + ";";
+                    str += data.temperature == null ? ";" : data.temperature + ";";
+                    str += data.value + ";";
+                    str += data.hitsNumber == null ? ";" : data.hitsNumber + ";";
+                    str += data.calibrationFunction == null ? ";" : csv(data.calibrationFunction) + ";";
+                    str += data.startTime + ";";
+                    str += data.endTime == null ? ";" : data.endTime + ";";
+                    str += data.latitude + ";";
+                    str += data.longitude + ";";
+                    str += data.accuracy == null ? ";" : data.accuracy + ";";
+                    str += data.altitude == null ? ";" : data.altitude + ";";
+                    str += data.altitudeAccuracy == null ? ";" : data.altitudeAccuracy + ";";
+                    str += data.endLatitude == null ? ";" : data.endLatitude + ";";
+                    str += data.endLongitude == null ? ";" : data.endLongitude + ";";
+                    str += data.endAccuracy == null ? ";" : data.endAccuracy + ";";
+                    str += data.endAltitude == null ? ";" : data.endAltitude + ";";
+                    str += data.endAltitudeAccuracy == null ? ";" : data.endAltitudeAccuracy + ";";
+                    str += data.deviceUuid == null ? ";" : csv(data.deviceUuid) + ";";
+                    str += data.devicePlatform == null ? ";" : csv(data.devicePlatform) + ";";
+                    str += data.deviceVersion == null ? ";" : csv(data.deviceVersion) + ";";
+                    str += data.deviceModel == null ? ";" : csv(data.deviceModel) + ";";
+                    str += data.reportUuid + ";";
+                    str += data.manualReporting ? "1;" : "0;";
+                    str += data.organisationReporting == null ? ";" : csv(data.organisationReporting) + ";";
+                    str += data.description == null ? ";" : csv(data.description) + ";";
+                    str += data.measurementHeight == null ? ";" : data.measurementHeight + ";";
+                    str += data.userId == null ? ";" : csv(data.userId) + ";";
+                    str += data.measurementEnvironment == null ? ";" : data.measurementEnvironment + ";";
+                    str += data.rain == null ? ";" : data.rain + ";";
+                    str += data.flightNumber == null ? ";" : csv(data.flightNumber) + ";";
+                    str += data.seatNumber == null ? ";" : csv(data.seatNumber) + ";";
+                    str += data.windowSeat == null ? ";" : data.windowSeat + ";";
+                    str += data.storm == null ? ";" : data.storm + ";";
+                    str += data.flightId == null ? ";" : data.flightId + ";";
+                    str += data.refinedLatitude == null ? ";" : data.refinedLatitude + ";";
+                    str += data.refinedLongitude == null ? ";" : data.refinedLongitude + ";";
+                    str += data.refinedAltitude == null ? ";" : data.refinedAltitude + ";";
+                    str += data.refinedEndLatitude == null ? ";" : data.refinedEndLatitude + ";";
+                    str += data.refinedEndLongitude == null ? ";" : data.refinedEndLongitude + ";";
+                    str += data.refinedEndAltitude == null ? ";" : data.refinedEndAltitude + ";";
+                    str += data.departureTime == null ? ";" : data.departureTime + ";";
+                    str += data.arrivalTime == null ? ";" : data.arrivalTime + ";";
+                    str += data.airportOrigin == null ? ";" : csvdata(data.airportOrigin) + ";";
+                    str += data.airportDestination == null ? ";" : csv(data.airportDestination) + ";";
+                    str += data.aircraftType == null ? ";" : csv(data.aircraftType) + ";";
+                    str += data.firstLatitude == null ? ";" : data.firstLatitude + ";";
+                    str += data.firstLongitude == null ? ";" : data.firstLongitude + ";";
+                    str += data.midLatitude == null ? ";" : data.midLatitude + ";";
+                    str += data.midLongitude == null ? ";" : data.midLongitude + ";";
+                    str += data.lastLatitude == null ? ";" : data.lastLatitude + ";";
+                    str += data.lastLongitude == null ? ";" : data.lastLongitude + ";";
+                    str += data.dateAndTimeOfCreation + ";";
+                    str += data.qualification == null ? ";" : data.qualification + ";";
+                    str += data.qualificationVotesNumber == null ? ";" : data.qualificationVotesNumber + ";";
+                    str += data.reliability + ";";
+                    if (data.tags != null){
+                        for (let t in data.tags)
                         {
-                            str += csv(res.data[i].tags[t]);
-                            if (t < (res.data[i].tags.length-1) )
+                            str += csv(data.tags[t]);
+                            if (t < (data.tags.length-1))
                                 str += ";";
                         }
                     }
@@ -838,30 +679,16 @@ $(function() {
                 }
                 
                 try {
-                    var blob = new Blob([str], {type: "text/csv;charset=utf-8"});
+                    let blob = new Blob([str], {type: "text/csv;charset=utf-8"});
                     saveAs(blob, "export_openradiation.csv");
                 } catch (e) {
                     alert("This feature is not available with your old version of browser");
-                } 
+                }
             },
             error: function() {
                 alert('Error during retrieving data'); 
             }
         });
-    });
-    
-    $( "#hide_filters" ).click(function() {
-        $(".openradiation_menu_footer").css("display","none");
-        $(".openradiation_menu_header").css("display","block");
-        
-        if ($( ".openradiation_filters" ).css('display') == "block")
-        {
-            $('.openradiation_filters').css('display', 'none');
-        }
-        else
-        {
-            $('.openradiation_filters').css('display', 'block');        
-        }
     });
      
     $( "#interpolationlink" ).click(function() {
@@ -874,29 +701,28 @@ $(function() {
             openradiation_map.addLayer(interpolation);
     });
     
-    
     $( "#permalink" ).click(function() {
         $(".openradiation_menu_footer").css("display","none");
         $(".openradiation_menu_header").css("display","block");
         
-        var link = window.location.protocol + "//" + window.location.host + "/openradiation";
-        var zoom = "/" + openradiation_map.getZoom() + "/" + openradiation_map.getCenter().lat.toFixed(7) + "/" + openradiation_map.getCenter().lng.toFixed(7);
+        let link = window.location.protocol + "//" + window.location.host + "/openradiation";
+        let zoom = "/" + openradiation_map.getZoom() + "/" + openradiation_map.getCenter().lat.toFixed(7) + "/" + openradiation_map.getCenter().lng.toFixed(7);
        
-        var permalink_details = "/";
-        
+        let permalink_details = "/";
+
         if ($("#tag").val() != "")
             permalink_details += $("#tag").val() +"/";
         else
             permalink_details += "all/";
-        
+
         if ($("#userId").val() != "")
             permalink_details += $("#userId").val() +"/";
         else
             permalink_details += "all/";
-        permalink_details += $("#qualification").val() + "/" + $("#atypical").val() + "/";
-        permalink_details += $( "#slider_rangevalue" ).slider( "values", 0) + "/" + $( "#slider_rangevalue" ).slider( "values", 1) + "/";
-        permalink_details += $( "#slider_rangedate" ).slider( "values", 0) + "/" + $( "#slider_rangedate" ).slider( "values", 1);
-        
+            permalink_details += $(".select_qualification_container").val() + "/all/"; // '/all/' is for atypical values
+            permalink_details += $( "#slider_rangevalue" ).slider( "values", 0) + "/" + $( "#slider_rangevalue" ).slider( "values", 1) + "/";
+            permalink_details += $( "#slider_rangedate" ).slider( "values", 0) + "/" + $( "#slider_rangedate" ).slider( "values", 1);
+
         if (permalink_details == "/all/all/all/all/0/100/0/100")
             permalink_details = "";
 
@@ -904,7 +730,8 @@ $(function() {
             $( "#permalink-message" ).html(translate("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span class=\"openradiation_icon icon_cross\" id=\"permalink-close\"></span> ");
         else
             $( "#permalink-message" ).html(translate("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> " + translate("Link to the fitted map") + " : <a target=\"_blank\" href=\"" + link + permalink_details + "\">" + link + permalink_details + "<\/a> <span id=\"permalink-close\">X</span> ");
-        
+
+
         $( "#permalink-message" ).css("display","block");
         $( "#permalink-close" ).click(function() {
             $( "#permalink-message" ).css("display","none");
@@ -912,7 +739,7 @@ $(function() {
 
     });
     
-    var firstTimeGoogleChart = true;
+    let firstTimeGoogleChart = true;
     
     $( ".openradiation_menu_header").click(function(e) {
         $(".openradiation_menu_footer").css("display","block");
@@ -926,93 +753,14 @@ $(function() {
         e.stopPropagation();
     });    
     
-    $( "#timechartlink" ).click(function() {
-        $("#openradiation_time").css("display","block");
-        $(".openradiation_menu_footer").css("display","none");
-        $(".openradiation_menu_header").css("display","block");
-        
-        if (firstTimeGoogleChart) {
-            firstTimeGoogleChart = false;
-            google.charts.load('current', {'packages':['line', 'corechart']});
-            google.charts.setOnLoadCallback(drawChart);
-        } else {
-            drawChart();
-        }
-                 
-        function drawChart() {
-            
-            var openradiationTime = document.getElementById('charttime');
-
-            var data = new google.visualization.DataTable();
-            data.addColumn('datetime', translate("Date"));
-            data.addColumn('number', translate("Dose rate (μSv/h)"));
-            var urlTemp = getUrl();                       
-            $.ajax({
-                type: 'GET',
-                url: '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp, 
-                cache: false,
-                timeout: 10000,
-                success: function(res) {
-                    var rows = [];
-                    // results are sorted by startTime so we can add them directly
-                    for(var i in res.data)
-                    {
-                        rows.push([new Date(res.data[i].startTime), res.data[i].value]);
-                    }
-                    data.addRows(rows);
-                    
-                    var date_formatter = new google.visualization.DateFormat({pattern: 'yyyy-MM-dd HH:mm'});
-                    var number_formatter = new google.visualization.NumberFormat({pattern: '#0.000'});
-                    date_formatter.format(data, 0); // Apply formatter to first column
-                    number_formatter.format(data, 1); // Apply formatter to second column
-                    
-
-                    var options = {
-                        
-                        legend : { position: "none" },
-                        chartArea:{width:'85%',height:'75%'},
-                        title: translate("Dose rate (μSv/h) per date"),
-                        titlePosition : 'in',
-                        //width: 100%,
-                        //height: 100%,
-                        explorer: {},
-                        lineDashStyle: [1, 5],
-                        pointsVisible: true,
-                        hAxis: {
-                            gridlines: {
-                                color: '#F8F8F8',
-                                units: {
-                                    //years: {format: [YYYY]},
-                                    //months: {format: [/]},
-                                    //days: {format: ['yyyy-MM-dd']}
-                                    //hours: {format: []}
-                                    //minutes: {format: []}
-                                    //seconds: {format: []},
-                                    //milliseconds: {format: []},
-                                }
-                            }
-                        },
-                        vAxis: {
-                            format : '0.000',
-                            gridlines: {
-                           
-                          }
-                        }
-                    };
-
-                    var classicChart = new google.visualization.LineChart(openradiationTime);
-                    classicChart.draw(data, options);
-                    
-                    document.getElementById('charttime').focus();
-                },
-                error: function() {
-                    alert('Error during retrieving data'); 
-                }
-            });
-        }
+    firstTimeGoogleChart = $( "#timechartlink" ).click(function() {
+        clickOnProfilTemporel(firstTimeGoogleChart);
     });
     
     closeChartTime = function() {
         $("#openradiation_time").css("display","none");
     }
+
+    $( "#slider_rangevalue" ).change
+
 });

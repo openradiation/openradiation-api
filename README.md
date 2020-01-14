@@ -265,7 +265,21 @@ Response will look like :
         ]
     }
         
+   To get how many measurements in a flight : 
        
+           GET /measurements/number/:flightId?apiKey=`apiKey`
+           
+   Response will look like : 
+           
+           {
+               "data": [
+                   {
+                       "number": "number"
+                   }
+               ]
+           }
+               
+              
 #### Restricted access to the API
 
 *This restricted access is only available for openradiation.org website with a special secret key*

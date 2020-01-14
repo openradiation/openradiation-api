@@ -17,7 +17,7 @@ module.exports = {
     requestApiFeature:true, //if the feature requestAPI is available
     mappingFeature:true, //if the feature requestAPI is available
     submitFormFeature:true, //if the feature submitForm is available
-    submitFormAPIKey:"490242ab4978ea6da6548974522121c8", //API key for submitting data; TABLE apiKey (comment: submit.openRadiation.net)
+    submitFormAPIKey:"83ace4264f1ac5f83fe3d373111a4141", //API key for submitting data; TABLE apiKey (comment: submit.openRadiation.net)
     measurementURL: "http://localhost:8080/import-measure/{reportUuid}",
     mappingURL:"https://localhost:8080", //mapping URL
     submitAPIHost:"127.0.0.1", //submitAPI contacted via post forms
@@ -30,4 +30,3 @@ module.exports = {
     flightSearchInterval: 305000, // every 5 minutes we try to attribuate measurements to a flight
     version: "v0.7"
 }
-
