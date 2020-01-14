@@ -48,8 +48,8 @@ let translations_FR = {
       "User" : "Utilisateur",
       "CSV FILE" : "FICHIER CSV",     
       "All measures" : "Toutes mesures",
-      "Plane" : "Mesures en vol",
-      "Wrong measurement" : "Mesures incorrects",
+      "In flight measurements" : "Mesures en vol",
+      "Wrong measurements" : "Mesures incorrects",
       "Temporary source" : "Mesures d'une source temporaire",
       "Ground level" : "Mesures au sol",
       "ALL MEASUREMENTS" : "TOUTES MESURES",    
@@ -156,21 +156,25 @@ function formatISODate(ISODate)
     return str;
 }
 
-function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax)
-{
+function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax) {
     //default value
     qualification = 'plane';
     //get url of parents page to init options
     const parentUrl = (window.location != window.parent.location) ? document.referrer : document.location.href
 
 
-    // create a map in the "map" div, set the view to a given place and zoom
-    openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true, minZoom:2, maxZoom:17 }).setView([latitude, longitude], zoom);
-   
+    // create a map in the "map" div, set thme view to a given place and zoom
+    openradiation_map = L.map('openradiation_map', {
+        zoomControl: false,
+        attributionControl: true,
+        minZoom: 2,
+        maxZoom: 17
+    }).setView([latitude, longitude], zoom);
+
     //if you want to locate the client
     if (withLocate)
-        openradiation_map.locate({ setView : true, maxZoom:12 });
-    
+        openradiation_map.locate({setView: true, maxZoom: 12});
+
     if (isLanguageFR) {
         L.tileLayer('https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
             attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>'
@@ -183,41 +187,41 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 
     }
     //add an interpolation map layer
-    interpolation = 
-      new L.TileLayer('/i/{z}/{x}/{y}.png',
-      {
-        opacity: 0.6
-      });
+    interpolation =
+        new L.TileLayer('/i/{z}/{x}/{y}.png',
+            {
+                opacity: 0.6
+            });
     //openradiation_map.addLayer(interpolation);
-    
+
     //Add title control
     let openradiation_title = L.control({
-        position : 'topleft'
+        position: 'topleft'
     });
-    
-    openradiation_title.onAdd = function(openradiation_map) {
+
+    openradiation_title.onAdd = function (openradiation_map) {
         let div = L.DomUtil.create('div', 'openradiation_title');
         div.innerHTML = '<strong>' + translate("Citizen radioactivity measurements") + '</strong>';
         return div;
     };
-    
+
     openradiation_title.addTo(openradiation_map);
-    
+
     //Add select qualification
     let openradiation_qualification = L.control({
         position: 'topleft'
     });
 
-    openradiation_qualification.onAdd = function(openradiation_map) {
+    openradiation_qualification.onAdd = function (openradiation_map) {
         let select = L.DomUtil.create('select', 'openradiation_qualification');
         select.classList.add("select_qualification_container");
-        select.innerHTML = '<option value="plane">' + translate("Plane") + '</option> \
+        select.innerHTML = '<option value="groundlevel">' + translate("Ground level") + '</option>\
+                            <option value="plane">' + translate("In flight measurements") + '</option> \
                             <option value="all">' + translate("All measures") + '</option> \
-                            <option value="wrongmeasurement">' + translate("Wrong measurement") + '</option>\
-                            <option value="temporarysource">' + translate("Temporary source") + '</option>\
-                            <option value="groundlevel">' + translate("Ground level") + '</option>';
+                            <option value="wrongmeasurement">' + translate("Wrong measurements") + '</option>\
+                            <option value="temporarysource">' + translate("Temporary source") + '</option>';
 
-        select.addEventListener('change', function() {
+        select.addEventListener('change', function () {
             openradiation_getItems(false);
             qualification = $(this).val();
         });
@@ -229,20 +233,15 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     let pageDrupal = parentUrl.substring(parentUrl.lastIndexOf('/') + 1)
     switch (pageDrupal) {
         case 'afficher-la-carte-sol':
-            qualification='all';
-            $(".select_qualification_container option[value='plane']").remove();
+            qualification = 'groundlevel';
             break;
         case 'afficher-la-carte-vol':
-            qualification='plane';
-            $(".select_qualification_container option[value='temporarysource']").remove();
-            $(".select_qualification_container option[value='all']").remove();
-            $(".select_qualification_container option[value='plane']").remove();
-            $(".select_qualification_container option[value='wrongmeasurement']").remove();
+            $('.select_qualification_container').val("plane").change();
+            qualification = 'plane';
             break;
         default:
-            qualification = 'plane';
+            qualification = 'groundlevel';
     }
-
 
 
     // Add zoom control
@@ -268,7 +267,6 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                 openradiation_getItems(false);
             });
         });
-
     });
 
     openradiation_filters.onAdd = function(openradiation_map) {
@@ -301,10 +299,9 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                 </div>\
              </div>\
              <div class="get_links">\
-               <ul><span class="openradiation_icon icon_link"></span><span id="permalink">' + translate("Permalink") + '</span></ul>\
-               <ul><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + translate("Timeline") + '</span></ul>\
+                   <ul><span class="openradiation_icon icon_link"></span><span id="permalink">' + translate("Permalink") + '</span></ul>\
+                   <ul><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + translate("Timeline") + '</span></ul>\
              </div>';
-
         return div;
     };
 
@@ -341,7 +338,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
             '\
                 <strong id="nbresults"></strong>\
                 <div class="icon-toggle-down toggle floatright"></div>\
-                <span class="floatright"><a href="/en/openradiation">EN</a> | <a href="/fr/openradiation">FR</a> </span>\
+                <span class="floatright"><a target="_self" href="/en/openradiation">EN</a> | <a target="_self" href="/fr/openradiation">FR</a> </span>\
                 <a id="getFlightMap" class="floatright" target=\\"_blank\\" href="'+ urlFlightMap +'"> \
                 <span class="question">' + translate("Why don't I see all measurements ?") + '</span>\
                 </a>\
@@ -454,11 +451,16 @@ function retrieve_items(urlTemp, fitBounds) {
     });
 }
 
-function openradiation_getItems(fitBounds)
+function openradiation_getItems(fitBounds, planeTrack)
 {
     let urlTemp = getUrl();
 
-    removeOtherPlaneTrack();
+    if(planeTrack) {
+        //do nothing
+    } else {
+        removeOtherPlaneTrack();
+    }
+
     if(urlTemp == '&qualification=plane') {
         initPlaneTrack();
     }
@@ -586,12 +588,12 @@ $(function() {
         }
     });
     $("#slider_rangedate").on('mouseup', function (){
-        openradiation_getItems(false);
+        openradiation_getItems(false, true);
     })
 
 
     $("#slider_rangevalue").on('mouseup', function (){
-        openradiation_getItems(false);
+        openradiation_getItems(false, true);
     })
 
     $( "#export" ).click(function() {
