@@ -37,6 +37,7 @@ html, body {
 
 /* Title */
 .leaflet-top .openradiation_title {
+    width: 250px;
     margin-top:0px;
     margin-left:0px;
     opacity:0.8; 
@@ -46,9 +47,8 @@ html, body {
 
 /* Select Qualification */
 .select_qualification_container {
-    position: absolute;
-    margin-left: -45%;
-    width: 320px !important;
+    position: relative;
+    width: 50%;
     padding: 5px;
     border: transparent;
     color: darkblue;

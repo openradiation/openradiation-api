@@ -207,10 +207,10 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 
     //Add select qualification
     let openradiation_qualification = L.control({
-        position: 'topleft'
+        position: 'topright'
     });
 
-    openradiation_qualification.onAdd = function (openradiation_map) {
+    openradiation_qualification.onAdd = function () {
         let select = L.DomUtil.create('select', 'openradiation_qualification');
         select.classList.add("select_qualification_container");
         select.innerHTML = '<option value="groundlevel">' + translate("Ground level") + '</option>\
