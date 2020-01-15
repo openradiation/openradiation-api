@@ -205,7 +205,6 @@ function listenLineClickUser() {
 }
 
 function showPlaneLine(data, points) {
-    console.log(data)
     if(removeOtherPlaneTrack()) {
         const options = {
             weight: 7,
@@ -383,8 +382,45 @@ function clickOnProfilTemporel(firstTimeGoogleChart) {
 
     if(window.location.flightId > 0) {
         drawPlotlyWithFlightId(window.location.flightId)
-        return;
+    } else {
+        drawPlotlyWithBounds();
     }
+}
+
+function drawPlotlyWithBounds(){
+    let urlTemp = getUrl();
+    $.ajax({
+        type: 'GET',
+        url: '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp,
+        cache: false,
+        timeout: 10000,
+        success: function(res) {
+            let layout = {title:translate("Timeline"), fileopt : "overwrite", filename : "simple-node-example"};
+
+            let debit = {
+                x: [],
+                y: [],
+                name: translate("Dose rate (μSv/h)"),
+                mode: 'markers',
+                side: 'left'
+            };
+
+            let rows = [];
+            // results are sorted by startTime so we can add them directly
+            for(let i in res.data)
+            {
+                debit.x.push(new Date(res.data[i].startTime));
+                debit.y.push(res.data[i].value);
+            }
+
+            Plotly.newPlot('charttime', [debit], layout);
+
+            document.getElementById('charttime').focus();
+        },
+        error: function() {
+            alert('Error during retrieving data');
+        }
+    });
 }
 
 function drawPlotlyWithFlightId(flightId) {
@@ -393,8 +429,6 @@ function drawPlotlyWithFlightId(flightId) {
         url: '/measurements/byFlightId/' + flightId + '?apiKey=' + apiKey + '&response=complete',
         timeout: 15000,
         success: function (res) {
-            let layout = {title:translate("Timeline"), fileopt : "overwrite", filename : "simple-node-example"};
-
             let debit = {
                 x: [],
                 y: [],
@@ -407,8 +441,19 @@ function drawPlotlyWithFlightId(flightId) {
                 x: [],
                 y: [],
                 name: 'Altitude (km)',
+                yaxis: 'y2',
                 mode: 'lines',
                 side: 'right'
+            };
+
+            let layout = {
+                title:translate("Timeline"),
+                yaxis: {title: translate("Dose rate (μSv/h)")},
+                yaxis2: {
+                    title: 'Altitude (m)',
+                    overlaying: 'y',
+                    side: 'right'
+                }
             };
 
             // results are sorted by startTime so we can add them directly
@@ -418,11 +463,11 @@ function drawPlotlyWithFlightId(flightId) {
                 debit.x.push(new Date(res.data[i].startTime));
                 debit.y.push(res.data[i].value);
                 altitude.x.push(new Date(res.data[i].startTime));
-                altitude.y.push(alt/1000);
+                altitude.y.push(alt);
             }
 
-            Plotly.newPlot('charttime', [debit], layout);
-            Plotly.plot('charttime', [altitude], layout);
+            let data = [debit, altitude];
+            Plotly.newPlot('charttime', data, layout);
             $('#charttime').focus();
         },
         error: function (res, status, err) {
@@ -446,11 +491,13 @@ function showMarker(res, fitBounds) {
     else if (res.maxNumber == res.data.length)
     {
         exhaustiveResultsPrev = false;
+        $('.question').show()
         $("#nbresults").text(res.data.length + " " + translate("displayed measurements (NON-EXHAUSTIVE)") );
     }
     else
     {
         exhaustiveResultsPrev = true;
+        $('.question').hide()
         $("#nbresults").text(res.data.length + " " + translate("measurements found") );
     }
 
@@ -551,4 +598,21 @@ function showMarker(res, fitBounds) {
         openradiation_map.fitBounds(bounds, { maxZoom: 13 } );
     }
     return points;
+}
+
+function initMapEvent() {
+
+    $(".toggle").click(function(){
+        $(".openradiation_filters").slideToggle();
+        $(this).toggleClass('icon-toggle-down');
+        $(this).toggleClass('icon-toggle-up');
+        $('.leaflet-control-attribution').toggle();
+    });
+
+    document.querySelectorAll("input").forEach((elem) => {
+        elem.addEventListener("input", function() {
+            window.location.flightId=null;
+            openradiation_getItems(false);
+        });
+    });
 }
