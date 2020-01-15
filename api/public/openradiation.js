@@ -79,8 +79,7 @@ let translations_FR = {
       "From :" : "De :",
       "To :" : "A :",
       "See flight profile" : "Voir le profil de vol",
-      "measurements" : "mesures",
-            
+      "measurements" : "mesures"
     };
     
 function translate(englishText)
@@ -192,7 +191,6 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
             {
                 opacity: 0.6
             });
-    //openradiation_map.addLayer(interpolation);
 
     //Add title control
     let openradiation_title = L.control({
@@ -254,20 +252,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     });
 
     //init events of user in map
-    $(document).ready(function(){
-        $(".toggle").click(function(){
-            $(".openradiation_filters").slideToggle();
-            $(this).toggleClass('icon-toggle-down');
-            $(this).toggleClass('icon-toggle-up');
-            $('.leaflet-control-attribution').toggle();
-        });
-
-        document.querySelectorAll("input").forEach((elem) => {
-            elem.addEventListener("input", function() {
-                openradiation_getItems(false);
-            });
-        });
-    });
+    $(document).ready(initMapEvent());
 
     openradiation_filters.onAdd = function(openradiation_map) {
         let div = L.DomUtil.create('div', 'openradiation_filters');
@@ -365,7 +350,7 @@ let urlPrev = "null";
 let minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -10000, maxLongitudePrev = +10000;
 let exhaustiveResultsPrev = false;
 
-//setInterval(function(){ openradiation_getItems(false); }, 5000);
+
 
 function getUrl()
 {
@@ -454,7 +439,7 @@ function retrieve_items(urlTemp, fitBounds) {
 function openradiation_getItems(fitBounds, planeTrack)
 {
     let urlTemp = getUrl();
-
+    window.location.flightId=null;
     if(planeTrack) {
         //do nothing
     } else {
