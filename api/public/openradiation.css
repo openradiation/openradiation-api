@@ -95,6 +95,11 @@ margin-right: auto;
     margin-left: 50px;
 }
 
+.get_links {
+    width: 25%;
+
+}
+
 
 .icon_menu  { background-position:left top;}
 .icon_cross { background-position:-32px top;}
@@ -166,18 +171,25 @@ strong, span { color:#2446AB; }
 
 @media only screen and (max-width:700px) {
     .openradiation_filters > div.slider_range {width:49%; }
-    .openradiation_filters > div.input_tag {clear:both; width:30%;}
+    .openradiation_filters > div.input_tag {clear:both; width:40%;}
+    .openradiation_filters > div.get_links { width:40%; margin-bottom:10px;}
     .openradiation_filters > div.download_file { width:15%; margin-bottom:10px;}
 }
 
 @media only screen and (max-width:370px) {
-    /*.leaflet-bottom .openradiation_filters {
-        display:none;
-    }*/
+    .leaflet-control-attribution { display:none; }
+    .icon-toggle-down { background-position:right top }
+    .icon-toggle-up { background-position:-48px top }
     .openradiation_filters { display:none; }
     .openradiation_filters > div.slider_range {width:100%;}
+    .openradiation_filters > div.get_links { width:60%; margin-bottom:20px;}
     .openradiation_filters > div.input_tag {width:60%;}
     .openradiation_filters > div.download_file { width:40%;}
+}
+
+@media only screen and (min-width:370px) {
+    .icon-toggle-down { background-position: -48px top }
+    .icon-toggle-up { background-position: right top }
 }
 
 #slider_rangedate {border-style:none; margin-top:10px; border-radius: 0px; background: black; width:150px; height:4px; margin-bottom:5px;}
@@ -250,6 +262,7 @@ strong, span { color:#2446AB; }
     font-family:sans-serif;
     padding-top:6px;
     padding-right:4px;
+    z-index: 1000;
 }
         
 /* Placeholders should be white despite opacity */

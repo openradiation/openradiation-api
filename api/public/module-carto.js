@@ -107,6 +107,10 @@ function clickOnFlightId(res, e){
     })
 }
 
+/**
+ *  when user click on a flight number of a marker
+ * @param flightId
+ */
 function getFlightData(flightId) {
     let flightData = {}
     $.ajax({
@@ -158,7 +162,7 @@ function clickOnLine(e) {
 
     if(e.target != undefined) {
         //click on line
-        flightId = e.target.flightData.flightId
+        flightId = e.target.flightData.flightId;
         data = e.target.flightData;
     } else {
         //click on popup marker
@@ -191,6 +195,7 @@ function listenLineClickUser() {
     map.on('mousedown', function (evt) {
         map.on('mouseup mousemove', function (evt) {
             if (evt.type === 'mouseup') {
+                isflightView=false;
                 $('.question').show();
                 openradiation_getItems(true);
                 map.off('mouseup');
@@ -215,7 +220,7 @@ function showPlaneLine(data, points) {
         //add the first and the end point of line
         points.unshift(data.points[0]);
         points.push(data.points[2]);
-        let objectLine = L.geodesic([], options).addTo(openradiation_map).bindPopup(constructFlightPopup(data,points.length));
+        let objectLine = L.geodesic([], options).addTo(openradiation_map).bindPopup(constructFlightPopup(data,(points.length - 2)));
 
         objectLine.setLatLngs([points]);
         //values for popup
@@ -241,7 +246,7 @@ function constructFlightPopup(data, numberMeasures) {
     window.location.flightId = data.flightId;
 
     let html =
-        "<div class='popupFlight' style=\"background-color:#ffffff; width:250px; overflow:hidden; min-height:130px;\">" +
+        "<div class='popupFlight' style=\"background-color:#ffffff; width:280px; overflow:hidden; min-height:130px;\">" +
         "<div style=\"margin:10px; border-bottom:solid #F1F1F1 1px;\">" +
         "<strong>" + translate("Flight") + " " + data.flightNumber;
 
@@ -262,11 +267,11 @@ function constructFlightPopup(data, numberMeasures) {
         html +=
         "<table>" +
         "<tr>" +
-            "<td class='value'>" + translate("From :") + " </td>" +
+            "<td class='value'>" + translate("From:") + " </td>" +
             "<td class='value'>" + data.airportOrigin + " - " + showIfExist(formatISODate(data.startTime)) + "</td>" +
         "</tr>" +
         "<tr>" +
-            "<td class='value'>" + translate("To :") + " </td>" +
+            "<td class='value'>" + translate("To:") + " </td>" +
             "<td class='value'>" + data.airportDestination + " - " + showIfExist(formatISODate(data.arrivalTime)) + "</td>" +
         "</tr>" +
         "</table>";
@@ -440,7 +445,7 @@ function drawPlotlyWithFlightId(flightId) {
             let altitude = {
                 x: [],
                 y: [],
-                name: 'Altitude (km)',
+                name: 'Altitude (m)',
                 yaxis: 'y2',
                 mode: 'lines',
                 side: 'right'
@@ -491,13 +496,13 @@ function showMarker(res, fitBounds) {
     else if (res.maxNumber == res.data.length)
     {
         exhaustiveResultsPrev = false;
-        $('.question').show()
-        $("#nbresults").text(res.data.length + " " + translate("displayed measurements (NON-EXHAUSTIVE)") );
+        $('.question').show();
+        $("#nbresults").text(res.data.length + " " + translate("Display limited to the most recent 400 measurements") );
     }
     else
     {
         exhaustiveResultsPrev = true;
-        $('.question').hide()
+        $('.question').hide();
         $("#nbresults").text(res.data.length + " " + translate("measurements found") );
     }
 
@@ -598,21 +603,4 @@ function showMarker(res, fitBounds) {
         openradiation_map.fitBounds(bounds, { maxZoom: 13 } );
     }
     return points;
-}
-
-function initMapEvent() {
-
-    $(".toggle").click(function(){
-        $(".openradiation_filters").slideToggle();
-        $(this).toggleClass('icon-toggle-down');
-        $(this).toggleClass('icon-toggle-up');
-        $('.leaflet-control-attribution').toggle();
-    });
-
-    document.querySelectorAll("input").forEach((elem) => {
-        elem.addEventListener("input", function() {
-            window.location.flightId=null;
-            openradiation_getItems(false);
-        });
-    });
 }
