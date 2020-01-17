@@ -1,6 +1,6 @@
 
 let isLanguageFR = false;
-
+let isflightView = false;
 //if (navigator.language.indexOf('fr') != -1)
 if (document.documentElement.lang == "fr")
     isLanguageFR = true; // true
@@ -58,7 +58,7 @@ let translations_FR = {
       "More ..." : "Voir plus",
       "measurement found" : "mesure trouvée",
       "measurements found" : "mesures trouvées",
-      "displayed measurements (NON-EXHAUSTIVE)" : "mesures affichées (NON EXHAUSTIF)",
+      "Display limited to the most recent 400 measurements" : "Affichage limité aux 400 mesures les plus récentes",
       "Link to this map" : "Lien vers cette carte",
       "Link to the fitted map" : "Lien vers la carte ajustée",
       "Why don't I see all measurements ?" : "Pourquoi je ne vois pas toutes les mesures ?",
@@ -76,8 +76,8 @@ let translations_FR = {
       "year" : "an",
       "years" : "ans",
       "Flight" : "Vol",
-      "From :" : "De :",
-      "To :" : "A :",
+      "From:" : "De:",
+      "To:" : "A:",
       "See flight profile" : "Voir le profil de vol",
       "measurements" : "mesures"
     };
@@ -154,6 +154,11 @@ function formatISODate(ISODate)
     
     return str;
 }
+
+setInterval(function(){
+    if(!isflightView)
+        openradiation_getItems(false);
+    }, 5000);
 
 function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax) {
     //default value
@@ -252,7 +257,23 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     });
 
     //init events of user in map
-    $(document).ready(initMapEvent());
+    $(document).ready(function() {
+
+        $(".toggle").click(function(){
+            $(".openradiation_filters").slideToggle();
+            $(this).toggleClass('icon-toggle-down');
+            $(this).toggleClass('icon-toggle-up');
+            $('.leaflet-control-attribution').toggle();
+        });
+
+        let elm = document.querySelectorAll("input");
+        for(let i = 0; i < elm.length; i++) {
+                elm[i].addEventListener("input", function() {
+                    window.location.flightId = null;
+                    openradiation_getItems(false);
+                });
+        };
+    });
 
     openradiation_filters.onAdd = function(openradiation_map) {
         let div = L.DomUtil.create('div', 'openradiation_filters');
@@ -340,6 +361,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         if(e.popup._source.flightData) {
             if(e.target.flightData != undefined) //do nothing if popup already open
                 clickOnLine(e);
+                isflightView = true;
         } else {
             clickOnMarker(e, measurementURL);
         }
@@ -483,7 +505,6 @@ function openradiation_getItems(fitBounds, planeTrack)
             retrieve_items(urlTemp, fitBounds);
         else {
             if (exhaustiveResultsPrev) {
-                //console.log("updated results without research");
                 if (nb < 2)
                     $("#nbresults").text(nb + " " + translate("measurement found"));
                 else
@@ -572,13 +593,18 @@ $(function() {
             $( "#slider_maxdate").text(val2date(ui.values[1]));
         }
     });
-    $("#slider_rangedate").on('mouseup', function (){
-        openradiation_getItems(false, true);
+    $("#slider_rangedate").on('mousedown', function (){
+        $("body").mouseup(function () {
+            $("body").off('mouseup');
+            openradiation_getItems(false, true);
+        })
     })
 
-
-    $("#slider_rangevalue").on('mouseup', function (){
-        openradiation_getItems(false, true);
+    $("#slider_rangevalue").on('mousedown', function (){
+        $("body").mouseup(function () {
+            $("body").off('mouseup');
+            openradiation_getItems(false, true);
+        })
     })
 
     $( "#export" ).click(function() {
@@ -639,9 +665,9 @@ $(function() {
                     str += data.refinedEndLatitude == null ? ";" : data.refinedEndLatitude + ";";
                     str += data.refinedEndLongitude == null ? ";" : data.refinedEndLongitude + ";";
                     str += data.refinedEndAltitude == null ? ";" : data.refinedEndAltitude + ";";
-                    str += data.departureTime == null ? ";" : data.departureTime + ";";
+                    str += data.departureTime == null ? ";" : data.dekmpartureTime + ";";
                     str += data.arrivalTime == null ? ";" : data.arrivalTime + ";";
-                    str += data.airportOrigin == null ? ";" : csvdata(data.airportOrigin) + ";";
+                    str += data.airportOrigin == null ? ";" : csv(data.airportOrigin) + ";";
                     str += data.airportDestination == null ? ";" : csv(data.airportDestination) + ";";
                     str += data.aircraftType == null ? ";" : csv(data.aircraftType) + ";";
                     str += data.firstLatitude == null ? ";" : data.firstLatitude + ";";

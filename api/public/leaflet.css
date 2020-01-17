@@ -460,6 +460,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 .leaflet-touch .leaflet-bar {
 	margin-left: 10px;
 	background-clip: padding-box;
+	width: 0px;
 	}
 
 
