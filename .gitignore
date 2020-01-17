@@ -18,6 +18,8 @@ letsencrypt/*
 letsencrypt
 api/cert.crt
 api/cert.key
+.idea
+
 
 
 
