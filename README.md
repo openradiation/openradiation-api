@@ -1,38 +1,4 @@
 # OpenRadiation
-
-## Install with Docker 
-This project can be start with docker 
-* install docker https://docs.docker.com/docker-for-windows/install/ 
-
-* Create your images and containers for PostreSQL 9.4 :
-```
-    docker-compose up -d postgres
-```
-* copy of your dump into the postgres container : 
-```
-   docker cp openradiation.dmp openradiation-api_postgres_1:/openradiation.dmp
-```
-
-* create database openradiation :
-```
-    docker ps --all //to see <postresID>
-    docker exec -it <postresID> bash
-    psql -U postgres
-    create database openradiation;
-```
-
-* dump of database :
-```
-    \q
-    pg_restore -Fc -i -U postgres -d openradiation -c /openradiation.dmp
-```
-
-* create your container nodeJS 6.9.3 :
-```
-    exit
-    docker-compose up -d app
-```
-
 ## Abstract
 This project aims to develop a database to store environmental radioactivity measurements. It's shared in 2 parts : 
 * backend : the postgresql backend database
@@ -112,7 +78,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>lastLatitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, latitude of the last measurement or latitude of the destination airport</td></tr>
 <tr><td>lastLongitude</td><td>Real</td><td></td><td>No, determinated by the API</td><td>if measurementEnvironment is plane and flightNumber setted, longitude of the last measurement or longitude of the destination airport</td></tr>
 <tr><td>dateAndTimeOfCreation</td><td>Timestamp</td><td></td><td>No, but always determinated by the API</td><td>Date of registration in the database</td></tr>
-<tr><td>qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>qualification : plane, wrongmeasurement, temporarysource, groundlevel</td></tr>
+<tr><td>qualification</td><td>String</td><td>*</td><td>No, determinated by the API or the website</td><td>plane, wrongmeasurement, temporarysource, groundlevel</td></tr>
 <tr><td>qualificationVotesNumber</td><td>Integer</td><td></td><td>No, determinated by the API or the website</td><td>qualification Votes Number</td></tr>
 <tr><td>reliability</td><td>Integer</td><td></td><td>No, but always determinated by the API and never modified</td><td>Estimated reliability that the measurement is correct. Calculated when submitted to the API as following : +1 for each filled field, + min(30,HitsNumber) if HitsNumber not null, +10 if userId not null, +20 if ManualReporting=false, +20 if MeasurementEnvironment=countryside / +10 if MeasurementEnvironment=city or ontheroad, +10 if MeasurementHeight=1. Expecting > 78 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)</td></tr>
 <tr><td>atypical</td><td>Boolean</td><td>*</td><td>No, but always determinated by the API and never modified</td><td>atypical if value is not representative of an environnemental measure. No if value < 0.2 (but we should compare value to an estimated local reference ...), yes otherwise</td></tr>
@@ -264,7 +230,7 @@ Response will look like :
             ...
         ]
     }
-        
+          
    To get how many measurements in a flight : 
        
            GET /measurements/number/:flightId?apiKey=`apiKey`
@@ -278,8 +244,7 @@ Response will look like :
                    }
                ]
            }
-               
-              
+    
 #### Restricted access to the API
 
 *This restricted access is only available for openradiation.org website with a special secret key*
