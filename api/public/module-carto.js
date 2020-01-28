@@ -1,19 +1,16 @@
+
 /**
  * Remove all geodesic's lines on the map
  * @param m map
  */
-function removeOtherPlaneTrack(flightId) {
+function removeOtherPlaneTrack() {
     for(let i in openradiation_map._layers) {
-
-        if(openradiation_map._layers[i]._path != undefined) {
-            if(openradiation_map._layers[i].flightData != undefined && openradiation_map._layers[i].flightData.flightId == flightId) {
-            } else {
-                try {
-                    openradiation_map.removeLayer(openradiation_map._layers[i]);
-                }
-                catch(e) {
-                    console.log("problem with " + e + openradiation_map._layers[i]);
-                }
+        if(openradiation_map._layers[i]._path != undefined && !openradiation_map._layers[i].flightData != undefined) {
+            try {
+                openradiation_map.removeLayer(openradiation_map._layers[i]);
+            }
+            catch(e) {
+                console.log("problem with " + e + openradiation_map._layers[i]);
             }
         }
     }
@@ -115,7 +112,7 @@ function getFlightData(flightId) {
     let flightData = {}
     $.ajax({
         type: 'GET',
-        url: '/flight/' + flightId + '?apiKey=' + apiKey + '&response=complete',
+        url: '/flights' + '?apiKey=' + apiKey + '&flightId=' + flightId + '&response=complete',
         timeout: 15000,
         success: function(res) {
             const options = {
@@ -169,9 +166,10 @@ function clickOnLine(e) {
         flightId = e;
         data = getFlightData(flightId);
     }
+
     $.ajax({
          type: 'GET',
-         url: '/measurements/byFlightId/' + flightId + '?apiKey=' + apiKey + '&response=complete',
+         url: '/measurements' + '?apiKey=' + apiKey + '&flightId=' + flightId + '&response=complete',
          timeout: 15000,
          success: function (measurementsData) {
              $('.question').hide();
@@ -195,7 +193,7 @@ function listenLineClickUser() {
     map.on('mousedown', function (evt) {
         map.on('mouseup mousemove', function (evt) {
             if (evt.type === 'mouseup') {
-                isflightView=false;
+                isflightLine=false;
                 $('.question').show();
                 openradiation_getItems(true);
                 map.off('mouseup');
@@ -218,9 +216,7 @@ function showPlaneLine(data, points) {
         };
 
         //add the first and the end point of line
-        points.unshift(data.points[0]);
-        points.push(data.points[2]);
-        let objectLine = L.geodesic([], options).addTo(openradiation_map).bindPopup(constructFlightPopup(data,(points.length - 2)));
+        let objectLine = L.geodesic([], options).addTo(openradiation_map).bindPopup(constructFlightPopup(data,(points.length)));
 
         objectLine.setLatLngs([points]);
         //values for popup
@@ -242,7 +238,7 @@ function showPlaneLine(data, points) {
  * @param numberMeasures
  */
 function constructFlightPopup(data, numberMeasures) {
-    //add flightId on url for permalink
+    //add flightId on url for timeline
     window.location.flightId = data.flightId;
 
     let html =
@@ -431,7 +427,7 @@ function drawPlotlyWithBounds(){
 function drawPlotlyWithFlightId(flightId) {
     $.ajax({
         type: 'GET',
-        url: '/measurements/byFlightId/' + flightId + '?apiKey=' + apiKey + '&response=complete',
+        url: '/measurements' + '?apiKey=' + apiKey + '&flightId=' + flightId + '&response=complete',
         timeout: 15000,
         success: function (res) {
             let debit = {
@@ -497,7 +493,7 @@ function showMarker(res, fitBounds) {
     {
         exhaustiveResultsPrev = false;
         $('.question').show();
-        $("#nbresults").text(res.data.length + " " + translate("Display limited to the most recent 400 measurements") );
+        $("#nbresults").text(translate("Display limited to the most recent") + " " + res.data.length + " " + translate("measurements") );
     }
     else
     {

@@ -16,8 +16,8 @@ extract/*
 extract
 letsencrypt/*
 letsencrypt
-api/cert.crt
-api/cert.key
+api/certs/cert.crt
+api/certs/cert.key
 .idea
 
 

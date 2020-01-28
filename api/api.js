@@ -1024,7 +1024,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 var qualificationValues = ["groundlevel", "plane", "wrongmeasurement", "temporarysource"];
                 if (typeof(json[dataName]) != "string" || qualificationValues.indexOf(json[dataName]) == -1)
                 {
-                    res.status(400).json({ error: {code:"102", message:dataName + " should be in [groundlevel | plane | wrongmeasurement | temporarysource"}});
+                    res.status(400).json({ error: {code:"102", message:dataName + " should be in [groundlevel | plane | wrongmeasurement | temporarysource ]"}});
                     return false;
                 }
                 break;
@@ -1173,97 +1173,6 @@ if (properties.requestApiFeature) {
     });
 
     //http://localhost:8080/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434&minLatitude=3.4&maxStartTime=2015-04-19T11:49:59Z&minStartTime=2015-04-19T11:49:59.005Z&response=complete
-    app.get('/measurements/byFlightId/:flightId', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /measurements with flightId : begin");
-        if (typeof(req.query.apiKey) != "string")
-        {
-            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
-        }
-        else {
-                pg.connect(conStr, function(err, client, done) {
-                    if (err) {
-                        done();
-                        console.error("Could not connect to PostgreSQL", err);
-                        res.status(500).end();
-                    } else {
-                        let sql = 'SELECT * FROM measurements WHERE "flightId"=$1';
-                        let values = [ req.params.flightId];
-                        console.log(values)
-                        client.query(sql, values, function(err, result) {
-                            if (err)
-                            {
-                                done();
-                                console.error("Error while running query " + sql + values, err);
-                                res.status(500).end();
-                            }
-                            else
-                            {
-                                let data = [];
-                                
-                                //methode 1 : with where
-                                if (req.query.response == null || result.rows.length == 0) // no need to retrieve tags
-                                {
-                                    done();
-                                    for (let r = 0; r < result.rows.length; r++)
-                                    {
-                                        data.push(result.rows[r]);
-                                        
-                                        for (i in data[data.length - 1])
-                                        {
-                                            if (data[data.length - 1][i] == null)
-                                                delete data[data.length - 1][i];
-                                        }
-                                    }
-                                    res.json( {data:data} );
-                                } else { // here we do an other request to retrieve tags
-                                    let sql = 'select "reportUuid", "tag" FROM TAGS WHERE "reportUuid" IN (';
-                                    for (let r = 0; r < result.rows.length; r++)
-                                    {
-                                        if (r == 0)
-                                            sql += "'" + result.rows[r].reportUuid + "'";
-                                        else
-                                            sql += ",'" + result.rows[r].reportUuid + "'";
-                                    }
-                                    sql += ') ORDER BY "reportUuid"';
-                                    client.query(sql, [], function(err, result2) {
-                                        done();
-                                        if (err)
-                                        {
-                                            console.error("Error while running query " + sql, err);
-                                            res.status(500).end();
-                                        } else {
-                                            var tmp_tags = {};
-                                            for (let t = 0; t < result2.rows.length; t++)
-                                            {
-                                                if (tmp_tags[result2.rows[t].reportUuid] == null)
-                                                    tmp_tags[result2.rows[t].reportUuid] = [];
-                                                tmp_tags[result2.rows[t].reportUuid].push(result2.rows[t].tag);
-                                            }
-                                            
-                                            for (let r = 0; r < result.rows.length; r++)
-                                            {
-                                                data.push(result.rows[r]);
-                                                if (tmp_tags[result.rows[r].reportUuid] != null)
-                                                   data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
-                                                    
-                                                for (i in data[data.length - 1])
-                                                {
-                                                    if (data[data.length - 1][i] == null)
-                                                        delete data[data.length - 1][i];
-                                                }
-                                            }
-                                            res.json( {data:data} );
-                                        }
-                                    });
-                                }
-                            }
-                        });
-                    }
-                });
-        }
-        console.log(new Date().toISOString() + " - GET /measurements with flightId : end");
-    });
-
     app.get('/measurements', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /measurements : begin");
         if (typeof(req.query.apiKey) != "string")
@@ -1321,11 +1230,10 @@ if (properties.requestApiFeature) {
                             limit = parseInt(req.query.maxNumber);
 
                         if (req.query.response == null)
-                            sql = 'SELECT "value", "startTime", "latitude", "longitude", "altitude", "refinedAltitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
+                            sql = 'SELECT "value", "startTime", "latitude", "longitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
                         else if (req.query.withEnclosedObject == null)
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
-                                  MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
                                   "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
                                   "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                         else
@@ -1632,54 +1540,10 @@ if (properties.requestApiFeature) {
         console.log(new Date().toISOString() + " - GET /flight : end");
     });
 
-
-    app.get('/measurements/number/:flightId', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /measurements/number/:flightId : begin");
-        if (typeof(req.query.apiKey) != "string")
-        {
-            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
-        }
-        else {
-            if (verifyApiKey(res, req.query.apiKey, false, false)
-                && verifyData(res, req.query, false, "response")
-                && verifyData(res, req.query, false, "withEnclosedObject"))
-            {
-                pg.connect(conStr, function(err, client, done) {
-                    if (err) {
-                        done();
-                        console.error("Could not connect to PostgreSQL", err);
-                        res.status(500).end();
-                    } else {
-                        let sql = 'SELECT COUNT (*) FROM MEASUREMENTS WHERE "flightId"=$1';
-                        let values = [ req.params.flightId];
-                        client.query(sql, values, function(err, result) {
-                            done();
-                            if (err)
-                            {
-                                console.error("Error while running query " + sql + values, err);
-                                res.status(500).end();
-                            }
-                            else
-                            {
-                                if (result.rowCount == 0)
-                                    res.status(400).json({ error: {code:"104", message:"flightId does not exists"}});
-                                else
-                                {
-                                    res.json( { data:result.rows[0]} );
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-        }
-        console.log(new Date().toISOString() + " - GET /measurements/number/:flightId : end");
-    });
 }
 
 //6. submit API
 if (properties.submitApiFeature) {
-    console.log("submit");
     app.post('/measurements', function (req, res, next) {
         console.log(new Date().toISOString() + " - POST /measurements : begin");
         if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
@@ -1838,19 +1702,11 @@ if (properties.submitApiFeature) {
                                 if (req.body.data.measurementHeight != null && req.body.data.measurementHeight == 1)
                                     reliability += 10;
 
-                                // Expecting > 78 (if not qualification is set to mustbeverified and qualificationVotesNumber is set to 0)
-                                var qualification;
-                                var qualificationVotesNumber;
-                                if (req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane") {
-                                    qualification = "noenvironmentalcontext";
-                                    qualificationVotesNumber = 0;
-                                } else if (reliability <= 78) {
-                                    qualification = "mustbeverified";
-                                    qualificationVotesNumber = 0;
-                                } else {
-                                    delete qualification;
-                                    delete qualificationVotesNumber;
-                                }
+                                let qualification = "groundlevel";
+                                let qualificationVotesNumber = 0;
+
+                                if(req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane")
+                                    qualification = "plane";
                                     
                                 var atypical = req.body.data.value < 0.2 ? false : true;
                                 var dateAndTimeOfCreation = new Date();
@@ -2826,8 +2682,8 @@ httpsServer.listen(properties.httpsPort, function() {
     console.log(new Date().toISOString() + " -    APIKeyTestMaxCounter : [" + properties.APIKeyTestMaxCounter + "]"); 
     console.log(new Date().toISOString() + " -    measurementURL       : [" + properties.measurementURL + "]"); 
     if (properties.nodeUserUid != null && properties.nodeUserGid != null && process.getuid && process.setuid && process.getgid && process.setgid) {
-       // process.setgid(properties.nodeUserGid);
-       // process.setuid(properties.nodeUserUid);
+        process.setgid(properties.nodeUserGid);
+        process.setuid(properties.nodeUserUid);
         console.log(new Date().toISOString() + " -    nodeUserUid          : [" + properties.nodeUserUid + "]");
         console.log(new Date().toISOString() + " -    nodeUserGid          : [" + properties.nodeUserGid + "]"); 
     }
@@ -2853,7 +2709,7 @@ httpsServer.listen(properties.httpsPort, function() {
 });
 
 //10. http server
-http.createServer(app).listen(properties.httpPort); // replace http_req by app to listen on http port
+http.createServer(http_req).listen(properties.httpPort); // replace http_req by app to listen on http port
 function http_req(req, res) {
     console.log(new Date().toISOString() + " - http_req(req, res) : HTTP /" + req.method + " called");
     req.on('error', function(err) {

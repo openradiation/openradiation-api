@@ -1,6 +1,6 @@
 
 let isLanguageFR = false;
-let isflightView = false;
+let isflightLine = false;
 //if (navigator.language.indexOf('fr') != -1)
 if (document.documentElement.lang == "fr")
     isLanguageFR = true; // true
@@ -46,10 +46,9 @@ let translations_FR = {
       "VALUE IN µSv/h" : "VALEUR EN μSv/h",
       "Your tag" : "Votre tag",
       "User" : "Utilisateur",
-      "CSV FILE" : "FICHIER CSV",     
-      "All measures" : "Toutes mesures",
+      "CSV FILE" : "FICHIER CSV",
       "In flight measurements" : "Mesures en vol",
-      "Wrong measurements" : "Mesures incorrects",
+      "Wrong measurements" : "Mesures incorrectes",
       "Temporary source" : "Mesures d'une source temporaire",
       "Ground level" : "Mesures au sol",
       "ALL MEASUREMENTS" : "TOUTES MESURES",    
@@ -58,7 +57,8 @@ let translations_FR = {
       "More ..." : "Voir plus",
       "measurement found" : "mesure trouvée",
       "measurements found" : "mesures trouvées",
-      "Display limited to the most recent 400 measurements" : "Affichage limité aux 400 mesures les plus récentes",
+      "Display limited to the most recent" : "Affichage limité aux",
+      "measurements" : "mesures les plus récentes",
       "Link to this map" : "Lien vers cette carte",
       "Link to the fitted map" : "Lien vers la carte ajustée",
       "Why don't I see all measurements ?" : "Pourquoi je ne vois pas toutes les mesures ?",
@@ -156,17 +156,11 @@ function formatISODate(ISODate)
 }
 
 setInterval(function(){
-    if(!isflightView)
+    if(!isflightLine)
         openradiation_getItems(false);
     }, 5000);
 
 function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax) {
-    //default value
-    qualification = 'plane';
-    //get url of parents page to init options
-    const parentUrl = (window.location != window.parent.location) ? document.referrer : document.location.href
-
-
     // create a map in the "map" div, set thme view to a given place and zoom
     openradiation_map = L.map('openradiation_map', {
         zoomControl: false,
@@ -218,9 +212,10 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     openradiation_qualification.onAdd = function () {
         let select = L.DomUtil.create('select', 'openradiation_qualification');
         select.classList.add("select_qualification_container");
-        select.innerHTML = '<option value="groundlevel">' + translate("Ground level") + '</option>\
+        select.id = "select_qualification";
+        select.innerHTML = '<option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
+                            <option value="groundlevel">' + translate("Ground level") + '</option>\
                             <option value="plane">' + translate("In flight measurements") + '</option> \
-                            <option value="all">' + translate("All measures") + '</option> \
                             <option value="wrongmeasurement">' + translate("Wrong measurements") + '</option>\
                             <option value="temporarysource">' + translate("Temporary source") + '</option>';
 
@@ -231,21 +226,6 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         return select;
     }
     openradiation_qualification.addTo(openradiation_map);
-
-    //remove plane if page ground measurements
-    let pageDrupal = parentUrl.substring(parentUrl.lastIndexOf('/') + 1)
-    switch (pageDrupal) {
-        case 'afficher-la-carte-sol':
-            qualification = 'groundlevel';
-            break;
-        case 'afficher-la-carte-vol':
-            $('.select_qualification_container').val("plane").change();
-            qualification = 'plane';
-            break;
-        default:
-            qualification = 'groundlevel';
-    }
-
 
     // Add zoom control
     let zoomControl = L.control.zoom({ position: 'topleft'});
@@ -258,6 +238,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 
     //init events of user in map
     $(document).ready(function() {
+        $('#select_qualification').val('groundlevel');
 
         $(".toggle").click(function(){
             $(".openradiation_filters").slideToggle();
@@ -338,7 +319,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         position : 'bottomleft'
     });
     openradiation_toggle.onAdd = function(openradiation_map) {
-        let urlFlightMap = window.location.ancestorOrigins[0] + "/la-carte-et-ses-limites";
+        let urlFlightMap = document.referrer + "/la-carte-et-ses-limites";
         let div = L.DomUtil.create('div', 'openradiation_toggle');
         div.innerHTML =
             '\
@@ -361,7 +342,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         if(e.popup._source.flightData) {
             if(e.target.flightData != undefined) //do nothing if popup already open
                 clickOnLine(e);
-                isflightView = true;
+                isflightLine = true;
         } else {
             clickOnMarker(e, measurementURL);
         }
@@ -468,22 +449,21 @@ function openradiation_getItems(fitBounds, planeTrack)
         removeOtherPlaneTrack();
     }
 
-    if(urlTemp == '&qualification=plane') {
+    if(urlTemp == '&qualification=plane')
         initPlaneTrack();
-    }
 
     // we retrieve results if filters are differents
     //     or one of the geographical bounds are the bounds of the last request
     //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds    
     if (urlTemp != urlPrev)
         retrieve_items(urlTemp, fitBounds);
-    else if (openradiation_map.getBounds().getSouth() < minLatitudePrev 
+    else if (openradiation_map.getBounds().getSouth() < minLatitudePrev
        || openradiation_map.getBounds().getNorth() > maxLatitudePrev
        || openradiation_map.getBounds().getWest() < minLongitudePrev
        || openradiation_map.getBounds().getEast() > maxLongitudePrev)
         retrieve_items(urlTemp, fitBounds);
     else if (openradiation_map.getBounds().getSouth() > minLatitudePrev
-       || openradiation_map.getBounds().getNorth() < maxLatitudePrev 
+       || openradiation_map.getBounds().getNorth() < maxLatitudePrev
        || openradiation_map.getBounds().getWest() > minLongitudePrev
        || openradiation_map.getBounds().getEast() < maxLongitudePrev)
     {
