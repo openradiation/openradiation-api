@@ -10,8 +10,45 @@ html, body {
     width: 100%;
 }
 
+.leaflet-left .leaflet-control {
+    margin-left: 0;
+    width: 100%;
+}
+
 #seeflightId {
     cursor: pointer;
+}
+
+.leaflet-top .leaflet-control {
+    margin-top:35px;
+}
+
+/* Title */
+.leaflet-top .openradiation_title {
+    width: 250px;
+    margin-top:0px;
+    margin-left:0px;
+    opacity:0.8; 
+    padding:7px 30px 7px 30px; 
+    background-color:white;
+}
+
+.leaflet-bottom .leaflet-control {
+    margin-bottom: 0px;
+}
+
+.leaflet-top {
+    width: 100%;
+    margin-right: 20%;
+}
+
+
+
+
+.leaflet-touch .leaflet-bar {
+    margin-left: 10px;
+    background-clip: padding-box;
+    width: 0px;
 }
 
 .topSlider {
@@ -32,17 +69,6 @@ html, body {
 
 .floatright {
     float: right;
-}
-
-
-/* Title */
-.leaflet-top .openradiation_title {
-    width: 250px;
-    margin-top:0px;
-    margin-left:0px;
-    opacity:0.8; 
-    padding:7px 30px 7px 30px; 
-    background-color:white;
 }
 
 /* Select Qualification */
