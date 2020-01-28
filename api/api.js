@@ -939,14 +939,14 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 for (i = 0; i < json[dataName].length; i++) 
                 {
-                    if (typeof(json[dataName][i]) != "string" || json[dataName][i].length > 100 || json[dataName][i] == "") 
+                    if (typeof(json[dataName][i]) != "string" || json[dataName][i].length > 100 || json[dataName][i].replace(/#/g, "") == "")
                     {
                         res.status(400).json({ error: {code:"102", message:dataName + " contains an element which is too long or is not a filled string"}}); 
                         return false;
                     }
                     for (j = 0; j < json[dataName].length; j++) 
                     {
-                        if (j<i && json[dataName][i].toLowerCase() == json[dataName][j].toLowerCase())
+                        if (j<i && json[dataName][i].toLowerCase() == json[dataName][j].toLowerCase().replace(/#/g,""))
                         {
                             res.status(400).json({ error: {code:"102", message:dataName + " contains several elements with the same value"}}); 
                             return false;
@@ -1302,7 +1302,7 @@ if (properties.requestApiFeature) {
                         }
                         if (req.query.tag != null)
                         {
-                            values.push(req.query.tag.toLowerCase());
+                            values.push(req.query.tag.toLowerCase().replace(/#/g,""));
                             where += ' AND TAGS."tag" = $' + values.length;
                         }
                         if (req.query.atypical != null)
@@ -1740,7 +1740,7 @@ if (properties.submitApiFeature) {
                                         {
                                             async.forEach(req.body.data.tags, function(tag, callback) { //The second argument (callback) is the "task callback" for a specific task
                                                     var sql = 'INSERT INTO TAGS ("reportUuid", "tag") VALUES ($1, $2)';
-                                                    var values = [ req.body.data.reportUuid, tag.toLowerCase() ];
+                                                    var values = [ req.body.data.reportUuid, tag.toLowerCase().replace(/#/g, "") ];
                                                     client.query(sql, values, function(err, result) {
                                                         if (err) {
                                                             console.error("Error while running query " + sql + values, err);
