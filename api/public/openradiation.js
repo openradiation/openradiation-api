@@ -239,6 +239,9 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 
     //init events of user in map
     $(document).ready(function() {
+        $('#select_qualification').val('groundlevel');
+        openradiation_getItems(false);
+
         $(".toggle").click(function(){
             $(".openradiation_filters").slideToggle();
             $(this).toggleClass('icon-toggle-down');

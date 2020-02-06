@@ -8,8 +8,6 @@ services:
     command: "node api/api.js"
     ports:
       - "8083:8083"
-    environment:
-      PHP_IDE_CONFIG: serverName=test-app
     depends_on:
       - postgres
   postgres:
