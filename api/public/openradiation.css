@@ -91,6 +91,7 @@ margin-right: auto;
 .openradiation_icon {
     width:16px;
     height:16px;
+    margin-right: 5px;
     display: inline-block;
     background: url("images/picto.png") no-repeat;
     background-position:right top;

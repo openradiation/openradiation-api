@@ -79,7 +79,7 @@ let translations_FR = {
       "From:" : "De:",
       "To:" : "A:",
       "See flight profile" : "Voir le profil de vol",
-      "measurements" : "mesures"
+      "/en/map-and-its-limits" : "/fr/la-carte-et-ses-limites"
     };
     
 function translate(englishText)
@@ -161,6 +161,7 @@ setInterval(function(){
     }, 5000);
 
 function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax) {
+    console.log(qualification)
     // create a map in the "map" div, set thme view to a given place and zoom
     openradiation_map = L.map('openradiation_map', {
         zoomControl: false,
@@ -220,8 +221,8 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                             <option value="temporarysource">' + translate("Temporary source") + '</option>';
 
         select.addEventListener('change', function () {
-            openradiation_getItems(false);
             qualification = $(this).val();
+            openradiation_getItems(false);
         });
         return select;
     }
@@ -238,8 +239,6 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
 
     //init events of user in map
     $(document).ready(function() {
-        $('#select_qualification').val('groundlevel');
-
         $(".toggle").click(function(){
             $(".openradiation_filters").slideToggle();
             $(this).toggleClass('icon-toggle-down');
@@ -313,20 +312,20 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     if (withLocate == false && qualification != 'plane') // si plane 
         $('.openradiation_filters').css('display', 'none');
 
-
     //icon for hidden footer of map
     let openradiation_toggle = L.control({
         position : 'bottomleft'
     });
     openradiation_toggle.onAdd = function(openradiation_map) {
-        let urlFlightMap = document.referrer + "/la-carte-et-ses-limites";
+        let urlFlightMap = urlPage.substring(0, urlPage.lastIndexOf('/import-measure')) + translate("/en/map-and-its-limits");
+
         let div = L.DomUtil.create('div', 'openradiation_toggle');
         div.innerHTML =
             '\
                 <strong id="nbresults"></strong>\
                 <div class="icon-toggle-down toggle floatright"></div>\
                 <span class="floatright"><a target="_self" href="/en/openradiation">EN</a> | <a target="_self" href="/fr/openradiation">FR</a> </span>\
-                <a id="getFlightMap" class="floatright" target=\\"_blank\\" href="'+ urlFlightMap +'"> \
+                <a id="getFlightMap" class="floatright" target=\"_blank\" href='+ urlFlightMap +'> \
                 <span class="question">' + translate("Why don't I see all measurements ?") + '</span>\
                 </a>\
             ';
@@ -358,7 +357,7 @@ let exhaustiveResultsPrev = false;
 function getUrl()
 {
     let urlTemp = "";
-    
+
     let tag = $("#tag").val();
     if (tag != "")
         urlTemp+= "&tag=" + tag;
@@ -366,8 +365,9 @@ function getUrl()
     let userId = $("#userId").val();
     if (userId != "")
         urlTemp+= "&userId=" + userId;
-        
-    let qualification = $(".select_qualification_container").val();
+
+    let qualification = $("#select_qualification").val();
+    console.log(document.getElementById("select_qualification").value)
     if (qualification != "" && qualification != "all")
         urlTemp+= "&qualification=" + qualification;
 
@@ -378,7 +378,7 @@ function getUrl()
     let maxValue = $("#slider_maxvalue").text();
     if (maxValue != "" && maxValue != "+ ∞")
         urlTemp+= "&maxValue=" + maxValue;
-    
+
     let minDate = $("#slider_mindate").text();
     if (minDate != "" && minDate != "- ∞" && minDate != translate("now"))
     {
@@ -388,11 +388,11 @@ function getUrl()
         now.setMilliseconds(0);
         now.setSeconds(0);
         now.setMinutes(now.getMinutes() - now.getMinutes() % 10);
-       
+
         let minStartTime = new Date(now.getTime() - (NbSecond * 1000) );
         urlTemp+= "&minStartTime=" + minStartTime.toISOString();
     }
-    
+
     let maxDate = $("#slider_maxdate").text();
     if (maxDate != "" && maxDate != "- ∞" && maxDate != translate("now"))
     {
@@ -402,17 +402,17 @@ function getUrl()
         now.setMilliseconds(0);
         now.setSeconds(0);
         now.setMinutes(now.getMinutes() - now.getMinutes() % 10);
-       
+
         let maxStartTime = new Date(now.getTime() - (NbSecond * 1000) );
         urlTemp+= "&maxStartTime=" + maxStartTime.toISOString();
     }
-    
+
     return urlTemp;
 }
 
 function retrieve_items(urlTemp, fitBounds) {
-
     urlPrev = urlTemp;
+    console.log(urlTemp);
 
     minLatitudePrev = openradiation_map.getBounds().getSouth();
     maxLatitudePrev = openradiation_map.getBounds().getNorth();
@@ -442,6 +442,7 @@ function retrieve_items(urlTemp, fitBounds) {
 function openradiation_getItems(fitBounds, planeTrack)
 {
     let urlTemp = getUrl();
+
     window.location.flightId=null;
     if(planeTrack) {
         //do nothing
@@ -589,7 +590,7 @@ $(function() {
 
     $( "#export" ).click(function() {
         
-        //let isFileSaverSupported = !!new Blob;
+        console.log("click")
         let urlTemp = getUrl();
                    
         $.ajax({
@@ -660,6 +661,7 @@ $(function() {
                     str += data.qualification == null ? ";" : data.qualification + ";";
                     str += data.qualificationVotesNumber == null ? ";" : data.qualificationVotesNumber + ";";
                     str += data.reliability + ";";
+                    str += res.data[i].atypical ? "1;" : "0;";
                     if (data.tags != null){
                         for (let t in data.tags)
                         {
@@ -712,7 +714,7 @@ $(function() {
             permalink_details += $("#userId").val() +"/";
         else
             permalink_details += "all/";
-            permalink_details += $(".select_qualification_container").val() + "/all/"; // '/all/' is for atypical values
+            permalink_details += document.getElementById("select_qualification").value + "/all/"; // '/all/' is for atypical values
             permalink_details += $( "#slider_rangevalue" ).slider( "values", 0) + "/" + $( "#slider_rangevalue" ).slider( "values", 1) + "/";
             permalink_details += $( "#slider_rangedate" ).slider( "values", 0) + "/" + $( "#slider_rangedate" ).slider( "values", 1);
 

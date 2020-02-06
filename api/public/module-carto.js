@@ -4,12 +4,11 @@
  * @param m map
  */
 function removeOtherPlaneTrack() {
-    for(let i in openradiation_map._layers) {
+    for (let i in openradiation_map._layers) {
         if(openradiation_map._layers[i]._path != undefined && !openradiation_map._layers[i].flightData != undefined) {
             try {
                 openradiation_map.removeLayer(openradiation_map._layers[i]);
-            }
-            catch(e) {
+            } catch(e) {
                 console.log("problem with " + e + openradiation_map._layers[i]);
             }
         }
@@ -87,7 +86,6 @@ function clickOnMarker(e, measurementURL) {
         success: function(res) {
             let htmlPopup = constructMarkerPopup(res, measurementURL,e);
             e.popup.setContent(htmlPopup);
-
             if(res.data.flightId > 0) {
                 clickOnFlightId(res,e);
             }
@@ -264,11 +262,13 @@ function constructFlightPopup(data, numberMeasures) {
         "<table>" +
         "<tr>" +
             "<td class='value'>" + translate("From:") + " </td>" +
-            "<td class='value'>" + data.airportOrigin + " - " + showIfExist(formatISODate(data.startTime)) + "</td>" +
+            "<td class='value'>" + data.airportOrigin +
+            "<td class='value'>" + " - " + showIfExist(formatISODate(data.startTime)) + "</td>" +
         "</tr>" +
         "<tr>" +
             "<td class='value'>" + translate("To:") + " </td>" +
-            "<td class='value'>" + data.airportDestination + " - " + showIfExist(formatISODate(data.arrivalTime)) + "</td>" +
+            "<td class='value'>" + data.airportDestination +
+            "<td class='value'>" + " - " + showIfExist(formatISODate(data.arrivalTime)) + "</td>" +
         "</tr>" +
         "</table>";
     }

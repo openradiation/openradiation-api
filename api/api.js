@@ -946,7 +946,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                     }
                     for (j = 0; j < json[dataName].length; j++) 
                     {
-                        if (j<i && json[dataName][i].toLowerCase() == json[dataName][j].toLowerCase().replace(/#/g,""))
+                        if (j<i && json[dataName][i].toLowerCase().replace(/#/g, "")  == json[dataName][j].toLowerCase().replace(/#/g,""))
                         {
                             res.status(400).json({ error: {code:"102", message:dataName + " contains several elements with the same value"}}); 
                             return false;
@@ -1234,6 +1234,7 @@ if (properties.requestApiFeature) {
                         else if (req.query.withEnclosedObject == null)
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                                  MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
                                   "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
                                   "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                         else
@@ -1487,59 +1488,6 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /flights : end");
     });
-
-    app.get('/flight/:flightId', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /flight with flightId : begin");
-        if (typeof(req.query.apiKey) != "string")
-        {
-            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
-        }
-        else {
-            if ( verifyApiKey(res, req.query.apiKey, false, false))
-            {
-                pg.connect(conStr, function(err, client, done) {
-                    if (err) {
-                        done();
-                        console.error("Could not connect to PostgreSQL", err);
-                        res.status(500).end();
-                    } else {
-                        let sql =   'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" ' +
-                                    'FROM FLIGHTS ' +
-                                    'WHERE "flightId"=$1 ' +
-                                    'ORDER BY "flightId"';
-
-                        let values = [ req.params.flightId];
-                        client.query(sql, values, function(err, result) {
-                            if (err)
-                            {
-                                done();
-                                console.error("Error while running query " + sql + values, err);
-                                res.status(500).end();
-                            }
-                            else
-                            {
-                                let data = [];
-                                done();
-                                for (let r = 0; r < result.rows.length; r++)
-                                {
-                                    data.push(result.rows[r]);
-
-                                    for (i in data[data.length - 1])
-                                    {
-                                        if (data[data.length - 1][i] == null)
-                                            delete data[data.length - 1][i];
-                                    }
-                                }
-                                res.json( { data:data} );
-                            }
-                        });
-                    }
-                });
-            }
-        }
-        console.log(new Date().toISOString() + " - GET /flight : end");
-    });
-
 }
 
 //6. submit API
@@ -2547,7 +2495,7 @@ if (properties.mappingFeature) {
                 lang = getLanguage(req);
             else
                 lang = req.params.lang;
-            res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"all",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
+            res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:true, fitBounds:false, zoom: 6, latitude:46.609464, longitude:2.471888, tag:"", userId:"",  qualification:"groundlevel",  atypical:"all", rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100});
         } else
             res.status(404).end();
     });
@@ -2564,7 +2512,7 @@ if (properties.mappingFeature) {
             else
                 lang = req.params.lang;
             res.render('openradiation.ejs', { lang:lang, apiKey: mutableOpenRadiationMapApiKey, measurementURL: properties.measurementURL, withLocate:false, fitBounds:false, zoom: req.params.zoom, latitude: req.params.latitude, longitude: req.params.longitude, 
-                                          tag:"", userId: "", qualification: "all", atypical: "all",
+                                          tag:"", userId: "", qualification: "groundlevel", atypical: "all",
                                           rangeValueMin:0, rangeValueMax:100, rangeDateMin:0, rangeDateMax:100 } );
         } else {
             res.status(404).end();
@@ -2596,8 +2544,8 @@ if (properties.mappingFeature) {
             else
                 lang = req.params.lang;
 			var qualification;
-			if (req.params.qualification == "groundlevel")
-                qualification = "all";
+			if (req.params.qualification == "all")
+                qualification = "groundlevel";
             else
                 qualification = req.params.qualification;
 			
@@ -2636,8 +2584,9 @@ if (properties.mappingFeature) {
             else
                 lang = req.params.lang;
 			var qualification;
-			if (req.params.qualification == "groundlevel")
-                qualification = "all";
+			console.log(req.params.qualification)
+			if (req.params.qualification == "all")
+                qualification = "groundlevel";
             else
                 qualification = req.params.qualification;
 			
@@ -2682,8 +2631,8 @@ httpsServer.listen(properties.httpsPort, function() {
     console.log(new Date().toISOString() + " -    APIKeyTestMaxCounter : [" + properties.APIKeyTestMaxCounter + "]"); 
     console.log(new Date().toISOString() + " -    measurementURL       : [" + properties.measurementURL + "]"); 
     if (properties.nodeUserUid != null && properties.nodeUserGid != null && process.getuid && process.setuid && process.getgid && process.setgid) {
-        process.setgid(properties.nodeUserGid);
-        process.setuid(properties.nodeUserUid);
+        //process.setgid(properties.nodeUserGid);
+        //process.setuid(properties.nodeUserUid);
         console.log(new Date().toISOString() + " -    nodeUserUid          : [" + properties.nodeUserUid + "]");
         console.log(new Date().toISOString() + " -    nodeUserGid          : [" + properties.nodeUserGid + "]"); 
     }
@@ -2709,7 +2658,7 @@ httpsServer.listen(properties.httpsPort, function() {
 });
 
 //10. http server
-http.createServer(http_req).listen(properties.httpPort); // replace http_req by app to listen on http port
+http.createServer(app).listen(properties.httpPort); // replace http_req by app to listen on http port
 function http_req(req, res) {
     console.log(new Date().toISOString() + " - http_req(req, res) : HTTP /" + req.method + " called");
     req.on('error', function(err) {
