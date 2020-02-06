@@ -161,7 +161,6 @@ setInterval(function(){
     }, 5000);
 
 function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax) {
-    console.log(qualification)
     // create a map in the "map" div, set thme view to a given place and zoom
     openradiation_map = L.map('openradiation_map', {
         zoomControl: false,
@@ -370,7 +369,6 @@ function getUrl()
         urlTemp+= "&userId=" + userId;
 
     let qualification = $("#select_qualification").val();
-    console.log(document.getElementById("select_qualification").value)
     if (qualification != "" && qualification != "all")
         urlTemp+= "&qualification=" + qualification;
 
@@ -415,8 +413,6 @@ function getUrl()
 
 function retrieve_items(urlTemp, fitBounds) {
     urlPrev = urlTemp;
-    console.log(urlTemp);
-
     minLatitudePrev = openradiation_map.getBounds().getSouth();
     maxLatitudePrev = openradiation_map.getBounds().getNorth();
     minLongitudePrev = openradiation_map.getBounds().getWest();
@@ -592,8 +588,6 @@ $(function() {
     })
 
     $( "#export" ).click(function() {
-        
-        console.log("click")
         let urlTemp = getUrl();
                    
         $.ajax({
