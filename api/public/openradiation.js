@@ -1,11 +1,13 @@
 
-let isLanguageFR = false;
-let isflightLine = false;
+var isLanguageFR = false;
+var flightId_selected = null;
+var flightId_geodesic = null;
+
 //if (navigator.language.indexOf('fr') != -1)
 if (document.documentElement.lang == "fr")
     isLanguageFR = true; // true
     
-let icon_c = L.Icon.extend({
+var icon_c = L.Icon.extend({
     options: {
         shadowUrl: '/images/marker-shadow_1.png',
         shadowRetinaUrl: '/images/marker-shadow_1-2x.png',
@@ -17,7 +19,7 @@ let icon_c = L.Icon.extend({
     }
 });
 
-let icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/images/icon_2x_1.png'}),
+var icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/images/icon_2x_1.png'}),
     icon_2 = new icon_c({iconUrl: '/images/icon_1x_2.png', iconRetinaUrl: '/images/icon_2x_2.png'}),
     icon_3 = new icon_c({iconUrl: '/images/icon_1x_3.png', iconRetinaUrl: '/images/icon_2x_3.png'}),
     icon_4 = new icon_c({iconUrl: '/images/icon_1x_4.png', iconRetinaUrl: '/images/icon_2x_4.png'}),
@@ -37,34 +39,40 @@ let icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/imag
     icon_18 = new icon_c({iconUrl: '/images/icon_1x_18.png', iconRetinaUrl: '/images/icon_2x_18.png'}),
     icon_19 = new icon_c({iconUrl: '/images/icon_1x_19.png', iconRetinaUrl: '/images/icon_2x_19.png'});
     
-let interpolation;
+var interpolation;
 
-let translations_FR = {
+var translations_FR = {
       "Citizen radioactivity measurements" : "Les citoyens mesurent la radioactivité",
       "Permalink" : "Permalien",
       "Timeline" : "Profil temporel",
       "VALUE IN µSv/h" : "VALEUR EN μSv/h",
       "Your tag" : "Votre tag",
       "User" : "Utilisateur",
-      "CSV FILE" : "FICHIER CSV",
+      "CSV FILE" : "FICHIER CSV",     
+      "ALL MEASUREMENTS" : "TOUTES MESURES",
+      "In flight measurement" : "Mesure en vol",
       "In flight measurements" : "Mesures en vol",
+      "Wrong measurement" : "Mesures incorrecte",
       "Wrong measurements" : "Mesures incorrectes",
-      "Temporary source" : "Mesures d'une source temporaire",
-      "Ground level" : "Mesures au sol",
-      "ALL MEASUREMENTS" : "TOUTES MESURES",    
-      "Standard measurements" : "Mesures standard",
+      "Temporary source measurement" : "Mesure d'une source",
+      "Temporary source measurements" : "Mesures d'une source",
+      "Ground level measurement" : "Mesure au sol",    
+      "Ground level measurements" : "Mesures au sol",      
+      //"Standard measurements" : "Mesures standard",
+      //"Non-standard measurement" : "Mesure atypique",  
+      //"Non-standard measurements" : "Mesures atypiques", 
       "thumb" : "pouce",
       "More ..." : "Voir plus",
       "measurement found" : "mesure trouvée",
       "measurements found" : "mesures trouvées",
-      "Display limited to the most recent" : "Affichage limité aux",
-      "measurements" : "mesures les plus récentes",
+      "measurements" : "mesures",
+      "Display limited to the" : "Affichage limité aux",
+      "most recent measurements" : "mesures les plus récentes",
+      "Why don't I see all measurements ?" : "Pourquoi je ne vois pas toutes les mesures ?",
       "Link to this map" : "Lien vers cette carte",
       "Link to the fitted map" : "Lien vers la carte ajustée",
-      "Why don't I see all measurements ?" : "Pourquoi je ne vois pas toutes les mesures ?",
       "Date" : "Date",
       "Dose rate (μSv/h)" : "Débit de dose (μSv/h)",
-      "Dose rate (μSv/h) per date" : "Débit de dose (μSv/h) par date",
       "now" : "maintenant",
       "minutes" : "minutes",
       "hour" : "heure",
@@ -78,8 +86,7 @@ let translations_FR = {
       "Flight" : "Vol",
       "From:" : "De:",
       "To:" : "A:",
-      "See flight profile" : "Voir le profil de vol",
-      "/en/map-and-its-limits" : "/fr/la-carte-et-ses-limites"
+      "See flight profile" : "Voir le profil de vol" 
     };
     
 function translate(englishText)
@@ -99,7 +106,7 @@ function csv(text)
 { 
     // if text contains ; \n \r " it is surrounded by "
     // if text contains "
-    let result = text;
+    var result = text;
     if (text.indexOf(';') > -1 || text.indexOf('\n') > -1 || text.indexOf('\r') > -1 || text.indexOf('"') > -1) 
     {
         result = result.replace(/"/g, '""');
@@ -111,8 +118,8 @@ function csv(text)
 
 function formatISODate(ISODate)
 {
-    let date = new Date(ISODate);
-    let str = "";
+    var date = new Date(ISODate);
+    var str = "";
     
     if (isLanguageFR) {
         if (date.getDate() < 10)
@@ -155,150 +162,206 @@ function formatISODate(ISODate)
     return str;
 }
 
-setInterval(function(){
-    if(!isflightLine)
-        openradiation_getItems(false);
-    }, 5000);
+function drawPlotly() {
+            
+    $("#openradiation_time").css("display","block");
+    
+    let urlTemp = getUrl();
+    
+    let url;
+    if (flightId_selected == null)
+        url = '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp;
+    else
+        url = '/measurements?apiKey=' + apiKey + urlTemp + '&response=complete&withEnclosedObject=no';
+    
+    $.ajax({
+        type: 'GET',
+        url: url,
+        cache: false,
+        timeout: 10000,
+        success: function(res) {
+            let debit = {
+                x: [],
+                y: [],
+                name: translate("Dose rate (μSv/h)"),
+                mode: 'markers',
+                side: 'left',
+            };
+            
+            let layout;
+            let altitude;
+            if (flightId_selected != null) {
+                layout = {
+                    title:translate("Timeline"),
+                    yaxis: {title: translate("Dose rate (μSv/h)"), rangemode: 'tozero'},
+                    yaxis2: {
+                        rangemode: 'tozero',
+                        title: 'Altitude (m)',
+                        overlaying: 'y',
+                        side: 'right'
+                    }
+                };
+                altitude = {
+                    x: [],
+                    y: [],
+                    name: 'Altitude (m)',
+                    yaxis: 'y2',
+                    //mode: 'lines',
+                    side: 'right',
+                    type: 'scatter'
+  
+                };
+            } else
+                layout = {title:translate("Timeline"), yaxis: {title: translate("Dose rate (μSv/h)"), rangemode: 'tozero'}};
+            
+            // results are sorted by startTime so we can add them directly
+            for(let i in res.data)
+            {
+                debit.x.push(new Date(res.data[i].startTime));
+                debit.y.push(res.data[i].value.toFixed(3));
+                
+                if (flightId_selected != null) {
+                    altitude.x.push(new Date(res.data[i].startTime));
+                    altitude.y.push((res.data[i].refinedAltitude != undefined) ? res.data[i].refinedAltitude : res.data[i].altitude);
+                }
+            }
+    
+            if (flightId_selected != null) {
+                Plotly.newPlot('charttime', [debit, altitude], layout);
+            } else
+                Plotly.newPlot('charttime', [debit], layout);
+            
+           $('#charttime').focus();
+        },
+        error: function() {
+            alert('Error during retrieving data');
+        }
+    });
+}  
 
-function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax) {
-    // create a map in the "map" div, set thme view to a given place and zoom
-    openradiation_map = L.map('openradiation_map', {
-        zoomControl: false,
-        attributionControl: true,
-        minZoom: 2,
-        maxZoom: 17
-    }).setView([latitude, longitude], zoom);
-
+closeChartTime = function() {
+    $("#openradiation_time").css("display","none");
+}   
+        
+    
+function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax)
+{
+    
+    // create a map in the "map" div, set the view to a given place and zoom
+    openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true, minZoom:2, maxZoom:17 }).setView([latitude, longitude], zoom);
+   
     //if you want to locate the client
     if (withLocate)
-        openradiation_map.locate({setView: true, maxZoom: 12});
-
+        openradiation_map.locate({ setView : true, maxZoom:12 });
+    
+    // add an OpenStreetMap tile layer
+    //L.tileLayer('http://bissorte.irsn.fr/mapcache/tms/1.0.0/osm@g/{z}/{x}/{y}.png', { tms:true,
+    //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// https
+    //L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { // http
     if (isLanguageFR) {
         L.tileLayer('https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
-            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>'
+            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>' 
         }).addTo(openradiation_map);
     } else {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
-            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/en/\data\">OpenRadiation</a>'
+            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/en/\data\">OpenRadiation</a>' 
         }).addTo(openradiation_map);
 
 
     }
     //add an interpolation map layer
-    interpolation =
-        new L.TileLayer('/i/{z}/{x}/{y}.png',
-            {
-                opacity: 0.6
-            });
-
+    interpolation = 
+      new L.TileLayer('/i/{z}/{x}/{y}.png',
+      {
+        opacity: 0.6
+      });
+    //uncomment to add the layer
+    //openradiation_map.addLayer(interpolation);
+    
     //Add title control
-    let openradiation_title = L.control({
-        position: 'topleft'
+    var openradiation_title = L.control({
+        position : 'topleft'
     });
-
-    openradiation_title.onAdd = function (openradiation_map) {
-        let div = L.DomUtil.create('div', 'openradiation_title');
+    
+    openradiation_title.onAdd = function(openradiation_map) {
+        var div = L.DomUtil.create('div', 'openradiation_title');
         div.innerHTML = '<strong>' + translate("Citizen radioactivity measurements") + '</strong>';
         return div;
     };
-
+    
     openradiation_title.addTo(openradiation_map);
-
+        
     //Add select qualification
-    let openradiation_qualification = L.control({
+    var openradiation_qualification = L.control({
         position: 'topright'
     });
-
     openradiation_qualification.onAdd = function () {
-        let select = L.DomUtil.create('select', 'openradiation_qualification');
-        select.classList.add("select_qualification_container");
-        select.id = "select_qualification";
-        select.innerHTML = '<option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
-                            <option value="groundlevel">' + translate("Ground level") + '</option>\
-                            <option value="plane">' + translate("In flight measurements") + '</option> \
-                            <option value="wrongmeasurement">' + translate("Wrong measurements") + '</option>\
-                            <option value="temporarysource">' + translate("Temporary source") + '</option>';
-
-        select.addEventListener('change', function () {
-            qualification = $(this).val();
-            openradiation_getItems(false);
-        });
-        return select;
+        var div = L.DomUtil.create('div', 'openradiation_qualification');
+        
+        div.innerHTML = '<div>\
+                                <select id="qualification" name="qualification"> \
+                                    <option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
+                                    <option value="groundlevel">' + translate("Ground level measurements") + '</option> \
+                                    <option value="plane">' + translate("In flight measurements") + '</option> \
+                                    <option value="wrongmeasurement">' + translate("Wrong measurements") + '</option>\
+                                    <option value="temporarysource">' + translate("Temporary source measurements") + '</option>\
+                                </select>\
+                            </div>';
+        return div;
     }
     openradiation_qualification.addTo(openradiation_map);
-
+    
     // Add zoom control
-    let zoomControl = L.control.zoom({ position: 'topleft'});
+    var zoomControl = L.control.zoom({ position: 'topleft'});
     openradiation_map.addControl(zoomControl);
 
     // Add openradiation filters control
-    let openradiation_filters = L.control({
+    var openradiation_filters = L.control({
         position : 'bottomleft'
     });
-
-    //init events of user in map
-    $(document).ready(function() {
-        $('#select_qualification').val('groundlevel');
-        openradiation_getItems(false);
-
-        $(".toggle").click(function(){
-            $(".openradiation_filters").slideToggle();
-            $(this).toggleClass('icon-toggle-down');
-            $(this).toggleClass('icon-toggle-up');
-            $('.leaflet-control-attribution').toggle();
-        });
-
-        let elm = document.querySelectorAll("input");
-        for(let i = 0; i < elm.length; i++) {
-                elm[i].addEventListener("input", function() {
-                    window.location.flightId = null;
-                    openradiation_getItems(false);
-                });
-        };
-    });
-
+    
     openradiation_filters.onAdd = function(openradiation_map) {
-        let div = L.DomUtil.create('div', 'openradiation_filters');
-
+        var div = L.DomUtil.create('div', 'openradiation_filters');
         L.DomEvent.disableClickPropagation(div);      
-        div.innerHTML =
-            '<div class=\"slider_range\">\
-                <div>\
-                    <div id=\"slider_rangevalue\"></div> \
-                    <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + translate("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
-                </div>\
-             </div>\
-             <div class=\"slider_range\">\
-                <div>\
-                    <div id=\"slider_rangedate\"></div> \
-                    <div><span id=\"slider_mindate\"></span><span id=\"slider_maxdate\"></span></div>\
-                </div>\
-             </div>\
-             <div class=\"input_tag\">\
-                <div>\
-                    <input id="tag" class="input" type="text" placeholder="# ' + translate("Your tag") + '"/>\
-                    <input id="userId" class="input" type="text" placeholder="' + translate("User") + '"/>\
-                </div>\
-             </div>\
-             <div class=\"download_file\">\
-                <div id=\"export\">\
-                    <div>' + translate("CSV FILE") + '</div> \
-                    <img src=\"/images/arrow_download.png\"/> \
-                </div>\
-             </div>\
-             <div class="get_links">\
-                   <ul><span class="openradiation_icon icon_link"></span><span id="permalink">' + translate("Permalink") + '</span></ul>\
-                   <ul><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + translate("Timeline") + '</span></ul>\
-             </div>';
+        div.innerHTML = '<div class=\"slider_range\">\
+                            <div>\
+                                <div id=\"slider_rangevalue\"></div> \
+                                <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + translate("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
+                            </div>\
+                         </div>\
+                         <div class=\"slider_range\">\
+                            <div>\
+                                <div id=\"slider_rangedate\"></div> \
+                                <div><span id=\"slider_mindate\"></span><span id=\"slider_maxdate\"></span></div>\
+                            </div>\
+                         </div>\
+                         <div class=\"input_tag\">\
+                            <div>\
+                                <input id="tag" class="input" type="text" placeholder="# ' + translate("Your tag") + '"/>  \
+                                <input id="userId" class="input" type="text" placeholder="' + translate("User") + '"/> \
+                            </div>\
+                         </div>\
+                         <div class=\"download_file\">\
+                            <div id=\"export\">\
+                                <div>' + translate("CSV FILE") + '</div> \
+                                <img src=\"/images/arrow_download.png\"/> \
+                            </div>\
+                         </div>\
+                         <div class=\"get_links\">\
+                            <div>\
+                                <div><span class="openradiation_icon icon_link"></span><span id="permalink">' + translate("Permalink") + '</span></div> \
+                                <div><span class="openradiation_icon icon_timeline"></span><span id="timechartlink">' + translate("Timeline") + '</span></div> \
+                            </div>\
+                         </div>';       
         return div;
     };
-
+       
     openradiation_filters.addTo(openradiation_map);
 
     $("#tag").val(tag);
     $("#userId").val(userId);
     $("#qualification").val(qualification);
-
+    //$("#atypical").val(atypical);
     $( "#slider_rangevalue" ).on( "slidecreate", function( event, ui ) {
         $( "#slider_rangevalue" ).slider("option", "values", [rangeValueMin, rangeValueMax]);
         $( "#slider_minvalue").text(val2uSv($( "#slider_rangevalue" ).slider( "values", 0)));
@@ -311,164 +374,455 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         $( "#slider_maxdate").text(val2date($( "#slider_rangedate" ).slider( "values", 1)));
     });
 
-    if (withLocate == false && qualification != 'plane') // si plane 
-        $('.openradiation_filters').css('display', 'none');
-
-    //icon for hidden footer of map
+    
+    //add a toggle
     let openradiation_toggle = L.control({
         position : 'bottomleft'
     });
     openradiation_toggle.onAdd = function(openradiation_map) {
-        let urlFlightMap = urlPage.substring(0, urlPage.lastIndexOf('/import-measure')) + translate("/en/map-and-its-limits");
-
         let div = L.DomUtil.create('div', 'openradiation_toggle');
-        div.innerHTML =
-            '\
-                <strong id="nbresults"></strong>\
-                <div class="icon-toggle-down toggle floatright"></div>\
-                <span class="floatright"><a target="_self" href="/en/openradiation">EN</a> | <a target="_self" href="/fr/openradiation">FR</a> </span>\
-                <a id="getFlightMap" class="floatright" target=\"_blank\" href='+ urlFlightMap +'> \
-                <span class="question">' + translate("Why don't I see all measurements ?") + '</span>\
-                </a>\
-            ';
-        div.classList.add("topSlider");
+        div.innerHTML = '<strong id="nbresults"></strong>\
+                <div class="openradiation_icon icon_toggle-down toggle"></div>\
+                <span class="floatright"><a target="_self" href="/en/openradiation">EN</a> | <a target="_self" href="/fr/openradiation">FR</a> </span>';
+        if (isLanguageFR == false)
+            div.innerHTML += '<a class="floatright question" target="_blank" href="https://www.openradiation.org/en/map-and-its-limits">' + translate("Why don't I see all measurements ?") + '</a>';
+        else
+            div.innerHTML += '<a class="floatright question" target="_blank" href="https://www.openradiation.org/fr/la-carte-et-ses-limites">' + translate("Why don't I see all measurements ?") + '</a>';
+        
         return div;
     };
     openradiation_toggle.addTo(openradiation_map);
-
+    
+    //if (withLocate == false && qualification != 'plane') // si plane 
+    //    $('.openradiation_filters').css('display', 'none');
+    if (window.matchMedia("(max-width: 370px)").matches) {
+        $(".openradiation_filters").slideToggle();
+        $(".openradiation_toggle").toggleClass('min-height');
+        $(".toggle").toggleClass('icon_toggle-down');
+        $(".toggle").toggleClass('icon_toggle-up');
+    }
+    
     // add a metric scale
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
-
+    
+    // when a popup is opened we retrieve the data
     openradiation_map.on('popupopen', function(e) {
-        if(e.popup._source.flightData) {
-            if(e.target.flightData != undefined) //do nothing if popup already open
-                clickOnLine(e);
-                isflightLine = true;
+        if (e.popup._source.flightId) { // this is a geodesic popup 
+            flightId_selected = e.popup._source.flightId;
+            flightId_geodesic = e.popup._source;
+            openradiation_getItems(false);            
         } else {
-            clickOnMarker(e, measurementURL);
+            $.ajax({ //retrieve the results from a marker popup
+                type: 'GET',
+                url: '/measurements/' + e.popup._source.reportUuid + '?apiKey=' + apiKey + '&response=complete',
+                //dataType: "jsonp",
+                //jsonpCallback: "_test",
+                //cache: false,
+                timeout: 15000,
+                success: function(res) {
+
+                    var htmlPopup = "<div style=\"width:200px; overflow:hidden; min-height:130px;\"><div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\"><strong style=\"color:#A4A4A4;\">" + formatISODate(res.data.startTime) + "</strong></div>";
+                    
+                    htmlPopup += "<div style=\"margin-right:10px; float:left;width:50px; min-height:90px;\">";
+
+                    if (typeof(res.data.enclosedObject) != "undefined") 
+                        htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"" + res.data.enclosedObject + "\"/></div>";
+                    else
+                        htmlPopup = htmlPopup + "<div style=\"height:60px; margin-bottom:5px; \"><img class=\"openradiation_img\" src=\"/images/measure.png\"/></div>";
+                    htmlPopup += "<div><a class=\"voirplus\" href=\"" + measurementURL.replace("{reportUuid}", res.data.reportUuid) + "\" target=\"_blank\"><p>" + translate("More ...") + "</p><p class=\"plus\">+</p></a></div>";
+                    htmlPopup += "</div>";
+                    
+                    htmlPopup += "<div style=\"width:140px; float:left; min-height:90px;\">";
+                    
+                    if (res.data.measurementEnvironment != null)
+                        htmlPopup += "<div style=\"float:right;\"><img src=\"/images/icon-env-" + res.data.measurementEnvironment + ".png\"/></div>";
+
+                    if (res.data.userId != null)
+                        htmlPopup += "<div><span class=\"userId\">" + res.data.userId + "</span></div>";
+                    
+                    htmlPopup += "<div style=\"margin-bottom:5px;\"><span class=\"value\">" + ((isLanguageFR) ? res.data.value.toFixed(3).toString().replace(".",",") : res.data.value.toFixed(3).toString().replace(",",".")) + " µSv/h</span></div>";
+                    
+                    if(res.data.qualification == "plane" && res.data.flightNumber != undefined) {
+                        htmlPopup += "<div style=\"margin-bottom:5px;\">" +
+                            "<span id='seeflightId' class=\"comment\"> "+ translate("Flight") + " " + res.data.flightNumber;
+
+                        if(res.data.aircraftType != undefined) {
+                            htmlPopup += " (" + res.data.aircraftType + ")";
+                            htmlPopup += "</span></div>";
+                        } else {
+                            htmlPopup += "</span></div>";
+                        }
+                    }
+        
+                    if (res.data.qualification != null) {
+                        htmlPopup += "<div><span class=\"comment\">";
+                        switch (res.data.qualification) {
+                            case "plane":
+                                htmlPopup += translate("In flight measurement");
+                                break;
+                            case "wrongmeasurement":
+                                htmlPopup += translate("Wrong measurement");
+                                break;
+                            case "temporarysource":
+                                htmlPopup += translate("Temporary source measurement");
+                                break;
+                            case "groundlevel":
+                                htmlPopup += translate("Ground level measurement");
+                                break;
+                        };
+                        htmlPopup += " <img style=\"margin-bottom:-4px;\"src=\"/images/thumb.png\"/>+ " + res.data.qualificationVotesNumber;
+                        htmlPopup += "</span></div>"
+                    }
+                    
+                    if (res.data.atypical == true)
+                        htmlPopup += "<div><span class=\"comment\">" + translate("Non-standard measurement") + "</span></div>";
+                        
+                    if (res.data.tags != null)
+                    {
+                        htmlPopup += "<div>";
+                        for (var i = 0; i < res.data.tags.length; i++)
+                        {
+                            htmlPopup += "<span class=\"tag\">#" + res.data.tags[i] + " </span>";
+                        }
+                        htmlPopup += "</div>";
+                    }
+                    htmlPopup += "</div>";
+                    htmlPopup += "</div>";
+                    e.popup.setContent(htmlPopup);
+                    
+                },
+                error: function(res, status, err) {
+                    console.log(err + " : " + status); 
+                }
+            }); 
         }
     });
 };
 
-let urlPrev = "null";
-let minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -10000, maxLongitudePrev = +10000;
-let exhaustiveResultsPrev = false;
+var urlPrev = "null";
+var minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -10000, maxLongitudePrev = +10000;
+var exhaustiveResultsPrev = false;
 
-
+//setInterval(function(){ openradiation_getItems(false); }, 5000);
 
 function getUrl()
 {
-    let urlTemp = "";
-
-    let tag = $("#tag").val();
+    //var urlTemp = "&minLatitude=" + openradiation_map.getBounds().getSouth() 
+    //            + "&maxLatitude=" + openradiation_map.getBounds().getNorth() 
+    //            + "&minLongitude=" + openradiation_map.getBounds().getWest() 
+    //            + "&maxLongitude=" + openradiation_map.getBounds().getEast();
+    var urlTemp = "";
+    
+    var tag = $("#tag").val();
     if (tag != "")
-        urlTemp+= "&tag=" + tag;
+        urlTemp+= "&tag=" + encodeURIComponent(tag);
 
-    let userId = $("#userId").val();
+    var userId = $("#userId").val();
     if (userId != "")
-        urlTemp+= "&userId=" + userId;
-
-    let qualification = $("#select_qualification").val();
+        urlTemp+= "&userId=" + encodeURIComponent(userId);
+        
+    var qualification = $("#qualification").val();
     if (qualification != "" && qualification != "all")
         urlTemp+= "&qualification=" + qualification;
-
-    let minValue = $("#slider_minvalue").text();
+    
+    if (qualification != "plane")
+        flightId_selected = null;
+   
+    if (flightId_selected != null)
+        urlTemp+= "&flightId=" + flightId_selected;
+    
+    var minValue = $("#slider_minvalue").text();
     if (minValue != "" && minValue != "0")
         urlTemp+= "&minValue=" + minValue;
 
-    let maxValue = $("#slider_maxvalue").text();
+    var maxValue = $("#slider_maxvalue").text();
     if (maxValue != "" && maxValue != "+ ∞")
         urlTemp+= "&maxValue=" + maxValue;
-
-    let minDate = $("#slider_mindate").text();
+    
+    var minDate = $("#slider_mindate").text();
     if (minDate != "" && minDate != "- ∞" && minDate != translate("now"))
     {
-        let nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 0) ) / 9) - 1;
-        let NbSecond = Math.round(nbHours * 3600);
-        let now =  new Date();
+        var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 0) ) / 9) - 1;
+        var NbSecond = Math.round(nbHours * 3600);
+        var now =  new Date();
         now.setMilliseconds(0);
         now.setSeconds(0);
         now.setMinutes(now.getMinutes() - now.getMinutes() % 10);
-
-        let minStartTime = new Date(now.getTime() - (NbSecond * 1000) );
+       
+        var minStartTime = new Date(now.getTime() - (NbSecond * 1000) );
         urlTemp+= "&minStartTime=" + minStartTime.toISOString();
     }
-
-    let maxDate = $("#slider_maxdate").text();
+    
+    var maxDate = $("#slider_maxdate").text();
     if (maxDate != "" && maxDate != "- ∞" && maxDate != translate("now"))
     {
-        let nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 1) ) / 9) - 1;
-        let NbSecond = Math.round(nbHours * 3600);
-        let now =  new Date();
+        var nbHours = Math.exp((100 - $( "#slider_rangedate" ).slider( "values", 1) ) / 9) - 1;
+        var NbSecond = Math.round(nbHours * 3600);
+        var now =  new Date();
         now.setMilliseconds(0);
         now.setSeconds(0);
         now.setMinutes(now.getMinutes() - now.getMinutes() % 10);
-
-        let maxStartTime = new Date(now.getTime() - (NbSecond * 1000) );
+       
+        var maxStartTime = new Date(now.getTime() - (NbSecond * 1000) );
         urlTemp+= "&maxStartTime=" + maxStartTime.toISOString();
     }
-
+    
     return urlTemp;
 }
 
 function retrieve_items(urlTemp, fitBounds) {
+
+    //console.log("retrieve items : " + urlTemp);
     urlPrev = urlTemp;
     minLatitudePrev = openradiation_map.getBounds().getSouth();
     maxLatitudePrev = openradiation_map.getBounds().getNorth();
     minLongitudePrev = openradiation_map.getBounds().getWest();
     maxLongitudePrev = openradiation_map.getBounds().getEast();
+    
+    let url;
 
+    if (urlTemp.includes("qualification=plane&flightId="))
+        url = '/measurements?apiKey=' + apiKey + urlTemp + "&response=complete";
+    else {
+        url = '/measurements?apiKey=' + apiKey 
+            + "&minLatitude=" + openradiation_map.getBounds().getSouth() 
+            + "&maxLatitude=" + openradiation_map.getBounds().getNorth() 
+            + "&minLongitude=" + openradiation_map.getBounds().getWest() 
+            + "&maxLongitude=" + openradiation_map.getBounds().getEast() 
+            + urlTemp;
+    }
     $("#nbresults").text("...");
+    
     $.ajax({
     type: 'GET',
-    url: '/measurements?apiKey=' + apiKey
-            + "&minLatitude=" + openradiation_map.getBounds().getSouth()
-            + "&maxLatitude=" + openradiation_map.getBounds().getNorth()
-            + "&minLongitude=" + openradiation_map.getBounds().getWest()
-            + "&maxLongitude=" + openradiation_map.getBounds().getEast()
-            + urlTemp,
+    url: url, 
     //cache: false,
     timeout: 15000,
-    success: function(res) {
-        showMarker(res, fitBounds);
+    success: function(res, statut) {
+        
+        if (res.data.length < 2)
+        {
+            exhaustiveResultsPrev = true;
+            $("#nbresults").text(res.data.length + " " + translate("measurement found") );
+        }
+        else if (res.maxNumber == res.data.length)
+        { 
+            exhaustiveResultsPrev = false;
+            $("#nbresults").text(translate("Display limited to the") + " " + res.data.length + " " + translate("most recent measurements") );
+        }
+        else
+        {
+            exhaustiveResultsPrev = true;
+            $("#nbresults").text(res.data.length + " " + translate("measurements found") );
+        }
+        
+        if (exhaustiveResultsPrev)
+            $('.question').hide();
+        else
+            $('.question').show();
+        
+        //list all new items
+        var openradiation_newitems = [];
+        for (i=0; i < res.data.length; i++)
+        {
+            openradiation_newitems.push(res.data[i].reportUuid);
+        }
+        
+        //for each old item
+        var openradiation_olditems = [];
+        openradiation_map.eachLayer(function (layer) {               
+            if (layer.reportUuid != null)
+            {
+                if (openradiation_newitems.indexOf(layer.reportUuid) == -1)
+                    openradiation_map.removeLayer(layer);
+                else
+                    openradiation_olditems.push(layer.reportUuid);
+            }
+        });
+        
+        //for each new item
+        var bounds = [];
+        for (i=0; i < res.data.length; i++)
+        {
+            bounds.push([(res.data[i].refinedLatitude != undefined) ? res.data[i].refinedLatitude : res.data[i].latitude, (res.data[i].refinedLongitude != undefined) ? res.data[i].refinedLongitude : res.data[i].longitude]);
+                    
+            if (openradiation_olditems.indexOf(res.data[i].reportUuid) == -1)
+            {
+                var htmlPopup = "<div></div>";
+                var icon;
+                
+                var nSvValue = res.data[i].value * 1000;
+                //16 colours classes depending value in nSv/h
+                if (nSvValue < 45)
+                    icon = icon_1;
+                else if (nSvValue < 72) 
+                    icon = icon_2;
+                else if (nSvValue < 114)
+                    icon = icon_3;
+                else if (nSvValue < 181) 
+                    icon = icon_4;
+                else if (nSvValue < 287) 
+                    icon = icon_5;
+                else if (nSvValue < 454) 
+                    icon = icon_6;
+                else if (nSvValue < 720) 
+                    icon = icon_7;
+                else if (nSvValue < 1142) 
+                    icon = icon_8;
+                else if (nSvValue < 1809) 
+                    icon = icon_9;
+                else if (nSvValue < 2867) 
+                    icon = icon_10;
+                else if (nSvValue < 4545)
+                    icon = icon_11;
+                else if (nSvValue < 7203) 
+                    icon = icon_12;
+                else if (nSvValue < 11416) 
+                    icon = icon_13;
+                else if (nSvValue < 18092) 
+                    icon = icon_14;
+                else if (nSvValue < 28675) 
+                    icon = icon_15;
+                else if (nSvValue < 45446) 
+                    icon = icon_16;
+                else if (nSvValue < 72027) 
+                    icon = icon_17;
+                else if (nSvValue < 114155) 
+                    icon = icon_18;
+                else 
+                    icon = icon_19;
+          
+                var marker = L.marker([(res.data[i].refinedLatitude != undefined) ? res.data[i].refinedLatitude : res.data[i].latitude, (res.data[i].refinedLongitude != undefined) ? res.data[i].refinedLongitude : res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
+                    .bindPopup(htmlPopup);
+                marker.reportUuid = res.data[i].reportUuid;
+                //for chart time
+                marker.value = res.data[i].value;
+                marker.startTime = new Date(res.data[i].startTime);
+            }
+        }
+        
+        if (urlTemp.includes("qualification=plane&flightId=")) { // if we click on a flight we change the popup and the geodesic
+            flightId_geodesic.setStyle( { 'color' : '#ff4f33' }); //red
+            flightId_geodesic._popup.setContent(flightId_geodesic._popup.getContent().replace("<span class=\"value\">" + " " + translate("measurements") + "</span>","<span class=\"value\">" + bounds.length + " " + translate("measurements") + "</span>")); //update popupup with nb measurements
+            
+            if(flightId_geodesic.airportOrigin_location != undefined && flightId_geodesic.airportDestination_location != undefined) { //if airports are known add airports locations
+                bounds.unshift(flightId_geodesic.airportDestination_location); //add in first last position (airportDestination) while bounds are sorted by date desc
+                bounds.push(flightId_geodesic.airportOrigin_location); // add first position (airportOrigin)
+                flightId_geodesic.setLatLngs([bounds]);
+                
+            }
+        }
+        
+        if (fitBounds)
+            openradiation_map.fitBounds(bounds, { maxZoom: 13 } );
     },
     error: function() {
-        //alert('Error during retrieving data');
+        //alert('Error during retrieving data'); 
         }
     });
 }
 
-function openradiation_getItems(fitBounds, planeTrack)
+function openradiation_getItems(fitBounds)
 {
-    let urlTemp = getUrl();
+    var urlTemp = getUrl();
+    
+    // if qualification change from to plan from an other, we add geodesics
+    if (urlPrev.includes("qualification=plane", 0) == false && $("#qualification").val() == "plane") {
+        $.ajax({
+            type: 'GET',
+            url: '/flights?apiKey=' + apiKey,
+            timeout: 15000,
+            success: function(res) {
+                for (i=0; i < res.data.length; i ++)
+                {
+                    var points = [
+                        [res.data[i].firstLatitude, res.data[i].firstLongitude],
+                        [res.data[i].midLatitude, res.data[i].midLongitude],
+                        [res.data[i].lastLatitude, res.data[i].lastLongitude]
+                    ];
 
-    window.location.flightId=null;
-    if(planeTrack) {
-        //do nothing
-    } else {
-        removeOtherPlaneTrack();
+                    let html =
+                        "<div style=\"background-color:#ffffff; width:200px; overflow:hidden; min-height:70px;\">" +
+                        "<div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\">" +
+                        "<strong>" + translate("Flight") + " " + res.data[i].flightNumber;
+
+                    if(res.data[i].aircraftType != undefined) {
+                        html += " (" + res.data[i].aircraftType + ")";
+                        html += "</strong></div>";
+                    } else {
+                        html += "</strong></div>";
+                    }
+
+                    //html += "<div style=\"margin:10px;\">";
+                    html += "<div style=\"float:right;\"><img src=\"/images/icon-env-plane.png\"/></div>";
+
+                    html += "<div style=\"margin-bottom:5px;\"><span class=\"value\">" + " " + translate("measurements") + "</span></div>";
+
+                    if(res.data[i].airportOrigin != undefined && res.data[i].airportDestination != undefined) {
+                        html +=
+                        "<table class=\"comment\">" +
+                        "<tr>" +
+                            "<td>" + translate("From:") + " </td>" +
+                            "<td>" + res.data[i].airportOrigin +
+                            "<td>" + " " + (res.data[i].departureTime != undefined ? formatISODate(res.data[i].departureTime) : "") + "</td>" +
+                        "</tr>" +
+                        "<tr>" +
+                            "<td>" + translate("To:") + " </td>" +
+                            "<td>" + res.data[i].airportDestination +
+                            "<td>" + " " + (res.data[i].arrivalTime != undefined ? formatISODate(res.data[i].arrivalTime) : "")  + "</td>" +
+                        "</tr>" +
+                        "</table>";
+                    }
+
+                    html += "</div>";
+                    html +=   '<div onclick="drawPlotly()"><span class="openradiation_icon icon_timeline"></span> <span id="timechartlink">' +
+                        translate("See flight profile") + '</span></div>';
+                    html += "</div>";
+                        
+                    //var polyline = L.polyline(latlngs, {color: 'orange' }).addTo(openradiation_map);
+                    var geodesic = L.geodesic([], {color: '#ffac33' }).bindPopup(html);
+                    
+                    geodesic.setLatLngs([points]);
+                    geodesic.flightId = res.data[i].flightId;
+                    if(res.data[i].airportOrigin != undefined && res.data[i].airportDestination != undefined) {
+                        geodesic.airportOrigin_location = [res.data[i].firstLatitude, res.data[i].firstLongitude];
+                        geodesic.airportDestination_location = [res.data[i].lastLatitude, res.data[i].lastLongitude];
+                    }
+                    geodesic.addTo(openradiation_map);
+                }            
+            },
+            error: function(res, status, err) {
+                console.log(err + " : " + status); 
+            }
+        });          
+    }
+    
+    // if qualification change from plane to an other, we remove geodesics
+    if (urlPrev.includes("qualification=plane", 0) == true && $("#qualification").val() != "plane") {
+        openradiation_map.eachLayer(function (layer) {
+            if (layer.flightId != null) {
+                openradiation_map.removeLayer(layer);
+            }
+        });   
     }
 
-    if(urlTemp == '&qualification=plane')
-        initPlaneTrack();
-
     // we retrieve results if filters are differents
-    //     or one of the geographical bounds are the bounds of the last request
-    //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds    
+    //     or one of the geographical bounds are the bounds of the last request (and we do not click on a flight)
+    //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds (and we do not click on a flight)
     if (urlTemp != urlPrev)
         retrieve_items(urlTemp, fitBounds);
-    else if (openradiation_map.getBounds().getSouth() < minLatitudePrev
+    else if (($("#qualification").val() != "plane" || flightId_selected == null) && (openradiation_map.getBounds().getSouth() < minLatitudePrev 
        || openradiation_map.getBounds().getNorth() > maxLatitudePrev
        || openradiation_map.getBounds().getWest() < minLongitudePrev
-       || openradiation_map.getBounds().getEast() > maxLongitudePrev)
+       || openradiation_map.getBounds().getEast() > maxLongitudePrev))
         retrieve_items(urlTemp, fitBounds);
-    else if (openradiation_map.getBounds().getSouth() > minLatitudePrev
-       || openradiation_map.getBounds().getNorth() < maxLatitudePrev
+    else if (($("#qualification").val() != "plane" || flightId_selected == null) && (openradiation_map.getBounds().getSouth() > minLatitudePrev
+       || openradiation_map.getBounds().getNorth() < maxLatitudePrev 
        || openradiation_map.getBounds().getWest() > minLongitudePrev
-       || openradiation_map.getBounds().getEast() < maxLongitudePrev)
+       || openradiation_map.getBounds().getEast() < maxLongitudePrev))
     {
-        let nb = 0;
-        let not_included = false;
+        var nb = 0;
+        var not_included = false;
         openradiation_map.eachLayer(function (layer) {
             
             if (layer.reportUuid != null) {
@@ -485,12 +839,13 @@ function openradiation_getItems(fitBounds, planeTrack)
             retrieve_items(urlTemp, fitBounds);
         else {
             if (exhaustiveResultsPrev) {
+                //updated results without research
                 if (nb < 2)
                     $("#nbresults").text(nb + " " + translate("measurement found"));
                 else
                     $("#nbresults").text(nb + " " + translate("measurements found"));
             } else
-                console.log("not updated (not exhaustive and all the items are in the new bounds)");
+                console.log("measurements not updated (not exhaustive and all the items are in the new bounds)");
         }
     } else
         console.log("no change");
@@ -499,7 +854,7 @@ function openradiation_getItems(fitBounds, planeTrack)
 function val2uSv(val)
 {
     //empiric method to convert from 0-100 scale to the expected scale in uSv/h
-    let uSv = Math.round((Math.exp(val / 11.94) * 29)) / 1000;
+    var uSv = Math.round((Math.exp(val / 11.94) * 29)) / 1000;
     
     if (uSv > 120)
         return "+ ∞";
@@ -511,8 +866,8 @@ function val2uSv(val)
 
 function val2date(val)
 {    
-    //let hour = Math.exp((40 - val) / 3) - 1; // this is the nb hour from now
-    let hour = Math.exp((100 - val) / 9) - 1;
+    //var hour = Math.exp((40 - val) / 3) - 1; // this is the nb hour from now
+    var hour = Math.exp((100 - val) / 9) - 1;
     
     if (hour == 0)
         return translate("now");
@@ -551,6 +906,30 @@ function val2date(val)
 
 $(function() {
 
+    $(".toggle").click(function(){
+        $(".openradiation_filters").slideToggle();
+        $(".openradiation_toggle").toggleClass('min-height');
+        $(this).toggleClass('icon_toggle-down');
+        $(this).toggleClass('icon_toggle-up');
+        //$('.leaflet-control-attribution').toggle();
+    });
+
+    $( "#tag").on('input', function() {
+       openradiation_getItems(false);
+    });
+    
+    $( "#userId").on('input', function() {
+       openradiation_getItems(false);
+    });
+    
+    $( "#qualification").change(function() {
+       openradiation_getItems(false);
+    });
+
+    openradiation_map.on('moveend', function(e) {
+       openradiation_getItems(false);
+    });
+
     $( "#slider_rangevalue" ).slider({
         range: true,
         min: 0,
@@ -559,7 +938,7 @@ $(function() {
         slide: function( event, ui ) {
             $( "#slider_minvalue").text(val2uSv(ui.values[0]));
             $( "#slider_maxvalue").text(val2uSv(ui.values[1]));
-
+            openradiation_getItems(false);
         }
     });
     
@@ -571,99 +950,96 @@ $(function() {
         slide: function( event, ui ) {
             $( "#slider_mindate").text(val2date(ui.values[0]));
             $( "#slider_maxdate").text(val2date(ui.values[1]));
+            openradiation_getItems(false);
         }
     });
-    $("#slider_rangedate").on('mousedown', function (){
-        $("body").mouseup(function () {
-            $("body").off('mouseup');
-            openradiation_getItems(false, true);
-        })
-    })
-
-    $("#slider_rangevalue").on('mousedown', function (){
-        $("body").mouseup(function () {
-            $("body").off('mouseup');
-            openradiation_getItems(false, true);
-        })
-    })
-
+    
     $( "#export" ).click(function() {
-        let urlTemp = getUrl();
-                   
+        
+        //var isFileSaverSupported = !!new Blob;
+        var urlTemp = getUrl();
+        
+        if (flightId_selected == null)
+            url = '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp + "&response=complete&withEnclosedObject=no";
+        else
+            url = '/measurements?apiKey=' + apiKey + urlTemp + '&response=complete&withEnclosedObject=no';
+           
         $.ajax({
             type: 'GET',
-            url: '/measurements?apiKey=' + apiKey + "&minLatitude=" + openradiation_map.getBounds().getSouth() + "&maxLatitude=" + openradiation_map.getBounds().getNorth() + "&minLongitude=" + openradiation_map.getBounds().getWest() + "&maxLongitude=" + openradiation_map.getBounds().getEast() + urlTemp + "&response=complete&withEnclosedObject=no", 
+            url: url,
             cache: false,
             timeout: 10000,
             success: function(res) {
-                let str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;calibrationFunction;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;flightNumber;seatNumber;windowSeat;storm;flightId;refinedLatitude;refinedLongitude;refinedAltitude;refinedEndLatitude;refinedEndLongitude;refinedEndAltitude;departureTime;arrivalTime;airportOrigin;airportDestination;aircraftType;firstLatitude;firstLongitude;midLatitude;midLongitude;lastLatitude;lastLongitude;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;tags list\n";
-                for(let i in res.data)
+                var str="apparatusId;apparatusVersion;apparatusSensorType;apparatusTubeType;temperature;value;hitsNumber;calibrationFunction;startTime;endTime;latitude;longitude;accuracy;altitude;altitudeAccuracy;endLatitude;endLongitude;endAccuracy;endAltitude;endAltitudeAccuracy;deviceUuid;devicePlatform;deviceVersion;deviceModel;reportUuid;manualReporting;organisationReporting;description;measurementHeight;userId;measurementEnvironment;rain;flightNumber;seatNumber;windowSeat;storm;flightId;refinedLatitude;refinedLongitude;refinedAltitude;refinedEndLatitude;refinedEndLongitude;refinedEndAltitude;departureTime;arrivalTime;airportOrigin;airportDestination;aircraftType;firstLatitude;firstLongitude;midLatitude;midLongitude;lastLatitude;lastLongitude;dateAndTimeOfCreation;qualification;qualificationVotesNumber;reliability;atypical;tags list\n";      
+                for(var i in res.data)
                 {
-                    let data = res.data[i];
-                    str += data.apparatusId == null ? ";" : csv(data.apparatusId) + ";";
-                    str += data.apparatusVersion == null ? ";" : csv(data.apparatusVersion) + ";";
-                    str += data.apparatusSensorType == null ? ";" : csv(data.apparatusSensorType) + ";";
-                    str += data.apparatusTubeType == null ? ";" : csv(data.apparatusTubeType) + ";";
-                    str += data.temperature == null ? ";" : data.temperature + ";";
-                    str += data.value + ";";
-                    str += data.hitsNumber == null ? ";" : data.hitsNumber + ";";
-                    str += data.calibrationFunction == null ? ";" : csv(data.calibrationFunction) + ";";
-                    str += data.startTime + ";";
-                    str += data.endTime == null ? ";" : data.endTime + ";";
-                    str += data.latitude + ";";
-                    str += data.longitude + ";";
-                    str += data.accuracy == null ? ";" : data.accuracy + ";";
-                    str += data.altitude == null ? ";" : data.altitude + ";";
-                    str += data.altitudeAccuracy == null ? ";" : data.altitudeAccuracy + ";";
-                    str += data.endLatitude == null ? ";" : data.endLatitude + ";";
-                    str += data.endLongitude == null ? ";" : data.endLongitude + ";";
-                    str += data.endAccuracy == null ? ";" : data.endAccuracy + ";";
-                    str += data.endAltitude == null ? ";" : data.endAltitude + ";";
-                    str += data.endAltitudeAccuracy == null ? ";" : data.endAltitudeAccuracy + ";";
-                    str += data.deviceUuid == null ? ";" : csv(data.deviceUuid) + ";";
-                    str += data.devicePlatform == null ? ";" : csv(data.devicePlatform) + ";";
-                    str += data.deviceVersion == null ? ";" : csv(data.deviceVersion) + ";";
-                    str += data.deviceModel == null ? ";" : csv(data.deviceModel) + ";";
-                    str += data.reportUuid + ";";
-                    str += data.manualReporting ? "1;" : "0;";
-                    str += data.organisationReporting == null ? ";" : csv(data.organisationReporting) + ";";
-                    str += data.description == null ? ";" : csv(data.description) + ";";
-                    str += data.measurementHeight == null ? ";" : data.measurementHeight + ";";
-                    str += data.userId == null ? ";" : csv(data.userId) + ";";
-                    str += data.measurementEnvironment == null ? ";" : data.measurementEnvironment + ";";
-                    str += data.rain == null ? ";" : data.rain + ";";
-                    str += data.flightNumber == null ? ";" : csv(data.flightNumber) + ";";
-                    str += data.seatNumber == null ? ";" : csv(data.seatNumber) + ";";
-                    str += data.windowSeat == null ? ";" : data.windowSeat + ";";
-                    str += data.storm == null ? ";" : data.storm + ";";
-                    str += data.flightId == null ? ";" : data.flightId + ";";
-                    str += data.refinedLatitude == null ? ";" : data.refinedLatitude + ";";
-                    str += data.refinedLongitude == null ? ";" : data.refinedLongitude + ";";
-                    str += data.refinedAltitude == null ? ";" : data.refinedAltitude + ";";
-                    str += data.refinedEndLatitude == null ? ";" : data.refinedEndLatitude + ";";
-                    str += data.refinedEndLongitude == null ? ";" : data.refinedEndLongitude + ";";
-                    str += data.refinedEndAltitude == null ? ";" : data.refinedEndAltitude + ";";
-                    str += data.departureTime == null ? ";" : data.dekmpartureTime + ";";
-                    str += data.arrivalTime == null ? ";" : data.arrivalTime + ";";
-                    str += data.airportOrigin == null ? ";" : csv(data.airportOrigin) + ";";
-                    str += data.airportDestination == null ? ";" : csv(data.airportDestination) + ";";
-                    str += data.aircraftType == null ? ";" : csv(data.aircraftType) + ";";
-                    str += data.firstLatitude == null ? ";" : data.firstLatitude + ";";
-                    str += data.firstLongitude == null ? ";" : data.firstLongitude + ";";
-                    str += data.midLatitude == null ? ";" : data.midLatitude + ";";
-                    str += data.midLongitude == null ? ";" : data.midLongitude + ";";
-                    str += data.lastLatitude == null ? ";" : data.lastLatitude + ";";
-                    str += data.lastLongitude == null ? ";" : data.lastLongitude + ";";
-                    str += data.dateAndTimeOfCreation + ";";
-                    str += data.qualification == null ? ";" : data.qualification + ";";
-                    str += data.qualificationVotesNumber == null ? ";" : data.qualificationVotesNumber + ";";
-                    str += data.reliability + ";";
+                    str += res.data[i].apparatusId == null ? ";" : csv(res.data[i].apparatusId) + ";";
+                    str += res.data[i].apparatusVersion == null ? ";" : csv(res.data[i].apparatusVersion) + ";";
+                    str += res.data[i].apparatusSensorType == null ? ";" : csv(res.data[i].apparatusSensorType) + ";";
+                    str += res.data[i].apparatusTubeType == null ? ";" : csv(res.data[i].apparatusTubeType) + ";";
+                    str += res.data[i].temperature == null ? ";" : res.data[i].temperature + ";";
+                    str += res.data[i].value + ";";
+                    str += res.data[i].hitsNumber == null ? ";" : res.data[i].hitsNumber + ";";
+                    str += res.data[i].calibrationFunction == null ? ";" : csv(res.data[i].calibrationFunction) + ";";
+                    str += res.data[i].startTime + ";";
+                    str += res.data[i].endTime == null ? ";" : res.data[i].endTime + ";";	
+                    str += res.data[i].latitude + ";";	
+                    str += res.data[i].longitude + ";";
+                    str += res.data[i].accuracy == null ? ";" : res.data[i].accuracy + ";";	
+                    str += res.data[i].altitude == null ? ";" : res.data[i].altitude + ";";	
+                    str += res.data[i].altitudeAccuracy == null ? ";" : res.data[i].altitudeAccuracy + ";";
+                    str += res.data[i].endLatitude == null ? ";" : res.data[i].endLatitude + ";";	
+                    str += res.data[i].endLongitude == null ? ";" : res.data[i].endLongitude + ";";	
+                    str += res.data[i].endAccuracy == null ? ";" : res.data[i].endAccuracy + ";";	
+                    str += res.data[i].endAltitude == null ? ";" : res.data[i].endAltitude + ";";	
+                    str += res.data[i].endAltitudeAccuracy == null ? ";" : res.data[i].endAltitudeAccuracy + ";";	
+                    str += res.data[i].deviceUuid == null ? ";" : csv(res.data[i].deviceUuid) + ";";	
+                    str += res.data[i].devicePlatform == null ? ";" : csv(res.data[i].devicePlatform) + ";";	
+                    str += res.data[i].deviceVersion == null ? ";" : csv(res.data[i].deviceVersion) + ";";	
+                    str += res.data[i].deviceModel == null ? ";" : csv(res.data[i].deviceModel) + ";";	
+                    str += res.data[i].reportUuid + ";";
+                    str += res.data[i].manualReporting ? "1;" : "0;";
+                    str += res.data[i].organisationReporting == null ? ";" : csv(res.data[i].organisationReporting) + ";";		
+                    str += res.data[i].description == null ? ";" : csv(res.data[i].description) + ";";	
+                    str += res.data[i].measurementHeight == null ? ";" : res.data[i].measurementHeight + ";";	
+                    str += res.data[i].userId == null ? ";" : csv(res.data[i].userId) + ";";
+                    str += res.data[i].measurementEnvironment == null ? ";" : res.data[i].measurementEnvironment + ";";
+                    str += res.data[i].rain == null ? ";" : res.data[i].rain + ";";
+                    str += res.data[i].flightNumber == null ? ";" : csv(res.data[i].flightNumber) + ";";		
+                    str += res.data[i].seatNumber == null ? ";" : csv(res.data[i].seatNumber) + ";";		
+                    str += res.data[i].windowSeat == null ? ";" : res.data[i].windowSeat + ";";
+                    str += res.data[i].storm == null ? ";" : res.data[i].storm + ";";
+                    str += res.data[i].flightId == null ? ";" : res.data[i].flightId + ";";	
+                    str += res.data[i].refinedLatitude == null ? ";" : res.data[i].refinedLatitude + ";";	
+                    str += res.data[i].refinedLongitude == null ? ";" : res.data[i].refinedLongitude + ";";	
+                    str += res.data[i].refinedAltitude == null ? ";" : res.data[i].refinedAltitude + ";";
+                    str += res.data[i].refinedEndLatitude == null ? ";" : res.data[i].refinedEndLatitude + ";";	
+                    str += res.data[i].refinedEndLongitude == null ? ";" : res.data[i].refinedEndLongitude + ";";	
+                    str += res.data[i].refinedEndAltitude == null ? ";" : res.data[i].refinedEndAltitude + ";";
+                    str += res.data[i].departureTime == null ? ";" : res.data[i].departureTime + ";";
+                    str += res.data[i].arrivalTime == null ? ";" : res.data[i].arrivalTime + ";";	
+                    str += res.data[i].airportOrigin == null ? ";" : csv(res.data[i].airportOrigin) + ";";	
+                    str += res.data[i].airportDestination == null ? ";" : csv(res.data[i].airportDestination) + ";";	
+                    str += res.data[i].aircraftType == null ? ";" : csv(res.data[i].aircraftType) + ";";	
+                    str += res.data[i].firstLatitude == null ? ";" : res.data[i].firstLatitude + ";";	
+                    str += res.data[i].firstLongitude == null ? ";" : res.data[i].firstLongitude + ";";	
+                    str += res.data[i].midLatitude == null ? ";" : res.data[i].midLatitude + ";";
+                    str += res.data[i].midLongitude == null ? ";" : res.data[i].midLongitude + ";";	
+                    str += res.data[i].lastLatitude == null ? ";" : res.data[i].lastLatitude + ";";	
+                    str += res.data[i].lastLongitude == null ? ";" : res.data[i].lastLongitude + ";";
+                    str += res.data[i].dateAndTimeOfCreation + ";";
+                    str += res.data[i].qualification == null ? ";" : res.data[i].qualification + ";";	
+                    str += res.data[i].qualificationVotesNumber == null ? ";" : res.data[i].qualificationVotesNumber + ";";	
+                    str += res.data[i].reliability + ";";
                     str += res.data[i].atypical ? "1;" : "0;";
-                    if (data.tags != null){
-                        for (let t in data.tags)
+                    //if (res.data[i].tags == null)
+                    //    str += ";";
+                    //else {
+                    if (res.data[i].tags != null){
+                        for (t in res.data[i].tags)
                         {
-                            str += csv(data.tags[t]);
-                            if (t < (data.tags.length-1))
+                            str += csv(res.data[i].tags[t]);
+                            if (t < (res.data[i].tags.length-1) )
                                 str += ";";
                         }
                     }
@@ -671,11 +1047,11 @@ $(function() {
                 }
                 
                 try {
-                    let blob = new Blob([str], {type: "text/csv;charset=utf-8"});
+                    var blob = new Blob([str], {type: "text/csv;charset=utf-8"});
                     saveAs(blob, "export_openradiation.csv");
                 } catch (e) {
                     alert("This feature is not available with your old version of browser");
-                }
+                } 
             },
             error: function() {
                 alert('Error during retrieving data'); 
@@ -684,75 +1060,56 @@ $(function() {
     });
      
     $( "#interpolationlink" ).click(function() {
-        $(".openradiation_menu_footer").css("display","none");
-        $(".openradiation_menu_header").css("display","block");
-        
         if (openradiation_map.hasLayer(interpolation))
             openradiation_map.removeLayer(interpolation);
         else
             openradiation_map.addLayer(interpolation);
     });
     
+    
     $( "#permalink" ).click(function() {
-        $(".openradiation_menu_footer").css("display","none");
-        $(".openradiation_menu_header").css("display","block");
-        
-        let link = window.location.protocol + "//" + window.location.host + "/openradiation";
-        let zoom = "/" + openradiation_map.getZoom() + "/" + openradiation_map.getCenter().lat.toFixed(7) + "/" + openradiation_map.getCenter().lng.toFixed(7);
+        var link = window.location.protocol + "//" + window.location.host + "/openradiation";
+        var zoom = "/" + openradiation_map.getZoom() + "/" + openradiation_map.getCenter().lat.toFixed(7) + "/" + openradiation_map.getCenter().lng.toFixed(7);
        
-        let permalink_details = "/";
-
+        var permalink_details = "/";
+        
         if ($("#tag").val() != "")
             permalink_details += $("#tag").val() +"/";
         else
             permalink_details += "all/";
-
+        
         if ($("#userId").val() != "")
             permalink_details += $("#userId").val() +"/";
         else
             permalink_details += "all/";
-            permalink_details += document.getElementById("select_qualification").value + "/all/"; // '/all/' is for atypical values
-            permalink_details += $( "#slider_rangevalue" ).slider( "values", 0) + "/" + $( "#slider_rangevalue" ).slider( "values", 1) + "/";
-            permalink_details += $( "#slider_rangedate" ).slider( "values", 0) + "/" + $( "#slider_rangedate" ).slider( "values", 1);
-
-        if (permalink_details == "/all/all/all/all/0/100/0/100")
+        permalink_details += $("#qualification").val() + "/all/"; //all is form atypical 
+        permalink_details += $( "#slider_rangevalue" ).slider( "values", 0) + "/" + $( "#slider_rangevalue" ).slider( "values", 1) + "/";
+        permalink_details += $( "#slider_rangedate" ).slider( "values", 0) + "/" + $( "#slider_rangedate" ).slider( "values", 1);
+        
+        if (permalink_details == "/all/all/groundlevel/all/0/100/0/100") // this is the default view
             permalink_details = "";
 
         if (permalink_details == "")
             $( "#permalink-message" ).html(translate("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> <span class=\"openradiation_icon icon_cross\" id=\"permalink-close\"></span> ");
         else
             $( "#permalink-message" ).html(translate("Link to this map") + " : <a target=\"_blank\" href=\"" + link + zoom + permalink_details + "\">" + link + zoom + permalink_details + "<\/a> <br> " + translate("Link to the fitted map") + " : <a target=\"_blank\" href=\"" + link + permalink_details + "\">" + link + permalink_details + "<\/a> <span id=\"permalink-close\">X</span> ");
-
-
+        
         $( "#permalink-message" ).css("display","block");
         $( "#permalink-close" ).click(function() {
             $( "#permalink-message" ).css("display","none");
         });
 
-    });
-    
-    let firstTimeGoogleChart = true;
-    
-    $( ".openradiation_menu_header").click(function(e) {
-        $(".openradiation_menu_footer").css("display","block");
-        $(".openradiation_menu_header").css("display","none");
-        e.stopPropagation();
-    });
-    
-    $( "#openradiation_menu_footer-close" ).click(function(e) {
-        $(".openradiation_menu_header").css("display","block");
-        $(".openradiation_menu_footer").css("display","none");
-        e.stopPropagation();
-    });    
-    
-    firstTimeGoogleChart = $( "#timechartlink" ).click(function() {
-        clickOnProfilTemporel(firstTimeGoogleChart);
-    });
-    
-    closeChartTime = function() {
-        $("#openradiation_time").css("display","none");
-    }
+    });  
 
-    $( "#slider_rangevalue" ).change
-
+    $( "#timechartlink" ).click(function() {
+        drawPlotly();
+    });
 });
+
+   
+
+
+            
+
+
+

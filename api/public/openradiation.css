@@ -3,29 +3,16 @@
 body {
     padding: 0;
     margin: 0;
+    
 }
-
 html, body {
     height: 100%;
     width: 100%;
 }
 
-.leaflet-left .leaflet-control {
-    margin-left: 0;
-    width: 100%;
-}
-
-#seeflightId {
-    cursor: pointer;
-}
-
-.leaflet-top .leaflet-control {
-    margin-top:35px;
-}
-
 /* Title */
 .leaflet-top .openradiation_title {
-    width: 250px;
+    width:250px;
     margin-top:0px;
     margin-left:0px;
     opacity:0.8; 
@@ -33,117 +20,47 @@ html, body {
     background-color:white;
 }
 
-.leaflet-bottom .leaflet-control {
-    margin-bottom: 0px;
+/* icones */
+.openradiation_icon {
+width:16px;
+height:16px;
+display: inline-block;
+background: url("images/picto.png") no-repeat;
+background-position:right top;
 }
 
-.leaflet-top {
+.icon_menu  { background-position:left top;}
+.icon_filter { background-position:-16px top;}
+.icon_cross { background-position:-32px top;}
+.icon_toggle-down { background-position:-48px top;}
+.icon_link { background-position:-64px top;}
+.icon_timeline { background-position:-80px top;}
+.icon_interpolation { background-position:-96px top;}
+.icon_toggle-up { background-position:-112px top; }
+
+
+/* MENU SELECT QUALIFICATION */
+.leaflet-right { left:0px; } /* all the width and not just in the corner */
+.leaflet-right .openradiation_qualification {
+    margin-top:35px;
     width: 100%;
-    margin-right: 20%;
+    min-height:20px;
 }
 
-
-
-
-.leaflet-touch .leaflet-bar {
-    margin-left: 10px;
-    background-clip: padding-box;
-    width: 0px;
-}
-
-.topSlider {
-    background-color: rgba(240, 240, 240, 0.8);
-}
-
-.question {
-    text-decoration: underline;
-    font-size: 11px;
-    color: gray;
-    float: right;
-    margin-right: 10px;
-}
-
-#nbresult {
-    margin-right: 10px;
-}
-
-.floatright {
-    float: right;
-}
-
-/* Select Qualification */
-.select_qualification_container {
-    position: relative;
-    width: 50%;
-    padding: 5px;
-    border: transparent;
-    color: darkblue;
-    font-size: large;
+.leaflet-top #qualification {
+    display:block;
+    width: 250px;
+    margin-left: auto; margin-right: auto;
+    padding: 5px 8px 3px 8px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    border-radius: 5px;
+    border: none;
+    color: #2446AB;
+    font-size: 130%;
     font-weight: bold;
     background-color: rgba(255, 255, 255, 0.6);
     text-align-last:center;
 }
-/*
-margin-left: -25px;
-margin-right: auto;
-*/
-
-.openradiation_icon {
-    width:16px;
-    height:16px;
-    margin-right: 5px;
-    display: inline-block;
-    background: url("images/picto.png") no-repeat;
-    background-position:right top;
-}
-
-.icon-toggle-up {
-    margin-bottom:0px;
-    width:16px;
-    height:16px;
-    display: inline-block;
-    background: url("images/picto.png") no-repeat;
-    color: #2e6da4;
-}
-
-.icon-toggle-down {
-    margin-bottom:0px;
-    width:16px;
-    height:16px;
-    display: inline-block;
-    background: url("images/picto.png") no-repeat;
-    color: #2e6da4;
-}
-
-/* links */
-.get_links > ul {
-    margin-block-start: 0em;
-    margin-block-end: 0em;
-    margin-left: 50px;
-}
-
-.get_links {
-    width: 25%;
-
-}
-
-
-.icon_menu  { background-position:left top;}
-.icon_cross { background-position:-32px top;}
-.icon_arrow { background-position:-48px top;}
-.icon-toggle-down { background-position:-48px top }
-.icon-toggle-up { background-position:right top }
-.icon_link { background-position:-64px top;}
-.icon_timeline { background-position:-80px top;}
-.icon_interpolation { background-position:-96px top;}
-
-.openradiation_menu_header { cursor:pointer; }
-
-.leaflet-top .openradiation_menu_footer { display:none;}
-
-ul {list-style:none; padding-left:5px;}
-ul li { margin:5px; height:25px; line-height:25px;}
-ul li span.openradiation_icon  { vertical-align:middle; margin-right:10px;}
 
     
 #permalink-close, #openradiation_menu_footer-close, #hide_filters, #permalink , #timechartlink, #interpolationlink { font-weight:bold; cursor:pointer; }
@@ -169,9 +86,31 @@ strong, span { color:#2446AB; }
 .voirplus .plus { font-size:250%; color:#2446AB; text-align:center; font-style:normal;  line-height:1;}
 .openradiation_img {width:50px; border-radius:8px; }
 
+/* FITLERS TOGGLE */
+.leaflet-bottom { right:0px; } /* all the width and not just in the corner */
+.leaflet-bottom .openradiation_toggle {
+    background-color: rgba(240, 240, 240, 0.8);
+    margin: 0px;
+    width: 100%;
+}
+.min-height { min-height:40px; }
+
+.openradiation_toggle strong { margin-left:10px; font-size:110% }
+.openradiation_toggle .question {
+    text-decoration: underline;
+    font-size: 10px;
+    color: gray;
+}
+
+.openradiation_toggle .toggle { cursor: pointer; position:absolute; top:1px; right:1px; }
+
+.floatright {
+    float: right;
+    margin-right:20px;
+}
+
 /* FILTERS */
 /* overload leaflet CSS to change margin for these controls */
-.leaflet-bottom { right:0px; } /* all the width and not just in the corner */
 .leaflet-bottom .openradiation_filters {
     margin: 0px;
     padding: 0px;
@@ -183,13 +122,14 @@ strong, span { color:#2446AB; }
     background-color: rgba(240, 240, 240, 0.8);
 }
 
-
 .openradiation_filters > div { position: relative; float:left; margin-top:10px; padding:0px;}
 .openradiation_filters > div > div { margin-left: auto; margin-right: auto; }
 .openradiation_filters > div.slider_range { padding-top:10px; width:24%;}
 .openradiation_filters > div.slider_range > div { width:150px; }
 .openradiation_filters > div.input_tag { width:16%; }
 .openradiation_filters > div.input_tag > div { width:100px; }
+.openradiation_filters > div.get_links { width:28%; }
+.openradiation_filters > div.get_links > div { width:190px; text-align:center; }
 .openradiation_filters > div.download_file { margin-top:5px; float:right; width:8%;}
 .openradiation_filters > div.download_file > div { width:50px; font-size:90%; background:white; font-weight:bold; text-align:center;  line-height:1.3; border-width:1px; border-style:solid; border-color:lightgrey;  cursor:pointer;}
 
@@ -198,25 +138,17 @@ strong, span { color:#2446AB; }
 
 @media only screen and (max-width:700px) {
     .openradiation_filters > div.slider_range {width:49%; }
-    .openradiation_filters > div.input_tag {clear:both; width:40%;}
-    .openradiation_filters > div.get_links { width:40%; margin-bottom:10px;}
+    .openradiation_filters > div.input_tag {clear:both; width:30%;}
+    .openradiation_filters > div.get_links { width:55%; }
     .openradiation_filters > div.download_file { width:15%; margin-bottom:10px;}
 }
 
 @media only screen and (max-width:370px) {
-    .leaflet-control-attribution { display:none; }
-    .icon-toggle-down { background-position:right top }
-    .icon-toggle-up { background-position:-48px top }
-    .openradiation_filters { display:none; }
+    /*.openradiation_filters { display:none; } */
     .openradiation_filters > div.slider_range {width:100%;}
-    .openradiation_filters > div.get_links { width:60%; margin-bottom:20px;}
     .openradiation_filters > div.input_tag {width:60%;}
     .openradiation_filters > div.download_file { width:40%;}
-}
-
-@media only screen and (min-width:370px) {
-    .icon-toggle-down { background-position: -48px top }
-    .icon-toggle-up { background-position: right top }
+    .openradiation_filters > div.get_links { width:100%; margin-bottom:20px;}
 }
 
 #slider_rangedate {border-style:none; margin-top:10px; border-radius: 0px; background: black; width:150px; height:4px; margin-bottom:5px;}
@@ -289,7 +221,6 @@ strong, span { color:#2446AB; }
     font-family:sans-serif;
     padding-top:6px;
     padding-right:4px;
-    z-index: 1000;
 }
         
 /* Placeholders should be white despite opacity */
@@ -307,9 +238,3 @@ input::-moz-placeholder { /* Mozilla Firefox 19+ */
 input:-ms-input-placeholder { /* Internet Explorer 10+ */
    color:    white !important; 
 }
-
-.flightPopup {
-    margin-top: 50px;
-    visibility: visible;
-}
-

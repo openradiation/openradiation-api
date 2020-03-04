@@ -36,17 +36,14 @@
     <script src="/Blob.js"></script>
     <script src="/FileSaver.js"></script>
     <script src="/loader.js"></script>
-    <script src='/plotly.min.js'></script>
-
     <!--<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script> --> 
-    <script src="/module-carto.js"></script>
+    <script src='/plotly.min.js'></script>
     <script src="/openradiation.js"></script>
     <script type="text/javascript">
         var openradiation_map;
         var apiKey = <%- JSON.stringify(apiKey) %>; //82ace4264f1ac5f83fe3d37319784149
-        var urlPage = <%- JSON.stringify(measurementURL) %>; //to get parent's url of iframe
-
-        openradiation_init(<%- JSON.stringify(measurementURL) %>, <%- withLocate %>,<%- zoom %>, <%- latitude %>, <%- longitude %>,
+        
+        openradiation_init(<%- JSON.stringify(measurementURL) %>, <%- withLocate %>,<%- zoom %>, <%- latitude %>, <%- longitude %>, 
                            <%- JSON.stringify(tag) %>, <%- JSON.stringify(userId) %>, <%- JSON.stringify(qualification) %>, <%- JSON.stringify(atypical) %>,
                            <%- rangeValueMin %>, <%- rangeValueMax %>, <%- rangeDateMin %>, <%- rangeDateMax %>);
         openradiation_getItems(<%- fitBounds %>);
