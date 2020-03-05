@@ -86,7 +86,8 @@ var translations_FR = {
       "Flight" : "Vol",
       "From:" : "De:",
       "To:" : "A:",
-      "See flight profile" : "Voir le profil de vol" 
+      "See flight profile" : "Voir le profil de vol",
+      "You are using Internet Explorer, which does not provide full functionality. We advise you to use a modern browser." : "Vous utilisez Internet Explorer qui ne permet pas d\'accéder à toutes les fonctionnalités. Nous vous conseillons d\'utiliser un navigateur moderne."
     };
     
 function translate(englishText)
@@ -183,22 +184,35 @@ function drawPlotly() {
             let debit = {
                 x: [],
                 y: [],
+                color: 'red',
                 name: translate("Dose rate (μSv/h)"),
                 mode: 'markers',
                 side: 'left',
+                marker: {
+                    color: '#1757a2',
+                    /*size: 20,
+                    line: {
+                      color: 'rgb(231, 99, 250)',
+                      width: 2
+                    }*/
+                }
+ 
             };
             
             let layout;
             let altitude;
             if (flightId_selected != null) {
                 layout = {
-                    title:translate("Timeline"),
-                    yaxis: {title: translate("Dose rate (μSv/h)"), rangemode: 'tozero'},
+                    showlegend: false, 
+                    margin: { l:45, r:45, t:45, b:45 },
+                    title: { text:translate("Timeline"), font: { size: 12} },
+                    yaxis: {tickfont: { size: 11 }, title: { text:translate("Dose rate (μSv/h)"), font: { size: 12, color: '#2446AB'}}, marker: {color: '#1757a2'}, rangemode: 'tozero'},
                     yaxis2: {
                         rangemode: 'tozero',
-                        title: 'Altitude (m)',
+                        title: { text:'Altitude (m)',font: { size:12, color: '#ffac33'}},
                         overlaying: 'y',
-                        side: 'right'
+                        side: 'right',
+                        marker: {color: '#1757a2'}
                     }
                 };
                 altitude = {
@@ -208,11 +222,17 @@ function drawPlotly() {
                     yaxis: 'y2',
                     //mode: 'lines',
                     side: 'right',
-                    type: 'scatter'
+                    type: 'scatter',
+                    marker: { color: '#ffac33' }
   
                 };
             } else
-                layout = {title:translate("Timeline"), yaxis: {title: translate("Dose rate (μSv/h)"), rangemode: 'tozero'}};
+                layout = { 
+                    showlegend: false, 
+                    margin: { l:45, r:45, t:45, b:45 }, 
+                    title: { text:translate("Timeline"), font: { size: 12}}, 
+                    yaxis: { tickfont: { size: 11 },title: { text:translate("Dose rate (μSv/h)"), font: { size: 12, color:'#2446AB'}}, marker: {color: '#1757a2'}, rangemode: 'tozero'}
+                };
             
             // results are sorted by startTime so we can add them directly
             for(let i in res.data)
@@ -227,9 +247,9 @@ function drawPlotly() {
             }
     
             if (flightId_selected != null) {
-                Plotly.newPlot('charttime', [debit, altitude], layout);
+                Plotly.newPlot('charttime', [debit, altitude], layout, {displayModeBar: false});
             } else
-                Plotly.newPlot('charttime', [debit], layout);
+                Plotly.newPlot('charttime', [debit], layout, {displayModeBar: false, pad:2});
             
            $('#charttime').focus();
         },
@@ -244,16 +264,11 @@ closeChartTime = function() {
 }   
         
     
-function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax)
+function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax, fitBounds)
 {
-    
     // create a map in the "map" div, set the view to a given place and zoom
     openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true, minZoom:2, maxZoom:17 }).setView([latitude, longitude], zoom);
-   
-    //if you want to locate the client
-    if (withLocate)
-        openradiation_map.locate({ setView : true, maxZoom:12 });
-    
+       
     // add an OpenStreetMap tile layer
     //L.tileLayer('http://bissorte.irsn.fr/mapcache/tms/1.0.0/osm@g/{z}/{x}/{y}.png', { tms:true,
     //L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// https
@@ -298,8 +313,17 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     openradiation_qualification.onAdd = function () {
         var div = L.DomUtil.create('div', 'openradiation_qualification');
         
-        div.innerHTML = '<div>\
-                                <select id="qualification" name="qualification"> \
+        if (window.navigator.userAgent.indexOf("MSIE") > -1 || window.navigator.userAgent.indexOf("Trident") > -1)  // plane flights are not available on MSIE. And we have to add size=5 to the select otherwise it doesn't work
+            div.innerHTML = '<div style="font-size:10px; text-align:center;"><span style="font-size:12px;">' + translate("You are using Internet Explorer, which does not provide full functionality. We advise you to use a modern browser.") + '</span><select id="qualification" name="qualification" size="5">\
+                                    <option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
+                                    <option value="groundlevel">' + translate("Ground level measurements") + '</option> \
+                                    <option value="plane">' + translate("In flight measurements") + '</option> \
+                                    <option value="wrongmeasurement">' + translate("Wrong measurements") + '</option>\
+                                    <option value="temporarysource">' + translate("Temporary source measurements") + '</option>\
+                                </select>\
+                            </div>';
+        else
+            div.innerHTML = '<div><select id="qualification" name="qualification">\
                                     <option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
                                     <option value="groundlevel">' + translate("Ground level measurements") + '</option> \
                                     <option value="plane">' + translate("In flight measurements") + '</option> \
@@ -357,10 +381,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     };
        
     openradiation_filters.addTo(openradiation_map);
-
-    $("#tag").val(tag);
-    $("#userId").val(userId);
-    $("#qualification").val(qualification);
+    
     //$("#atypical").val(atypical);
     $( "#slider_rangevalue" ).on( "slidecreate", function( event, ui ) {
         $( "#slider_rangevalue" ).slider("option", "values", [rangeValueMin, rangeValueMax]);
@@ -374,7 +395,6 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         $( "#slider_maxdate").text(val2date($( "#slider_rangedate" ).slider( "values", 1)));
     });
 
-    
     //add a toggle
     let openradiation_toggle = L.control({
         position : 'bottomleft'
@@ -404,6 +424,30 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     
     // add a metric scale
     L.control.scale( { imperial:false, position:'bottomleft'}).addTo(openradiation_map);
+    
+    //init events of user in map
+    $(document).ready(function() {
+        $('#qualification').val(qualification);
+        $("#tag").val(tag);
+        $("#userId").val(userId);
+       
+        //if you want to locate the client
+        openradiation_map.on('locationfound', function(e) {
+            console.log("location found");
+            openradiation_getItems(fitBounds);
+        });
+          
+        openradiation_map.on('locationerror', function(e) {
+            console.log("location error");
+            openradiation_getItems(fitBounds);
+        });    
+            
+        if (withLocate) {
+            openradiation_map.locate({ setView : true, maxZoom:12, timeout:3000 });
+        } else { 
+            openradiation_getItems(fitBounds);
+        }
+    });
     
     // when a popup is opened we retrieve the data
     openradiation_map.on('popupopen', function(e) {
@@ -581,7 +625,7 @@ function retrieve_items(urlTemp, fitBounds) {
     
     let url;
 
-    if (urlTemp.includes("qualification=plane&flightId="))
+    if (urlTemp.indexOf("qualification=plane&flightId=") > -1)
         url = '/measurements?apiKey=' + apiKey + urlTemp + "&response=complete";
     else {
         url = '/measurements?apiKey=' + apiKey 
@@ -701,7 +745,7 @@ function retrieve_items(urlTemp, fitBounds) {
             }
         }
         
-        if (urlTemp.includes("qualification=plane&flightId=")) { // if we click on a flight we change the popup and the geodesic
+        if (urlTemp.indexOf("qualification=plane&flightId=") > -1) { // if we click on a flight we change the popup and the geodesic
             flightId_geodesic.setStyle( { 'color' : '#ff4f33' }); //red
             flightId_geodesic._popup.setContent(flightId_geodesic._popup.getContent().replace("<span class=\"value\">" + " " + translate("measurements") + "</span>","<span class=\"value\">" + bounds.length + " " + translate("measurements") + "</span>")); //update popupup with nb measurements
             
@@ -726,8 +770,8 @@ function openradiation_getItems(fitBounds)
 {
     var urlTemp = getUrl();
     
-    // if qualification change from to plan from an other, we add geodesics
-    if (urlPrev.includes("qualification=plane", 0) == false && $("#qualification").val() == "plane") {
+    // if qualification change to plane from an other, we add geodesics
+    if (urlPrev.indexOf("qualification=plane") == -1 && $("#qualification").val() == "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
         $.ajax({
             type: 'GET',
             url: '/flights?apiKey=' + apiKey,
@@ -798,7 +842,7 @@ function openradiation_getItems(fitBounds)
     }
     
     // if qualification change from plane to an other, we remove geodesics
-    if (urlPrev.includes("qualification=plane", 0) == true && $("#qualification").val() != "plane") {
+    if (urlPrev.indexOf("qualification=plane") > -1 && $("#qualification").val() != "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
         openradiation_map.eachLayer(function (layer) {
             if (layer.flightId != null) {
                 openradiation_map.removeLayer(layer);
@@ -807,7 +851,7 @@ function openradiation_getItems(fitBounds)
     }
 
     // we retrieve results if filters are differents
-    //     or one of the geographical bounds are the bounds of the last request (and we do not click on a flight)
+    //     or one of the geographical bounds are outside the bounds of the last request (and we do not click on a flight)
     //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds (and we do not click on a flight)
     if (urlTemp != urlPrev)
         retrieve_items(urlTemp, fitBounds);
@@ -905,7 +949,7 @@ function val2date(val)
 }
 
 $(function() {
-
+    
     $(".toggle").click(function(){
         $(".openradiation_filters").slideToggle();
         $(".openradiation_toggle").toggleClass('min-height');
