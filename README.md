@@ -54,7 +54,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>enclosedObject</td><td>String</td><td></td><td></td><td>Base64 encoded Image. The size shoudn't exceeded 1mb and format should be closed from 600*800 pixels (width * height). The value should be a data URI scheme 'data:image/<subtype>;base64,<data>'. (only if userId is specified)</td></tr>
 <tr><td>userId</td><td>String</td><td></td><td></td><td>Openradiation.org user id</td></tr>
 <tr><td>userPwd</td><td>String</td><td>Never</td><td></td><td>Openradiation.org plain text password (mandatory if userId is specified)</td></tr>
-<tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement environment : countryside, city, ontheroad, inside, plane. (if plane, qualification is set to noenvironmentalcontext and qualificationVotesNumber is set to 0)</td></tr>
+<tr><td>measurementEnvironment</td><td>String</td><td></td><td></td><td>Measurement environment : countryside, city, ontheroad, inside, plane (if plane, qualification is set to plane)</td></tr>
 <tr><td>rain</td><td>Boolean</td><td></td><td></td><td>Rain : true if it rains during the measurement</td></tr>
 <tr><td>flightNumber</td><td>String</td><td></td><td></td><td>if measurementEnvironment is plane, flightNumber of the commercial flight in capital letters (AITA code followed by number, example: AF179)</td></tr>
 <tr><td>seatNumber</td><td>String</td><td></td><td></td><td>if measurementEnvironment is plane, seatNumber in capital letters with row number first (example: 14C)</td></tr>
