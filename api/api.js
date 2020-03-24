@@ -1652,8 +1652,8 @@ if (properties.submitApiFeature) {
 
                                 // qualification is set to groundlevel by default and qualificationVotesNumber is set to 0
                                 // if measurementEnvironment is plane, qualification is set to plane
-                                let qualification = "groundlevel";
-                                let qualificationVotesNumber = 0;
+                                var qualification = "groundlevel";
+                                var qualificationVotesNumber = 0;
                                 if(req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane")
                                     qualification = "plane";
                                     
