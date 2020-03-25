@@ -49,14 +49,14 @@ background-position:right top;
 
 .leaflet-top #qualification {
     display:block;
-    width: 250px;
+    width: 200px;
     margin-left: auto; margin-right: auto;
     padding: 5px 8px 3px 8px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.3);
-    border-radius: 5px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    border-radius: 2px;
     border: none;
     color: #2446AB;
-    font-size: 130%;
+    font-size: 120%;
     font-weight: bold;
     background-color: rgba(255, 255, 255, 0.6);
     text-align-last:center;
