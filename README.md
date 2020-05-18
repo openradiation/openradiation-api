@@ -25,8 +25,8 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>apparatusSensorType</td><td>String</td><td> </td><td> </td><td>Sensor type : geiger, photodiode</td></tr>
 <tr><td>apparatusTubeType</td><td>String</td><td> </td><td> </td><td>Tube identification (only if apparatusSensorType = geiger)</td></tr>
 <tr><td>temperature</td><td>Integer</td><td></td><td></td><td>Temperature (°C) </td></tr>
-<tr><td>value</td><td>Real</td><td>*</td><td>Mandatory</td><td>value (µSv/h)</td></tr>
-<tr><td>hitsNumber</td><td>Integer</td><td></td><td></td><td>Hits Number</td></tr>
+<tr><td>value</td><td>Real</td><td>*</td><td>Mandatory</td><td>Dose rate (µSv/h)</td></tr>
+<tr><td>hitsNumber</td><td>Integer</td><td></td><td></td><td>Counts measured during the whole measurement period. cps (counts per second) used to evaluate dose rate with the calibration function will be : cps = hitsNumber / (endTime - startTime)</td></tr>
 <tr><td>calibrationFunction</td><td>String</td><td></td><td></td><td>Calibration function used to calculate µSv/h from cps (counts per second). Format should be inline with these symbols : cps 0-9. -+/*^() max,. Example : 7.543*(cps-0.02)^2+0.001*(cps-0.02)</td></tr>
 <tr><td>startTime</td><td>Timestamp</td><td>*</td><td>Mandatory</td><td>Date of the beginning of the measurement (ISO GMT)</td></tr>
 <tr><td>endTime</td><td>Timestamp</td><td></td><td> </td><td>Date of the end of the measurement (ISO GMT)</td></tr>
@@ -49,7 +49,7 @@ The API is designed to be installed in two parts : the submit api and the reques
 <tr><td>organisationReporting</td><td>String</td><td></td><td></td><td>Software version (sample:openradiation_v1)</td></tr>
 <tr><td>reportContext</td><td>String</td><td>Never</td><td></td><td>Report context : emergency, routine, exercise, test (default:test). test:data are not registrated but you can test api use, emergency and exercise:not used,routine:you should use this one !</td></tr>
 <tr><td>description</td><td>String</td><td></td><td></td><td>Free description (only if userId is specified)</td></tr>
-<tr><td>measurementHeight</td><td>Integer</td><td></td><td></td><td>Measurement height above the ground (in meters)</td></tr>
+<tr><td>measurementHeight</td><td>Integer</td><td></td><td></td><td>Measurement height above the ground (in meters). It is measurement height from the ground (and not altitude above sea level).</td></tr>
 <tr><td>tags</td><td>Json array of string</td><td></td><td></td><td>Free tags list [tag1 ; tag2] (only if userId is specified)</td></tr>
 <tr><td>enclosedObject</td><td>String</td><td></td><td></td><td>Base64 encoded Image. The size shoudn't exceeded 1mb and format should be closed from 600*800 pixels (width * height). The value should be a data URI scheme 'data:image/<subtype>;base64,<data>'. (only if userId is specified)</td></tr>
 <tr><td>userId</td><td>String</td><td></td><td></td><td>Openradiation.org user id</td></tr>
