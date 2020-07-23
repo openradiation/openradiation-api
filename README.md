@@ -12,7 +12,7 @@ For only a few tests, you're allowed to use the following key : bde8ebc61cb089b8
 
 By using this API, you accept the terms of use : https://www.openradiation.org/conditions-dutilisation
 
-This project is self-sufficient, but it is designed to work with the openradiation.org website.
+This project is self sufficient, but it is designed to work with the openradiation.org website.
 There is restricted access for this website to give informations about users and qualifications.
 The API is designed to be installed in two parts : the submit api and the request api.
 
