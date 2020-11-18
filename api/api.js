@@ -1181,8 +1181,8 @@ if (properties.requestApiFeature) {
             res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
         }
         else {
-            if ( (req.query.dateOfCreation == null
-             && verifyApiKey(res, req.query.apiKey, false, false)
+            if ( verifyApiKey(res, req.query.apiKey, false, false)
+             && verifyData(res, req.query, false, "dateOfCreation")
              && verifyData(res, req.query, false, "minValue")
              && verifyData(res, req.query, false, "maxValue")
              && verifyData(res, req.query, false, "minStartTime")
@@ -1199,25 +1199,6 @@ if (properties.requestApiFeature) {
              && verifyData(res, req.query, false, "response")
              && verifyData(res, req.query, false, "withEnclosedObject")
              && verifyData(res, req.query, false, "maxNumber")) 
-           ||   (req.query.dateOfCreation != null
-             && verifyApiKey(res, req.query.apiKey, true, false)
-             && verifyData(res, req.query, false, "dateOfCreation") 
-             && verifyData(res, req.query, false, "minValue")
-             && verifyData(res, req.query, false, "maxValue")
-             && verifyData(res, req.query, false, "minStartTime")
-             && verifyData(res, req.query, false, "maxStartTime")
-             && verifyData(res, req.query, false, "minLatitude")
-             && verifyData(res, req.query, false, "maxLatitude")
-             && verifyData(res, req.query, false, "minLongitude")
-             && verifyData(res, req.query, false, "maxLongitude")
-             && verifyData(res, req.query, false, "userId_request")
-             && verifyData(res, req.query, false, "qualification")
-             && verifyData(res, req.query, false, "tag")
-             && verifyData(res, req.query, false, "atypical")
-             && verifyData(res, req.query, false, "flightId")
-             && verifyData(res, req.query, false, "response")
-             && verifyData(res, req.query, false, "withEnclosedObject")
-             && verifyData(res, req.query, false, "maxNumber") ) )
             {
                 pg.connect(conStr, function(err, client, done) {
                     if (err) {
@@ -1502,7 +1483,7 @@ if (properties.submitApiFeature) {
         }
         else {
             console.log(req.body.apiKey);
-            console.log(req.body.data);
+            //console.log(req.body.data);
             if (verifyApiKey(res, req.body.apiKey, false, true)
              && verifyData(res, req.body.data, false, "apparatusId")
              && verifyData(res, req.body.data, false, "apparatusVersion")
@@ -2084,7 +2065,13 @@ if (properties.submitFormFeature) {
                                             data.apparatusVersion = values[0];
                                             data.apparatusSensorType = "geiger";
                                             data.hitsNumber = totalHitsNumber + parseInt(values[4]); // hits number during one minute
-                                            data.value = Math.round(parseFloat(data.hitsNumber) / 334 * 100) / 100;
+                                            if (req.body.measurementEnvironment == "plane")
+                                                if (Math.round(parseFloat(data.hitsNumber) / 60) >= 4.33)
+                                                    data.value = Math.round(parseFloat(data.hitsNumber) / 60 * 0.42 * 1000) / 1000;
+                                                else
+                                                    data.value = Math.round(parseFloat(data.hitsNumber) / 60 / 5.56667 * 1000) / 1000;
+                                            else
+                                                data.value = Math.round(parseFloat(data.hitsNumber) / 60 / 5.56667 * 1000) / 1000;
                                             data.startTime = startTime;
                                             data.endTime = new Date(values[2]);
                                             data.latitude = latitude;

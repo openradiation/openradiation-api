@@ -151,13 +151,17 @@ Response will look like :
 To get a multiple measurements with combined complex criterias : 
 
 * with min/max bounds : value, startTime, latitude, longitude (sample : minValue/maxValue)
-* with an unique criteria : userId, qualification, tag, atypical, flightId
+* with an unique criteria : userId, qualification, tag, atypical, flightId, dateOfCreation 
+
+for flightId and dateOfCreation criterias there is no default maxNumber limit
 
 All these criterias can be combined :
 
     GET /measurements?apiKey=`apiKey`
     GET /measurements?apiKey=`apiKey`&minValue=`value`&userId=`userId`&minstartTime=`startTime`&tag=`tag`&response=complete&maxNumber=`maxNumber`&withEnclosedObject=no
     GET /measurements?apiKey=`apiKey`&minStartTime=`startTime`&maxStartTime=`startTime`&qualification=`qualification`
+    GET /measurements?apiKey=`apiKey`&dateOfCreation=`date`
+    GET /measurements?apiKey=`apiKey`&dateOfCreation=`date`&withEnclosedObject=no&maxNumber=`maxNumber`
     
 Sample : to get the last measurements all over the world
 
@@ -189,6 +193,7 @@ Response will look like :
             ...
         ]
     }
+    
     
 To get all flights : 
 
@@ -232,40 +237,6 @@ Response will look like :
         ]
     }
     
-#### Restricted access to the API
-
-*This restricted access is only available for openradiation.org website with a special secret key*
-
-To get the all the measurements in one specific day based on DateAndTimeOfCreation criteria (for this request there is no default maxNumber limit) :
-
-    GET /measurements?apiKey=`apiKey`&dateOfCreation=`date`
-    GET /measurements?apiKey=`apiKey`&dateOfCreation=`date`&withEnclosedObject=no&maxNumber=`maxNumber`
-
-    Response will look like : 
-    
-    {
-        "data": [
-            {
-                "reportUuid": "`reportUuid`",
-                "latitude": `latitude`,
-                "longitude": `longitude`,
-                "value": `value`,
-                "startTime": "`startTime`",
-                "qualification": "`qualification`",
-                "atypical": `atypical`
-            }, 
-            {
-                "reportUuid": "`reportUuid`",
-                "latitude": `latitude`,
-                "longitude": `longitude`,
-                "value": `value`,
-                "startTime": "`startTime`",
-                "qualification": "`qualification`",
-                "atypical": `atypical`
-            },
-            ...
-        ]
-    }
     
 ### Submitting data to the API
 

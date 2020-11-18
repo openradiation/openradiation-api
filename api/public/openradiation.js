@@ -59,7 +59,7 @@ var translations_FR = {
       "Ground level measurement" : "Mesure au sol",    
       "Ground level measurements" : "Mesures au sol",      
       //"Standard measurements" : "Mesures standard",
-      //"Non-standard measurement" : "Mesure atypique",  
+      "Non-standard measurement" : "Mesure atypique",  
       //"Non-standard measurements" : "Mesures atypiques", 
       "thumb" : "pouce",
       "More ..." : "Voir plus",
