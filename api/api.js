@@ -2579,85 +2579,137 @@ if (properties.mappingFeature) {
     });
 }
 
-//9. https server
-app.use(function(err, req, res, next){
-    if (err)
-    {
-        console.log(err);
-        if (err.status == null)
-            res.status(500).end();
-        else
-            res.status(err.status).end();
-    }
-    else
-        res.status(404).end();
-});
-
-var privateKey  = fs.readFileSync(__dirname + '/' + properties.certKeyFile, 'utf8');
-var certificate = fs.readFileSync(__dirname + '/' + properties.certCrtFile, 'utf8');
-var credentials = {key: privateKey, cert: certificate};
-var httpsServer = https.createServer(credentials, app);
-
-httpsServer.timeout = 600000; // ten minutes before timeout (used when we post files, default is 120000)
-
-httpsServer.listen(properties.httpsPort, function() {
-    console.log(new Date().toISOString() + " - *** OpenRadiation API (worker " + cluster.worker.id + ") started with parameters : ");
-    console.log(new Date().toISOString() + " -    login                : [" + properties.login + "]");
-    console.log(new Date().toISOString() + " -    password             : [************]");
-    console.log(new Date().toISOString() + " -    host                 : [" + properties.host + "]");
-    console.log(new Date().toISOString() + " -    maxNumber            : [" + properties.maxNumber + "]");
-    console.log(new Date().toISOString() + " -    getAPIInterval       : [" + properties.getAPIInterval + "]");
-    console.log(new Date().toISOString() + " -    getUsersInterval     : [" + properties.getUsersInterval + "]");
-    console.log(new Date().toISOString() + " -    APIKeyTestInterval   : [" + properties.APIKeyTestInterval + "]");
-    console.log(new Date().toISOString() + " -    APIKeyTestMaxCounter : [" + properties.APIKeyTestMaxCounter + "]"); 
-    console.log(new Date().toISOString() + " -    measurementURL       : [" + properties.measurementURL + "]"); 
-    if (properties.nodeUserUid != null && properties.nodeUserGid != null && process.getuid && process.setuid && process.getgid && process.setgid) {
-        process.setgid(properties.nodeUserGid);
-        process.setuid(properties.nodeUserUid);
-        console.log(new Date().toISOString() + " -    nodeUserUid          : [" + properties.nodeUserUid + "]");
-        console.log(new Date().toISOString() + " -    nodeUserGid          : [" + properties.nodeUserGid + "]"); 
-    }
-    console.log(new Date().toISOString() + " -    certKeyFile          : [" + properties.certKeyFile + "]"); 
-    console.log(new Date().toISOString() + " -    certCrtFile          : [" + properties.certCrtFile + "]");
-    console.log(new Date().toISOString() + " -    submitApiFeature     : [" + properties.submitApiFeature + "]"); 
-    console.log(new Date().toISOString() + " -    requestApiFeature    : [" + properties.requestApiFeature + "]"); 
-    console.log(new Date().toISOString() + " -    mappingFeature       : [" + properties.mappingFeature + "]"); 
-    console.log(new Date().toISOString() + " -    submitFormFeature    : [" + properties.submitFormFeature + "]");
-    if (properties.submitFormFeature)
-        console.log(new Date().toISOString() + " -    submitFormAPIKey     : [" + properties.submitFormAPIKey + "]");
-    console.log(new Date().toISOString() + " -    mappingURL           : [" + properties.mappingURL + "]");
-    console.log(new Date().toISOString() + " -    submitAPIHost        : [" + properties.submitAPIHost + "]");
-    console.log(new Date().toISOString() + " -    submitAPIPort        : [" + properties.submitAPIPort + "]");
-    console.log(new Date().toISOString() + " -    httpsPort            : [" + properties.httpsPort + "]");
-    console.log(new Date().toISOString() + " -    httpPort             : [" + properties.httpPort + "]");    
-    console.log(new Date().toISOString() + " -    version              : [" + properties.version + "]");
-    console.log(new Date().toISOString() + " -    flightURL            : [" + properties.flightURL + "]");
-    console.log(new Date().toISOString() + " -    flightProxy          : [" + properties.flightProxy + "]");    
-    console.log(new Date().toISOString() + " -    flightSearchInterval : [" + properties.flightSearchInterval + "]");    
-    console.log(new Date().toISOString() + " -    version              : [" + properties.version + "]");
-    console.log(new Date().toISOString() + " - ****** ");
-});
-
-//10. http server
-http.createServer(http_req).listen(properties.httpPort); // replace http_req by app to listen on http port
-function http_req(req, res) {
-    console.log(new Date().toISOString() + " - http_req(req, res) : HTTP /" + req.method + " called");
-    req.on('error', function(err) {
-        console.error(new Date().toISOString() + " - Error in request " + err.stack);
+// Apps server (http + https or http only)
+if (properties.httpsEnabled) {
+    //9a. https server
+    app.use(function (err, req, res, next) {
+        if (err) {
+            console.log(err);
+            if (err.status == null)
+                res.status(500).end();
+            else
+                res.status(err.status).end();
+        } else
+            res.status(404).end();
     });
 
-    if ((req.method == "GET" || req.method == "HEAD") && (typeof req.headers.host != "undefined")) { // bug : Cannot read property 'indexOf' of undefined
-        if (req.headers.host.indexOf(":") > -1)
-            res.writeHead(301, {Location: "https://" + req.headers.host.slice(0,req.headers.host.indexOf(":")) + ":" + properties.httpsPort + req.url} );
-        else
-            res.writeHead(301, {Location: "https://" + req.headers.host + req.url} );
-        res.end();
-    } else {
-        console.log(new Date().toISOString() + " - before res");
-        res.writeHead(400, {'Content-Type': 'application/json'});
-        res.end(JSON.stringify({ error: {code:"100", message:"Please use https instead of http"}}));
-        console.log(new Date().toISOString() + " - after res");
+    var privateKey = fs.readFileSync(__dirname + '/' + properties.certKeyFile, 'utf8');
+    var certificate = fs.readFileSync(__dirname + '/' + properties.certCrtFile, 'utf8');
+    var credentials = {key: privateKey, cert: certificate};
+    var httpsServer = https.createServer(credentials, app);
+
+    httpsServer.timeout = 600000; // ten minutes before timeout (used when we post files, default is 120000)
+
+    httpsServer.listen(properties.httpsPort, function () {
+        console.log(new Date().toISOString() + " - *** OpenRadiation API (worker " + cluster.worker.id + ") started with parameters : ");
+        console.log(new Date().toISOString() + " -    login                : [" + properties.login + "]");
+        console.log(new Date().toISOString() + " -    password             : [************]");
+        console.log(new Date().toISOString() + " -    host                 : [" + properties.host + "]");
+        console.log(new Date().toISOString() + " -    maxNumber            : [" + properties.maxNumber + "]");
+        console.log(new Date().toISOString() + " -    getAPIInterval       : [" + properties.getAPIInterval + "]");
+        console.log(new Date().toISOString() + " -    getUsersInterval     : [" + properties.getUsersInterval + "]");
+        console.log(new Date().toISOString() + " -    APIKeyTestInterval   : [" + properties.APIKeyTestInterval + "]");
+        console.log(new Date().toISOString() + " -    APIKeyTestMaxCounter : [" + properties.APIKeyTestMaxCounter + "]");
+        console.log(new Date().toISOString() + " -    measurementURL       : [" + properties.measurementURL + "]");
+        if (properties.nodeUserUid != null && properties.nodeUserGid != null && process.getuid && process.setuid && process.getgid && process.setgid) {
+            process.setgid(properties.nodeUserGid);
+            process.setuid(properties.nodeUserUid);
+            console.log(new Date().toISOString() + " -    nodeUserUid          : [" + properties.nodeUserUid + "]");
+            console.log(new Date().toISOString() + " -    nodeUserGid          : [" + properties.nodeUserGid + "]");
+        }
+        console.log(new Date().toISOString() + " -    certKeyFile          : [" + properties.certKeyFile + "]");
+        console.log(new Date().toISOString() + " -    certCrtFile          : [" + properties.certCrtFile + "]");
+        console.log(new Date().toISOString() + " -    submitApiFeature     : [" + properties.submitApiFeature + "]");
+        console.log(new Date().toISOString() + " -    requestApiFeature    : [" + properties.requestApiFeature + "]");
+        console.log(new Date().toISOString() + " -    mappingFeature       : [" + properties.mappingFeature + "]");
+        console.log(new Date().toISOString() + " -    submitFormFeature    : [" + properties.submitFormFeature + "]");
+        if (properties.submitFormFeature)
+            console.log(new Date().toISOString() + " -    submitFormAPIKey     : [" + properties.submitFormAPIKey + "]");
+        console.log(new Date().toISOString() + " -    mappingURL           : [" + properties.mappingURL + "]");
+        console.log(new Date().toISOString() + " -    submitAPIHost        : [" + properties.submitAPIHost + "]");
+        console.log(new Date().toISOString() + " -    submitAPIPort        : [" + properties.submitAPIPort + "]");
+        console.log(new Date().toISOString() + " -    httpsPort            : [" + properties.httpsPort + "]");
+        console.log(new Date().toISOString() + " -    httpPort             : [" + properties.httpPort + "]");
+        console.log(new Date().toISOString() + " -    flightURL            : [" + properties.flightURL + "]");
+        console.log(new Date().toISOString() + " -    flightProxy          : [" + properties.flightProxy + "]");
+        console.log(new Date().toISOString() + " -    flightSearchInterval : [" + properties.flightSearchInterval + "]");
+        console.log(new Date().toISOString() + " -    version              : [" + properties.version + "]");
+        console.log(new Date().toISOString() + " - ****** ");
+    });
+
+    //10a. http server
+    http.createServer(http_req).listen(properties.httpPort); // replace http_req by app to listen on http port
+    function http_req(req, res) {
+        console.log(new Date().toISOString() + " - http_req(req, res) : HTTP /" + req.method + " called");
+        req.on('error', function (err) {
+            console.error(new Date().toISOString() + " - Error in request " + err.stack);
+        });
+
+        if ((req.method == "GET" || req.method == "HEAD") && (typeof req.headers.host != "undefined")) { // bug : Cannot read property 'indexOf' of undefined
+            if (req.headers.host.indexOf(":") > -1)
+                res.writeHead(301, {Location: "https://" + req.headers.host.slice(0, req.headers.host.indexOf(":")) + ":" + properties.httpsPort + req.url});
+            else
+                res.writeHead(301, {Location: "https://" + req.headers.host + req.url});
+            res.end();
+        } else {
+            console.log(new Date().toISOString() + " - before res");
+            res.writeHead(400, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify({error: {code: "100", message: "Please use https instead of http"}}));
+            console.log(new Date().toISOString() + " - after res");
+        }
     }
+} else {
+    //9b. http server
+    app.use(function (err, req, res, next) {
+        if (err) {
+            console.log(err);
+            if (err.status == null) {
+                res.status(500).end();
+            } else {
+                res.status(err.status).end();
+            }
+        } else {
+            res.status(404).end();
+        }
+    });
+
+    var httpServer = http.createServer(app);
+
+    httpServer.timeout = 600000; // ten minutes before timeout (used when we post files, default is 120000)
+
+    httpServer.listen(properties.httpPort, function () {
+        console.log(new Date().toISOString() + " - *** OpenRadiation API (worker " + cluster.worker.id + ") started with parameters : ");
+        console.log(new Date().toISOString() + " -    login                : [" + properties.login + "]");
+        console.log(new Date().toISOString() + " -    password             : [************]");
+        console.log(new Date().toISOString() + " -    host                 : [" + properties.host + "]");
+        console.log(new Date().toISOString() + " -    maxNumber            : [" + properties.maxNumber + "]");
+        console.log(new Date().toISOString() + " -    getAPIInterval       : [" + properties.getAPIInterval + "]");
+        console.log(new Date().toISOString() + " -    getUsersInterval     : [" + properties.getUsersInterval + "]");
+        console.log(new Date().toISOString() + " -    APIKeyTestInterval   : [" + properties.APIKeyTestInterval + "]");
+        console.log(new Date().toISOString() + " -    APIKeyTestMaxCounter : [" + properties.APIKeyTestMaxCounter + "]");
+        console.log(new Date().toISOString() + " -    measurementURL       : [" + properties.measurementURL + "]");
+        if (properties.nodeUserUid != null && properties.nodeUserGid != null && process.getuid && process.setuid && process.getgid && process.setgid) {
+            process.setgid(properties.nodeUserGid);
+            process.setuid(properties.nodeUserUid);
+            console.log(new Date().toISOString() + " -    nodeUserUid          : [" + properties.nodeUserUid + "]");
+            console.log(new Date().toISOString() + " -    nodeUserGid          : [" + properties.nodeUserGid + "]");
+        }
+        console.log(new Date().toISOString() + " -    submitApiFeature     : [" + properties.submitApiFeature + "]");
+        console.log(new Date().toISOString() + " -    requestApiFeature    : [" + properties.requestApiFeature + "]");
+        console.log(new Date().toISOString() + " -    mappingFeature       : [" + properties.mappingFeature + "]");
+        console.log(new Date().toISOString() + " -    submitFormFeature    : [" + properties.submitFormFeature + "]");
+        if (properties.submitFormFeature)
+            console.log(new Date().toISOString() + " -    submitFormAPIKey     : [" + properties.submitFormAPIKey + "]");
+        console.log(new Date().toISOString() + " -    mappingURL           : [" + properties.mappingURL + "]");
+        console.log(new Date().toISOString() + " -    submitAPIHost        : [" + properties.submitAPIHost + "]");
+        console.log(new Date().toISOString() + " -    submitAPIPort        : [" + properties.submitAPIPort + "]");
+        console.log(new Date().toISOString() + " -    httpPort             : [" + properties.httpPort + "]");
+        console.log(new Date().toISOString() + " -    flightURL            : [" + properties.flightURL + "]");
+        console.log(new Date().toISOString() + " -    flightProxy          : [" + properties.flightProxy + "]");
+        console.log(new Date().toISOString() + " -    flightSearchInterval : [" + properties.flightSearchInterval + "]");
+        console.log(new Date().toISOString() + " -    version              : [" + properties.version + "]");
+        console.log(new Date().toISOString() + " - ****** ");
+    });
 }
 
 } // worker
