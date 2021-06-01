@@ -22,6 +22,7 @@ module.exports = {
     mappingURL:"https://localhost:8080", //mapping URL
     submitAPIHost:"127.0.0.1", //submitAPI contacted via post forms
     submitAPIPort:8080, //submitAPI contacted via post forms
+    httpsEnabled:true, //if server https
     httpsPort : 8080,
     httpPort : 8083,
     flightURL : "https://userName:userPwd@flightxml.flightaware.com/json/FlightXML3/",
@@ -30,4 +31,3 @@ module.exports = {
     flightSearchInterval: 305000, // every 5 minutes we try to attribuate measurements to a flight
     version: "v0.8"
 }
-
