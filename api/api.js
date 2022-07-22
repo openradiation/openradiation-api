@@ -4,6 +4,7 @@
 
 //1. generic
 var cluster = require('cluster');
+const { MD5 } = require('crypto-js');
 var request = require('request');
 var properties = require('./properties.js');
 
@@ -777,6 +778,7 @@ verifyData = function(res, json, isMandatory, dataName) {
                 }
                 break;
             case "dateOfCreation":
+            case "MonthOfCreation":
             case "minStartTime":
             case "maxStartTime":
             case "endTime":
@@ -1183,6 +1185,7 @@ if (properties.requestApiFeature) {
         else {
             if ( verifyApiKey(res, req.query.apiKey, false, false)
              && verifyData(res, req.query, false, "dateOfCreation")
+             && verifyData(res, req.query, false, "dateOfCreation")
              && verifyData(res, req.query, false, "minValue")
              && verifyData(res, req.query, false, "maxValue")
              && verifyData(res, req.query, false, "minStartTime")
@@ -1468,6 +1471,326 @@ if (properties.requestApiFeature) {
             }
         }
         console.log(new Date().toISOString() + " - GET /flights : end");
+    });
+    app.get('/users', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /users : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = 'SELECT DISTINCT ON (MEASUREMENTS."userId") MEASUREMENTS."userId", MEASUREMENTS."latitude", MEASUREMENTS."longitude", "endTime", APIUSERS."userPwd" FROM MEASUREMENTS  LEFT JOIN APIUSERS ON APIUSERS."userId" = MEASUREMENTS."userId" WHERE "endTime" IS NOT NULL ORDER BY MEASUREMENTS."userId" ASC, "endTime" DESC';
+                        
+                        var values = [ ];
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                var data = [];
+                                done();
+                                for (r = 0; r < result.rows.length; r++)
+                                {
+                                    data.push(result.rows[r]);
+                                    
+                                    for (i in data[data.length - 1])
+                                    {
+                                        if (data[data.length - 1][i] == null)
+                                            delete data[data.length - 1][i];
+                                    }
+                                }
+                                res.json( { data:data} );
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /users : end")
+    });
+    app.get('/stat', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /stat : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = `SELECT "userId", TO_CHAR("startTime", 'Month YYYY') AS "Month",  count(DISTINCT "value") AS "valuePerUser" FROM MEASUREMENTS  GROUP BY DATE_PART('month', "startTime"), "userId", TO_CHAR("startTime", 'Month YYYY') ORDER BY DATE_PART('month', "startTime") DESC`;
+                        
+                        var values = [ ]; 
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                var data = [];
+                                done();
+                                for (r = 0; r < result.rows.length; r++)
+                                {
+                                    data.push(result.rows[r]);
+                                    
+                                    for (i in data[data.length - 1])
+                                    {
+                                        if (data[data.length - 1][i] == null)
+                                            delete data[data.length - 1][i];
+                                    }
+                                }
+                                res.json( { data:data} );
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /stat : end")
+    });
+    app.get('/stats', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /stats : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false)
+             && verifyData(res, req.query, false, "dateOfMeasurement")
+             && verifyData(res, req.query, false, "MonthOfCreation")
+             && verifyData(res, req.query, false, "minValue")
+             && verifyData(res, req.query, false, "maxValue")
+             && verifyData(res, req.query, false, "minStartTime")
+             && verifyData(res, req.query, false, "maxStartTime")
+             && verifyData(res, req.query, false, "minLatitude")
+             && verifyData(res, req.query, false, "maxLatitude")
+             && verifyData(res, req.query, false, "minLongitude")
+             && verifyData(res, req.query, false, "maxLongitude")
+             && verifyData(res, req.query, false, "userId_request")
+             && verifyData(res, req.query, false, "qualification")
+             && verifyData(res, req.query, false, "tag")
+             && verifyData(res, req.query, false, "atypical") 
+             && verifyData(res, req.query, false, "flightId")              
+             && verifyData(res, req.query, false, "response")
+             && verifyData(res, req.query, false, "withEnclosedObject")
+             && verifyData(res, req.query, false, "maxNumber")) 
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql;
+                        var limit = 100000;
+                        if (req.query.maxNumber != null && parseInt(req.query.maxNumber) < properties.maxNumber)
+                            limit = parseInt(req.query.maxNumber);
+                        
+                        if (req.query.response == null)
+                            sql = `SELECT "userId","qualification", TO_CHAR("startTime", 'Month YYYY') AS "date", "value", "latitude", "longitude"`;
+                        else if (req.query.withEnclosedObject == null)
+                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
+                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                                  MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
+                                  "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
+                                  "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                        else
+                            sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
+                                  "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
+                                  MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","userId", \
+                                  "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
+                                  "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
+                                  
+                        if (req.query.tag == null)
+                            sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId"';
+                        else
+                            sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId",TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
+                            
+                        var where = '';
+                        var values = [ ]; 
+                        if (req.query.minLatitude != null)
+                        {
+                            values.push(req.query.minLatitude);
+                            where += ' AND MEASUREMENTS."latitude" >= $' + values.length;
+                        }
+                        if (req.query.maxLatitude != null)
+                        {
+                            values.push(req.query.maxLatitude);
+                            where += ' AND MEASUREMENTS."latitude" <= $' + values.length;
+                        }
+                        if (req.query.minLongitude != null)
+                        {
+                            values.push(req.query.minLongitude);
+                            where += ' AND MEASUREMENTS."longitude" >= $' + values.length;
+                        }
+                        if (req.query.maxLongitude != null)
+                        {
+                            values.push(req.query.maxLongitude);
+                            where += ' AND MEASUREMENTS."longitude" <= $' + values.length;
+                        }
+                        if (req.query.minStartTime != null)
+                        {
+                            values.push(new Date(req.query.minStartTime));
+                            where += ' AND MEASUREMENTS."startTime" >= $' + values.length;
+                        }
+                        if (req.query.maxStartTime != null)
+                        {
+                            values.push(new Date(req.query.maxStartTime));
+                            where += ' AND MEASUREMENTS."startTime" <= $' + values.length;
+                        }
+                        if (req.query.minValue != null)
+                        {
+                            values.push(req.query.minValue);
+                            where += ' AND MEASUREMENTS."value" >= $' + values.length;
+                        }
+                        if (req.query.maxValue != null)
+                        {
+                            values.push(req.query.maxValue);
+                            where += ' AND MEASUREMENTS."value" <= $' + values.length;
+                        }
+                        if (req.query.userId != null)
+                        {
+                            values.push(req.query.userId);
+                            where += ' AND MEASUREMENTS."userId" = $' + values.length;
+                        }
+                        
+                        if (req.query.qualification != null)
+                        {
+                            values.push(req.query.qualification);
+                            where += ' AND MEASUREMENTS."qualification"' + values.length;
+                        }
+                        if (req.query.tag != null)
+                        {
+                            values.push(req.query.tag.toLowerCase().replace(/#/g, ""));
+                            where += ' AND TAGS."tag" = $' + values.length;
+                        }
+                        if (req.query.atypical != null)
+                        {
+                            values.push(req.query.atypical);
+                            where += ' AND MEASUREMENTS."atypical" = $' + values.length;
+                        }
+                        if (req.query.flightId != null)
+                        {
+                            values.push(req.query.flightId);
+                            where += ' AND MEASUREMENTS."flightId" = $' + values.length;
+                        }
+                        if (req.query.dateOfMeasurement != null)
+                        {
+                            var date = new Date(req.query.dateOfMeasurement);
+                            var date1 = new Date(date.toDateString());
+                            var date2 = new Date(date1);
+                            date2.setDate(date1.getDate() + 1);
+                            values.push(date1);
+                            where += ' AND MEASUREMENTS."startTime" >= $' + values.length;
+                            values.push(date2);
+                            where += ' AND MEASUREMENTS."startTime" < $' + values.length;
+                        }
+                        
+                        if (req.query.tag == null)
+                            where = where.replace('AND', 'WHERE');
+                        
+                        sql += where;
+                        sql += ' ORDER BY "startTime" desc, MEASUREMENTS."reportUuid"';
+                        
+                        if (req.query.dateOfCreation == null && req.query.flightId == null)
+                            sql += ' LIMIT ' + limit;
+                        else
+                            limit = -1;
+                            
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                var data = [];
+                                
+                                //methode 1 : with where
+                                if (req.query.response == null || result.rows.length == 0) // no need to retrieve tags
+                                {
+                                    done();
+                                    for (r = 0; r < result.rows.length; r++)
+                                    {
+                                        data.push(result.rows[r]);
+                                        
+                                        for (i in data[data.length - 1])
+                                        {
+                                            if (data[data.length - 1][i] == null)
+                                                delete data[data.length - 1][i];
+                                        }
+                                    }
+                                    res.json( { maxNumber:limit, data:data} );
+                                } else { // here we do an other request to retrieve tags
+                                    var sql = 'select "reportUuid", "tag" FROM TAGS WHERE "reportUuid" IN (';
+                                    for (r = 0; r < result.rows.length; r++)
+                                    {
+                                        if (r == 0)
+                                            sql += "'" + result.rows[r].reportUuid + "'";
+                                        else
+                                            sql += ",'" + result.rows[r].reportUuid + "'";
+                                    }
+                                    sql += ') ORDER BY "reportUuid"';
+                                    client.query(sql, [], function(err, result2) {
+                                        done();
+                                        if (err)
+                                        {
+                                            console.error("Error while running query " + sql, err);
+                                            res.status(500).end();
+                                        } else {
+                                            var tmp_tags = {};
+                                            for (t = 0; t < result2.rows.length; t++)
+                                            {
+                                                if (tmp_tags[result2.rows[t].reportUuid] == null)
+                                                    tmp_tags[result2.rows[t].reportUuid] = [];
+                                                tmp_tags[result2.rows[t].reportUuid].push(result2.rows[t].tag);
+                                            }
+                                            
+                                            for (r = 0; r < result.rows.length; r++)
+                                            {
+                                                data.push(result.rows[r]);
+                                                if (tmp_tags[result.rows[r].reportUuid] != null)
+                                                   data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
+                                                    
+                                                for (i in data[data.length - 1])
+                                                {
+                                                    if (data[data.length - 1][i] == null)
+                                                        delete data[data.length - 1][i];
+                                                }
+                                            }
+                                            res.json( { maxNumber:limit, data:data} );
+                                        }
+                                    });
+                                }  
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /stats : end");
     });
 }
 
@@ -1831,7 +2154,48 @@ if (properties.submitApiFeature) {
                 });
             }
         }
-        console.log(new Date().toISOString() + " - POST /measurements/:reportUuid : end");
+        console.log(new Date().toISOString() + " - POST /tags/:reportUuid : end");
+    });
+    app.post('/tags/:reportUuid', function (req, res, next) {
+        console.log(new Date().toISOString() + " - POST /tags/:reportUuid : begin");
+        if (typeof(req.body.apiKey) != "string" || typeof(req.body.data) != "object")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send a JSON with a string apiKey and an object data"}});
+        }
+        else {
+            if (verifyApiKey(res, req.body.apiKey, true, true)
+            && verifyData(res, req.body.data, true, "reportUuid")
+            && verifyData(res, req.body.data, true, "tag"))
+             
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = 'UPDATE TAGS SET "qualification"=$1,"qualificationVotesNumber"=$2 WHERE "reportUuid"=$3';
+                        var values = [ req.body.data.qualification, req.body.data.qualificationVotesNumber, req.params.reportUuid];
+                        client.query(sql, values, function(err, result) {
+                            done();
+                            if (err)
+                            {
+                                console.error("Error while running query " + sql, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                if (result.rowCount == 0)
+                                    res.status(400).json({ error: {code:"104", message:"reportUuid does not exists"}});
+                                else
+                                    res.status(201).end();
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - POST /tags/:reportUuid : end");
     });
 }
 
@@ -2101,7 +2465,7 @@ if (properties.submitFormFeature) {
                                                 epoch = epoch.toString().substr(0,10);
                                             else if (epoch.toString().length < 10)
                                                 epoch = "0000000000".substring(0,10-epoch.toString().length) + epoch.toString();
-                                            data.reportUuid = "ff" + sha256.substr(0,6) + "-" + sha256.substr(6,4) + "-4" + sha256.substr(10,3) + "-a" + sha256.substr(13,3) + "-" + sha256.substr(16,2) + epoch.toString(); // Uuid is ffxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx with 18 characters from sha-256 file and epoch startTime
+                                            data.reportUuid = "ff" + MD5.substr(0,6) + "-" + MD5.substr(6,4) + "-4" + MD5.substr(10,3) + "-a" + MD5.substr(13,3) + "-" + MD5.substr(16,2) + epoch.toString(); // Uuid is ffxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx with 18 characters from sha-256 file and epoch startTime
                                             data.manualReporting = false;
                                             data.organisationReporting = "openradiation.net/upload " + properties.version;
                                             data.reportContext = "routine";
