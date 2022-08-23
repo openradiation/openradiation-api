@@ -1607,7 +1607,7 @@ if (properties.requestApiFeature) {
                             limit = parseInt(req.query.maxNumber);
                         
                         if (req.query.response == null)
-                            sql = `SELECT "userId","qualification", TO_CHAR("startTime", 'Month YYYY') AS "date", "value", "latitude", "longitude"`;
+                            sql = `SELECT "userId","qualification","measurementEnvironment", TO_CHAR("startTime", 'Month YYYY') AS "date", "value", "latitude", "longitude"`;
                         else if (req.query.withEnclosedObject == null)
                             sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
