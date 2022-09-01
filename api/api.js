@@ -1520,6 +1520,161 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /users : end")
     });
+    app.get('/totalContributors', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /totalContributors : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = `select count(distinct"userId")  from measurements`;
+                        
+                        var values = [ ]; 
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                var data = [];
+                                done();
+                                for (r = 0; r < result.rows.length; r++)
+                                {
+                                    data.push(result.rows[r]);
+                                    
+                                    for (i in data[data.length - 1])
+                                    {
+                                        if (data[data.length - 1][i] == null)
+                                            delete data[data.length - 1][i];
+                                    }
+                                }
+                                res.json( { data:data} );
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /totalContributors : end")
+    });
+    app.get('/qualificationMeasurements', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /qualificationMeasurements : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = `SELECT "measurementEnvironment",  count("value")  FROM MEASUREMENTS  GROUP BY "measurementEnvironment"`;
+                        
+                        var values = [ ]; 
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                var data = [];
+                                done();
+                                for (r = 0; r < result.rows.length; r++)
+                                {
+                                    data.push(result.rows[r]);
+                                    
+                                    for (i in data[data.length - 1])
+                                    {
+                                        if (data[data.length - 1][i] == null)
+                                            delete data[data.length - 1][i];
+                                    }
+                                }
+                                res.json( { data:data} );
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /qualificationMeasurements : end")
+    });
+    app.get('/measurementsHistoryValue', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /measurementsHistoryValue : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = `select count(value) filter (where "value" <= 0.020  and qualification='groundlevel') as valueCount0020,
+                        count(value) filter (where "value" between 0.020 and 0.040 and qualification='groundlevel') as valueCount0040,
+                        count(value) filter (where "value" between 0.040 and 0.060 and qualification='groundlevel') as valueCount0060,
+                        count(value) filter (where "value" between 0.060 and 0.080 and qualification='groundlevel') as valueCount0080,
+                        count(value) filter (where "value" between 0.080 and 0.100 and qualification='groundlevel') as valueCount0100,
+                        count(value) filter (where "value" between 0.120 and 0.130 and qualification='groundlevel') as valueCount0120,
+                        count(value) filter (where "value" between 0.130 and 0.140 and qualification='groundlevel') as valueCount0140,
+                        count(value) filter (where "value" between 0.140 and 0.160 and qualification='groundlevel') as valueCount0160,
+                        count(value) filter (where "value" between 0.160 and 0.180 and qualification='groundlevel') as valueCount0180,
+                        count(value) filter (where "value" between 0.180 and 0.200 and qualification='groundlevel') as valueCount0200,
+                        count(value) filter (where "value" > 0.20  and qualification='groundlevel') as valueCountHigh0200
+                 from measurements;`;
+                        
+                        var values = [ ]; 
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                var data = [];
+                                done();
+                                for (r = 0; r < result.rows.length; r++)
+                                {
+                                    data.push(result.rows[r]);
+                                    
+                                    for (i in data[data.length - 1])
+                                    {
+                                        if (data[data.length - 1][i] == null)
+                                            delete data[data.length - 1][i];
+                                    }
+                                }
+                                res.json( { data:data} );
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /measurementsHistoryValue : end")
+    });
     app.get('/stat', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /stat : begin");
         if (typeof(req.query.apiKey) != "string")
