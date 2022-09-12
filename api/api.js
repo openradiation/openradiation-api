@@ -1587,7 +1587,7 @@ if (properties.requestApiFeature) {
                         if (req.query.userId != null)
                         {
                             values.push(req.query.userId);
-                            where += ' AND MEASUREMENTS."userId" = $' + values.length;
+                            where += ' WHERE MEASUREMENTS."userId" = $' + values.length;
                         }
 
                         sql += where;
