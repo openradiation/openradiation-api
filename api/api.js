@@ -1535,9 +1535,10 @@ if (properties.requestApiFeature) {
                         console.error("Could not connect to PostgreSQL", err);
                         res.status(500).end();
                     } else {
+
                         var sql = `select count(distinct"userId")  from measurements`;
-                        
-                        var values = [ ]; 
+
+                        var values = [ ];
                         client.query(sql, values, function(err, result) {
                             if (err)
                             {
@@ -1547,19 +1548,14 @@ if (properties.requestApiFeature) {
                             }
                             else
                             {
-                                var data = [];
                                 done();
-                                for (r = 0; r < result.rows.length; r++)
-                                {
-                                    data.push(result.rows[r]);
-                                    
-                                    for (i in data[data.length - 1])
-                                    {
-                                        if (data[data.length - 1][i] == null)
-                                            delete data[data.length - 1][i];
-                                    }
+                                if(result.rows.length === 1) {
+                                    res.json( result.rows[0].count );
                                 }
-                                res.json( { data:data} );
+                                else
+                                {
+                                    res.json( 0 );
+                                }
                             }
                         });
                     }
@@ -1584,8 +1580,18 @@ if (properties.requestApiFeature) {
                         res.status(500).end();
                     } else {
                         var sql = `select count("value")  from measurements`;
-                        
-                        var values = [ ]; 
+
+                        var where = '';
+                        var values = [ ];
+
+                        if (req.query.userId != null)
+                        {
+                            values.push(req.query.userId);
+                            where += ' AND MEASUREMENTS."userId" = $' + values.length;
+                        }
+
+                        sql += where;
+
                         client.query(sql, values, function(err, result) {
                             if (err)
                             {
@@ -1595,19 +1601,14 @@ if (properties.requestApiFeature) {
                             }
                             else
                             {
-                                var data = [];
                                 done();
-                                for (r = 0; r < result.rows.length; r++)
-                                {
-                                    data.push(result.rows[r]);
-                                    
-                                    for (i in data[data.length - 1])
-                                    {
-                                        if (data[data.length - 1][i] == null)
-                                            delete data[data.length - 1][i];
-                                    }
+                                if(result.rows.length === 1) {
+                                    res.json( result.rows[0].count );
                                 }
-                                res.json( { data:data} );
+                                else
+                                {
+                                    res.json( 0 );
+                                }
                             }
                         });
                     }
