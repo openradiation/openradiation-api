@@ -1724,54 +1724,6 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /measurementsHistoryValue : end")
     });
-    app.get('/measurementPerUser', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /measurementPerUser : begin");
-        if (typeof(req.query.apiKey) != "string")
-        {
-            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
-        }
-        else {
-            if ( verifyApiKey(res, req.query.apiKey, false, false))
-            {
-                pg.connect(conStr, function(err, client, done) {
-                    if (err) {
-                        done();
-                        console.error("Could not connect to PostgreSQL", err);
-                        res.status(500).end();
-                    } else {
-                        var sql = `SELECT "userId", count("value") AS "valuePerUser" FROM MEASUREMENTS  GROUP by "userId"`;
-                        
-                        var values = [ ]; 
-                        client.query(sql, values, function(err, result) {
-                            if (err)
-                            {
-                                done();
-                                console.error("Error while running query " + sql + values, err);
-                                res.status(500).end();
-                            }
-                            else
-                            {
-                                var data = [];
-                                done();
-                                for (r = 0; r < result.rows.length; r++)
-                                {
-                                    data.push(result.rows[r]);
-                                    
-                                    for (i in data[data.length - 1])
-                                    {
-                                        if (data[data.length - 1][i] == null)
-                                            delete data[data.length - 1][i];
-                                    }
-                                }
-                                res.json( { data:data} );
-                            }
-                        });
-                    }
-                });
-            }
-        }
-        console.log(new Date().toISOString() + " - GET /measurementPerUser: end")
-    });
     app.get('/lastMeasureOfAllUsers', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /lastMeasureOfAllUsers : begin");
         if (typeof(req.query.apiKey) != "string")
