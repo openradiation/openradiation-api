@@ -1703,9 +1703,14 @@ if (properties.requestApiFeature) {
                             }
                             else
                             {
-                                var data = [];
                                 done();
-                                res.json( { data: result.rows[0]} );
+                                if(result.rows.length === 1) {
+                                    res.json( result.rows[0] );
+                                }
+                                else
+                                {
+                                    res.json( 0 );
+                                }
                             }
                         });
                     }
