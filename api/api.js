@@ -1705,7 +1705,7 @@ if (properties.requestApiFeature) {
                             {
                                 var data = [];
                                 done();
-                                res.json( { data: result} );
+                                res.json( { data: result.rows[0]} );
                             }
                         });
                     }
