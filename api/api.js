@@ -1705,17 +1705,7 @@ if (properties.requestApiFeature) {
                             {
                                 var data = [];
                                 done();
-                                for (r = 0; r < result.rows.length; r++)
-                                {
-                                    data.push(result.rows[r]);
-                                    
-                                    for (i in data[data.length - 1])
-                                    {
-                                        if (data[data.length - 1][i] == null)
-                                            delete data[data.length - 1][i];
-                                    }
-                                }
-                                res.json( { data:data} );
+                                res.json( { data: result} );
                             }
                         });
                     }
