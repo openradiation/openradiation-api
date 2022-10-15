@@ -1680,19 +1680,34 @@ if (properties.requestApiFeature) {
                         console.error("Could not connect to PostgreSQL", err);
                         res.status(500).end();
                     } else {
-                        var sql = `select count(value) filter (where "value" <= 0.020  and qualification='groundlevel') as valueCount0020,
-                        count(value) filter (where "value" between 0.020 and 0.040 and qualification='groundlevel') as valueCount0040,
-                        count(value) filter (where "value" between 0.040 and 0.060 and qualification='groundlevel') as valueCount0060,
-                        count(value) filter (where "value" between 0.060 and 0.080 and qualification='groundlevel') as valueCount0080,
-                        count(value) filter (where "value" between 0.080 and 0.100 and qualification='groundlevel') as valueCount0100,
-                        count(value) filter (where "value" between 0.120 and 0.130 and qualification='groundlevel') as valueCount0120,
-                        count(value) filter (where "value" between 0.130 and 0.140 and qualification='groundlevel') as valueCount0140,
-                        count(value) filter (where "value" between 0.140 and 0.160 and qualification='groundlevel') as valueCount0160,
-                        count(value) filter (where "value" between 0.160 and 0.180 and qualification='groundlevel') as valueCount0180,
-                        count(value) filter (where "value" between 0.180 and 0.200 and qualification='groundlevel') as valueCount0200,
-                        count(value) filter (where "value" > 0.20  and qualification='groundlevel') as valueCountHigh0200
-                 from measurements;`;
-                        
+                        var sql = "";
+                        var bornes = ['0.025', '0.050', '0.075', '0.100'];
+                        var qualification = 'groundlevel';
+                        var labels = {};
+
+                        if (req.body.bornes != null)
+                        {
+                            bornes = req.body.bornes;
+                        }
+
+                        if (req.body.qualification != null)
+                        {
+                            qualification = req.body.qualification;
+                        }
+
+                        var key = 'val_0';
+                        labels[key] = "0-"+bornes[0];
+                        sql = 'select count(value) filter (where "value" <= ' +bornes[0]+ ' and qualification=\''+qualification+'\') as '+key;
+                        for (let i = 0; i < bornes.length - 1; i++) {
+                            key = 'val_'+(i+1);
+                            sql=sql+', '+'count(value) filter (where "value" between ' +bornes[i]+ ' and ' +bornes[i+1]+ ' and qualification=\''+qualification+'\') as '+key;
+                            labels[key] = bornes[i]+"-"+bornes[i+1];
+                        }
+                        key = 'val_'+bornes.length;
+                        sql=sql+', '+'count(value) filter (where "value" >  ' +bornes[bornes.length - 1]+ ' and qualification=\''+qualification+'\') as '+key;
+                        sql=sql+' from measurements;';
+                        labels[key] = bornes[bornes.length-1]+" et +";
+
                         var values = [ ]; 
                         client.query(sql, values, function(err, result) {
                             if (err)
@@ -1705,7 +1720,7 @@ if (properties.requestApiFeature) {
                             {
                                 done();
                                 if(result.rows.length === 1) {
-                                    res.json( result.rows[0] );
+                                    res.json( {elements: result.rows[0], labels: labels} );
                                 }
                                 else
                                 {
