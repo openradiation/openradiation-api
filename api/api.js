@@ -1174,7 +1174,6 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /measurements/:reportUuid : end");
     });
-
     //http://localhost:8080/measurements?apiKey=bde8ebc61cb089b8cc997dd7a0d0a434&minLatitude=3.4&maxStartTime=2015-04-19T11:49:59Z&minStartTime=2015-04-19T11:49:59.005Z&response=complete
     app.get('/measurements', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /measurements : begin");
@@ -1424,7 +1423,132 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /measurements : end");
     });
-    
+    app.get('/measurmentsStatisticsTotal', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /measurmentsStatisticsTotal : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = `select count("value")  from measurements`;
+
+                        var where = '';
+                        var values = [ ];
+
+                        if (req.query.userId != null)
+                        {
+                            values.push(req.query.userId);
+                            where += ' WHERE MEASUREMENTS."userId" = $' + values.length;
+                        }
+
+                        sql += where;
+
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                done();
+                                if(result.rows.length === 1) {
+                                    res.json( result.rows[0].count );
+                                }
+                                else
+                                {
+                                    res.json( 0 );
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /measurmentsStatisticsTotal : end")
+    });
+    app.get('/measurmentsStatisticsByInterval', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /measurmentsStatisticsByInterval : begin");
+        if (typeof(req.query.apiKey) != "string")
+        {
+            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
+        }
+        else {
+            if ( verifyApiKey(res, req.query.apiKey, false, false))
+            {
+                pg.connect(conStr, function(err, client, done) {
+                    if (err) {
+                        done();
+                        console.error("Could not connect to PostgreSQL", err);
+                        res.status(500).end();
+                    } else {
+                        var sql = "";
+                        var intervals = ['0.025', '0.050', '0.075', '0.100'];
+                        var qualification = ['\'groundlevel\'', '\'plane\''];
+                        var labels = {};
+
+                        if (req.body.intervals != null)
+                        {
+                            intervals = req.body.intervals;
+                        }
+
+                        if (req.body.qualification != null)
+                        {
+                            qualification = req.body.qualification;
+                        }
+
+                        var qualificationWhere = qualification.map(function (val, i) {
+                            return "\'"+val+"\'";
+                        })
+
+                        var key = 'val_0';
+                        labels[key] = "0-"+intervals[0];
+                        sql = 'select count(value) filter (where "value" <= ' +intervals[0]+ ' and qualification IN ('+qualificationWhere+')) as '+key;
+                        for (let i = 0; i < intervals.length - 1; i++) {
+                            key = 'val_'+(i+1);
+                            sql=sql+', '+'count(value) filter (where "value" between ' +intervals[i]+ ' and ' +intervals[i+1]+ ' and qualification IN ('+qualificationWhere+')) as '+key;
+                            labels[key] = intervals[i]+"-"+intervals[i+1];
+                        }
+                        key = 'val_'+intervals.length;
+                        sql=sql+', '+'count(value) filter (where "value" >  ' +intervals[intervals.length - 1]+ ' and qualification IN ('+qualificationWhere+')) as '+key;
+                        sql=sql+' from measurements;';
+                        labels[key] = intervals[intervals.length-1]+" et +";
+
+                        var values = [ ];
+                        client.query(sql, values, function(err, result) {
+                            if (err)
+                            {
+                                done();
+                                console.error("Error while running query " + sql + values, err);
+                                res.status(500).end();
+                            }
+                            else
+                            {
+                                done();
+                                if(result.rows.length === 1) {
+                                    res.json( {elements: result.rows[0], labels: labels, qualification: qualification} );
+                                }
+                                else
+                                {
+                                    res.json( 0 );
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        console.log(new Date().toISOString() + " - GET /measurmentsStatisticsByInterval : end")
+    });
     app.get('/flights', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /flights : begin");
         if (typeof(req.query.apiKey) != "string")
@@ -1520,8 +1644,8 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /users : end")
     });
-    app.get('/totalContributors', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /totalContributors : begin");
+    app.get('/usersStatisticsTotal', function (req, res, next) {
+        console.log(new Date().toISOString() + " - GET /usersStatisticsTotal : begin");
         if (typeof(req.query.apiKey) != "string")
         {
             res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
@@ -1562,60 +1686,7 @@ if (properties.requestApiFeature) {
                 });
             }
         }
-        console.log(new Date().toISOString() + " - GET /totalContributors : end")
-    });
-    app.get('/totalMeasurements', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /totalMeasurements : begin");
-        if (typeof(req.query.apiKey) != "string")
-        {
-            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
-        }
-        else {
-            if ( verifyApiKey(res, req.query.apiKey, false, false))
-            {
-                pg.connect(conStr, function(err, client, done) {
-                    if (err) {
-                        done();
-                        console.error("Could not connect to PostgreSQL", err);
-                        res.status(500).end();
-                    } else {
-                        var sql = `select count("value")  from measurements`;
-
-                        var where = '';
-                        var values = [ ];
-
-                        if (req.query.userId != null)
-                        {
-                            values.push(req.query.userId);
-                            where += ' WHERE MEASUREMENTS."userId" = $' + values.length;
-                        }
-
-                        sql += where;
-
-                        client.query(sql, values, function(err, result) {
-                            if (err)
-                            {
-                                done();
-                                console.error("Error while running query " + sql + values, err);
-                                res.status(500).end();
-                            }
-                            else
-                            {
-                                done();
-                                if(result.rows.length === 1) {
-                                    res.json( result.rows[0].count );
-                                }
-                                else
-                                {
-                                    res.json( 0 );
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-        }
-        console.log(new Date().toISOString() + " - GET /totalMeasurements : end")
+        console.log(new Date().toISOString() + " - GET /usersStatisticsTotal : end")
     });
     app.get('/qualificationMeasurements', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /qualificationMeasurements : begin");
@@ -1665,75 +1736,6 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /qualificationMeasurements : end")
     });
-    app.get('/measurementsHistoryValue', function (req, res, next) {
-        console.log(new Date().toISOString() + " - GET /measurementsHistoryValue : begin");
-        if (typeof(req.query.apiKey) != "string")
-        {
-            res.status(400).json({ error: {code:"100", message:"You must send the apiKey parameter"}});
-        }
-        else {
-            if ( verifyApiKey(res, req.query.apiKey, false, false))
-            {
-                pg.connect(conStr, function(err, client, done) {
-                    if (err) {
-                        done();
-                        console.error("Could not connect to PostgreSQL", err);
-                        res.status(500).end();
-                    } else {
-                        var sql = "";
-                        var bornes = ['0.025', '0.050', '0.075', '0.100'];
-                        var qualification = 'groundlevel';
-                        var labels = {};
-
-                        if (req.body.bornes != null)
-                        {
-                            bornes = req.body.bornes;
-                        }
-
-                        if (req.body.qualification != null)
-                        {
-                            qualification = req.body.qualification;
-                        }
-
-                        var key = 'val_0';
-                        labels[key] = "0-"+bornes[0];
-                        sql = 'select count(value) filter (where "value" <= ' +bornes[0]+ ' and qualification=\''+qualification+'\') as '+key;
-                        for (let i = 0; i < bornes.length - 1; i++) {
-                            key = 'val_'+(i+1);
-                            sql=sql+', '+'count(value) filter (where "value" between ' +bornes[i]+ ' and ' +bornes[i+1]+ ' and qualification=\''+qualification+'\') as '+key;
-                            labels[key] = bornes[i]+"-"+bornes[i+1];
-                        }
-                        key = 'val_'+bornes.length;
-                        sql=sql+', '+'count(value) filter (where "value" >  ' +bornes[bornes.length - 1]+ ' and qualification=\''+qualification+'\') as '+key;
-                        sql=sql+' from measurements;';
-                        labels[key] = bornes[bornes.length-1]+" et +";
-
-                        var values = [ ]; 
-                        client.query(sql, values, function(err, result) {
-                            if (err)
-                            {
-                                done();
-                                console.error("Error while running query " + sql + values, err);
-                                res.status(500).end();
-                            }
-                            else
-                            {
-                                done();
-                                if(result.rows.length === 1) {
-                                    res.json( {elements: result.rows[0], labels: labels} );
-                                }
-                                else
-                                {
-                                    res.json( 0 );
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-        }
-        console.log(new Date().toISOString() + " - GET /measurementsHistoryValue : end")
-    });
     app.get('/lastMeasureOfAllUsers', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /lastMeasureOfAllUsers : begin");
         if (typeof(req.query.apiKey) != "string")
@@ -1782,7 +1784,6 @@ if (properties.requestApiFeature) {
         }
         console.log(new Date().toISOString() + " - GET /lastMeasureOfAllUsers : end")
     });
-   
     app.get('/lastMeasurementOfUser', function (req, res, next) {
         console.log(new Date().toISOString() + " - GET /lastMeasurementOfUser : begin");
         if (typeof(req.query.apiKey) != "string")

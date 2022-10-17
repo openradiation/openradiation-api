@@ -236,8 +236,85 @@ Response will look like :
             ...
         ]
     }
-    
-    
+
+
+To get statistics measurement by interval :
+
+    GET /measurmentsStatisticsTotal?apiKey=`apiKey`
+    GET /measurmentsStatisticsTotal?apiKey=`apiKey`&userId=`<userId>`
+
+Response will look like :
+
+    {
+      450
+    }
+
+
+
+To get statistics measurement by interval :
+
+    GET /measurmentsStatisticsByInterval?apiKey=`apiKey`
+
+Curl Command : 
+
+```
+curl --location --request GET 'https://request.openradiation.staging.ul2i.fr/measurementsHistoryValue?apiKey=<apikey>' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "interval": [0.020,0.040,0.060,0.080,0.120,0.130,0.140,0.160,0.180,0.200]
+    "qualification" : ['groundlevel']
+}'
+```
+Response will look like :
+
+    {
+    "elements": {
+        "val_0": "416",
+        "val_1": "3755",
+        "val_2": "14931",
+        "val_3": "44695",
+        "val_4": "189031",
+        "val_5": "29714",
+        "val_6": "18005",
+        "val_7": "24348",
+        "val_8": "18285",
+        "val_9": "11946",
+        "val_10": "18294"
+    },
+    "labels": {
+        "val_0": "0-0.020",
+        "val_1": "0.020-0.040",
+        "val_2": "0.040-0.060",
+        "val_3": "0.060-0.080",
+        "val_4": "0.080-0.120",
+        "val_5": "0.120-0.130",
+        "val_6": "0.130-0.140",
+        "val_7": "0.140-0.160",
+        "val_8": "0.160-0.180",
+        "val_9": "0.180-0.200",
+        "val_10": "0.200 et +"
+    },
+    "qualification": [
+        "groundlevel"
+    ]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Submitting data to the API
 
 The endpoint for submit API is https://submit.openradiation.net/. 
