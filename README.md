@@ -355,6 +355,27 @@ To communicate the list of users  :
             }
         ]
     }
+
+To Create/Update user  :
+
+    PUT /users
+    Content-Type: application/vnd.api+json
+    Accept: application/vnd.api+json
+    {
+        "apiKey": "`apiKey`",
+        "userId": "`userId`",
+        "userPwd": "`userPwd`"
+    }
+     
+To Delete user  :
+
+    PUT /users
+    Content-Type: application/vnd.api+json
+    Accept: application/vnd.api+json
+    {
+        "apiKey": "`apiKey`",
+        "userId": "`userId`"
+    }
      
 To update the qualification criteria for a unique measurement :
 

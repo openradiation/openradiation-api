@@ -1,6 +1,6 @@
 {
     "name": "api",
-    "version": "0.9.0",
+    "version": "1.0.0",
     
     "dependencies": {
         "async": "~1",
@@ -10,9 +10,8 @@
         "ejs": "^3.1.8",
         "express": "~4",
         "multer": "~1",
-        "node": "^18.5.0",
         "node-png": "~0",
-        "pg": "^4.5.7",
+        "pg": "^8",
         "request": "~2"
     }
 }
