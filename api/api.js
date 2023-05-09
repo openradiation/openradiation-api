@@ -2247,10 +2247,10 @@ if (cluster.isMaster) {
                                     var info = "";
                                     if (result.rowCount == 0) {
                                         sql = 'INSERT INTO APIUSERS ("userId", "userPwd") VALUES ($1, $2)';
-                                        info = "create "+req.body.userId
+                                        info = "user "+req.body.userId+" created"
                                     } else {
                                         sql = 'UPDATE APIUSERS SET "userPwd" = $2 WHERE  "userId" = $1';
-                                        info = "update "+req.body.userId
+                                        info = "user "+req.body.userId+" updated"
                                     }
 
                                     var values = [req.body.userId, req.body.userPwd];
