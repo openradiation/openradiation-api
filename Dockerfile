@@ -1,4 +1,4 @@
-FROM node:6.9.3
+FROM node:18
 ENV TZ Europe/Paris
 COPY ./api /home/node/app/api
 # Will be replaced in /home/node/app/api/public during deployment
