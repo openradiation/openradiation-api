@@ -2584,7 +2584,8 @@ if (cluster.isMaster) {
                     });
                 else {
                     file = req.file.buffer.toString("utf-8");
-                    var sha256 = SHA256(file).toString();
+                    const sha256 = SHA256(file).toString();
+                    const md5 = MD5(file).toString();
                     console.log(req.file);
                     lines = file.split(new RegExp('\r\n|\r|\n'));
 
@@ -2714,12 +2715,12 @@ if (cluster.isMaster) {
                                                 }
                                                 data.endAccuracy = parseFloat(values[13]);
                                                 data.endAltitude = parseInt(values[11]);
-                                                var epoch = data.startTime.getTime() / 1000;
+                                                let epoch = data.startTime.getTime() / 1000;
                                                 if (epoch.toString().length > 10)
                                                     epoch = epoch.toString().substr(0, 10);
                                                 else if (epoch.toString().length < 10)
                                                     epoch = "0000000000".substring(0, 10 - epoch.toString().length) + epoch.toString();
-                                                data.reportUuid = "ff" + MD5.substr(0, 6) + "-" + MD5.substr(6, 4) + "-4" + MD5.substr(10, 3) + "-a" + MD5.substr(13, 3) + "-" + MD5.substr(16, 2) + epoch.toString(); // Uuid is ffxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx with 18 characters from sha-256 file and epoch startTime
+                                                data.reportUuid = "ff" + md5.substr(0, 6) + "-" + md5.substr(6, 4) + "-4" + md5.substr(10, 3) + "-a" + md5.substr(13, 3) + "-" + md5.substr(16, 2) + epoch.toString(); // Uuid is ffxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx with 18 characters from sha-256 file and epoch startTime
                                                 data.manualReporting = false;
                                                 data.organisationReporting = "openradiation.net/upload " + properties.version;
                                                 data.reportContext = "routine";
