@@ -822,17 +822,25 @@ function openradiation_getItems(fitBounds)
                     html +=   '<div onclick="drawPlotly()"><span class="openradiation_icon icon_timeline"></span> <span id="timechartlink">' +
                         translate("See flight profile") + '</span></div>';
                     html += "</div>";
-                        
-                    //var polyline = L.polyline(latlngs, {color: 'orange' }).addTo(openradiation_map);
-                    var geodesic = L.geodesic([], {color: '#ffac33' }).bindPopup(html);
-                    
-                    geodesic.setLatLngs([points]);
-                    geodesic.flightId = res.data[i].flightId;
-                    if(res.data[i].airportOrigin != undefined && res.data[i].airportDestination != undefined) {
-                        geodesic.airportOrigin_location = [res.data[i].firstLatitude, res.data[i].firstLongitude];
-                        geodesic.airportDestination_location = [res.data[i].lastLatitude, res.data[i].lastLongitude];
+
+                    var allPointsGreaterThanZero = points.every(function(point) {
+                        return point.every(function(coord) {
+                            return coord && coord > 0;
+                        });
+                    });
+
+                    if (allPointsGreaterThanZero) {
+                        //var polyline = L.polyline(latlngs, {color: 'orange' }).addTo(openradiation_map);
+                        var geodesic = L.geodesic([], {color: '#ffac33'}).bindPopup(html);
+                        geodesic.setLatLngs([points]);
+
+                        geodesic.flightId = res.data[i].flightId;
+                        if (res.data[i].airportOrigin != undefined && res.data[i].airportDestination != undefined) {
+                            geodesic.airportOrigin_location = [res.data[i].firstLatitude, res.data[i].firstLongitude];
+                            geodesic.airportDestination_location = [res.data[i].lastLatitude, res.data[i].lastLongitude];
+                        }
+                        geodesic.addTo(openradiation_map);
                     }
-                    geodesic.addTo(openradiation_map);
                 }            
             },
             error: function(res, status, err) {
