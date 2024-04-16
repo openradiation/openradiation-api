@@ -3,10 +3,22 @@
  */
 
 //1. generic
-var cluster = require('cluster');
+const cluster = require('cluster');
 const {MD5} = require('crypto-js');
-var request = require('request');
-var properties = require('./properties.js');
+const properties = require('./properties.js');
+const express = require('express');
+const bodyParser = require('body-parser');
+const multer = require('multer');
+const async = require('async');
+const fs = require('fs');
+const PNG = require('pngjs').PNG;
+const https = require('https');
+const http = require('http');
+const CryptoJS = require("crypto-js");
+const SHA256 = require("crypto-js/sha256");
+const SHA512 = require("crypto-js/sha512");
+const pg = require('pg');
+const axios = require('axios');
 
 
 // from measurementEnvironment, deviceUuid, flightNumber, startTime
@@ -15,19 +27,19 @@ var properties = require('./properties.js');
 updateFlightInfos = function (client, measurementEnvironment, flightNumber_, startTime, endTime, latitude, longitude, updateMeasurementFunc) {
 
     // variables to be returned
-    var flightId = null;
-    var refinedLatitude = null;
-    var refinedLongitude = null;
-    var refinedAltitude = null;
-    var refinedEndLatitude = null;
-    var refinedEndLongitude = null;
-    var refinedEndAltitude = null;
-    var flightSearch = null;
-    var flightNumber = null;
+    let flightId = null;
+    let refinedLatitude = null;
+    let refinedLongitude = null;
+    let refinedAltitude = null;
+    let refinedEndLatitude = null;
+    let refinedEndLongitude = null;
+    let refinedEndAltitude = null;
+    let flightSearch = null;
+    let flightNumber = null;
 
-    var hours = 3600 * 1000; // 1 hour in milliseconds
+    const hours = 3600 * 1000; // 1 hour in milliseconds
 
-    if ((measurementEnvironment != null) && (measurementEnvironment == "plane") && flightNumber_ != null) {
+    if ((measurementEnvironment != null) && (measurementEnvironment === "plane") && flightNumber_ != null) {
 
         //0. if flight number is 'Af 038' we store 'AF38'
         flightNumber = flightNumber_.replace(/ /g, "");
@@ -38,130 +50,133 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
             [
                 function (callback) {
                     //1. is there any similar measurements, i.e. same flightNumber and less 2 hours apart
-                    var sql = 'select count(*) as count FROM MEASUREMENTS WHERE "flightNumber"=$1 and "flightSearch"=true and "startTime">$2 and "startTime"<$3';
-                    var values = [flightNumber, new Date(new Date(startTime).getTime() - 2 * hours), new Date(new Date(startTime).getTime() + 2 * hours)];
+                    let sql = 'select count(*) as count FROM MEASUREMENTS WHERE "flightNumber"=$1 and "flightSearch"=true and "startTime">$2 and "startTime"<$3';
+                    let values = [flightNumber, new Date(new Date(startTime).getTime() - 2 * hours), new Date(new Date(startTime).getTime() + 2 * hours)];
                     client.query(sql, values, function (err, result) {
                         if (err) {
                             console.log("Error while running query " + sql, err);
                             callback();
                         } else {
-                            if (result.rows[0].count == 0) {
+                            if (result.rows[0].count === 0) {
                                 //no similar result, so we try to connect flightradar
                                 flightSearch = true;
 
-                                var requestParams = {};
+                                const requestParams = {};
                                 requestParams.qs = {};
                                 requestParams.url = properties.flightURL + 'FlightInfoStatus';
                                 if (properties.flightProxy != null)
                                     requestParams.proxy = properties.flightProxy;
                                 requestParams.qs.ident = flightNumber;
 
-                                request.get(requestParams, function (err, resp, body) {
-                                    if (err) {
-                                        console.log("ERROR request FlightInfoStatus : " + err);
-                                        callback();
-                                    } else if (resp.statusCode >= 400) {
-                                        console.log("ERROR status code FlightInfoStatus : " + resp.statusCode);
-                                        callback();
-                                    } else {
-                                        body_json = JSON.parse(body);
-                                        if ((body_json.FlightInfoStatusResult != null) && (body_json.FlightInfoStatusResult.flights.length > 0)) {
-                                            async.forEach(body_json.FlightInfoStatusResult.flights, function (flight, callback_flights) {
-                                                if ((new Date(flight.actual_departure_time.epoch * 1000) < new Date(new Date(startTime).getTime() + 4 * hours))
-                                                    && (new Date(flight.actual_arrival_time.epoch * 1000) > new Date(new Date(startTime).getTime() - 4 * hours))) {
-                                                    var departureTime = new Date(flight.actual_departure_time.epoch * 1000);
-                                                    var arrivalTime = new Date(flight.actual_arrival_time.epoch * 1000);
+                                axios.get(requestParams.url, {params: requestParams.qs})
+                                    .then(resp => {
+                                        if (resp.status >= 400) {
+                                            console.log("ERROR status code FlightInfoStatus : " + resp.status);
+                                            callback();
+                                        } else {
+                                            let body_json = resp.data;
+                                            if ((body_json.FlightInfoStatusResult != null) && (body_json.FlightInfoStatusResult.flights.length > 0)) {
+                                                async.forEach(body_json.FlightInfoStatusResult.flights, function (flight, callback_flights) {
+                                                    if ((new Date(flight.actual_departure_time.epoch * 1000) < new Date(new Date(startTime).getTime() + 4 * hours))
+                                                        && (new Date(flight.actual_arrival_time.epoch * 1000) > new Date(new Date(startTime).getTime() - 4 * hours))) {
+                                                        const departureTime = new Date(flight.actual_departure_time.epoch * 1000);
+                                                        const arrivalTime = new Date(flight.actual_arrival_time.epoch * 1000);
 
-                                                    sql = 'select count(*) as count from FLIGHTS WHERE "flightNumber"=$1 and "departureTime"=$2 and "arrivalTime"=$3';
-                                                    values = [flightNumber, departureTime, arrivalTime];
-                                                    client.query(sql, values, function (err, result) {
-                                                        if (err) {
-                                                            console.log("Error while running query " + sql, err);
-                                                            callback_flights();
-                                                        } else {
-                                                            if (result.rows[0].count == 0) {
-                                                                sql = 'insert into FLIGHTS("flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType") VALUES ($1, $2, $3, $4, $5, $6) RETURNING "flightId"';
-                                                                values = [flightNumber, departureTime, arrivalTime, flight.origin.alternate_ident, flight.destination.alternate_ident, flight.aircrafttype];
-                                                                client.query(sql, values, function (err, result) {
-                                                                    if (err)
-                                                                        console.log("Error while running query " + sql, err);
-                                                                    var flightIdInserted = result.rows[0].flightId;
-                                                                    requestParams.qs.ident = flight.faFlightID;
-                                                                    requestParams.url = properties.flightURL + 'GetFlightTrack';
-                                                                    request.get(requestParams, function (err, resp, body) {
-                                                                        if (err) {
+                                                        sql = 'select count(*) as count from FLIGHTS WHERE "flightNumber"=$1 and "departureTime"=$2 and "arrivalTime"=$3';
+                                                        values = [flightNumber, departureTime, arrivalTime];
+                                                        client.query(sql, values, function (err, result) {
+                                                            if (err) {
+                                                                console.log("Error while running query " + sql, err);
+                                                                callback_flights();
+                                                            } else {
+                                                                if (result.rows[0].count == 0) {
+                                                                    sql = 'insert into FLIGHTS("flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType") VALUES ($1, $2, $3, $4, $5, $6) RETURNING "flightId"';
+                                                                    values = [flightNumber, departureTime, arrivalTime, flight.origin.alternate_ident, flight.destination.alternate_ident, flight.aircrafttype];
+                                                                    client.query(sql, values, function (err, result) {
+                                                                        if (err)
+                                                                            console.log("Error while running query " + sql, err);
+                                                                        const flightIdInserted = result.rows[0].flightId;
+                                                                        requestParams.qs.ident = flight.faFlightID;
+                                                                        requestParams.url = properties.flightURL + 'GetFlightTrack';
+
+                                                                        axios.get(requestParams.url, {params: requestParams.qs})
+                                                                            .then(resp => {
+                                                                                if (resp.statusCode >= 400) {
+                                                                                    console.log("ERROR status code FlightInfoStatus : " + resp.statusCode);
+                                                                                    callback_flights();
+                                                                                } else {
+                                                                                    let body_json = resp.data;
+                                                                                    if ((body_json.GetFlightTrackResult != null) && (body_json.GetFlightTrackResult.tracks.length > 0)) {
+                                                                                        async.forEach(body_json.GetFlightTrackResult.tracks, function (track, callback_tracks) { //The second argument (callback) is the "task callback" for a specific task
+                                                                                            if (track.timestamp != null && track.timestamp > 0 && track.latitude != null && track.longitude != null && track.altitude != null) {
+                                                                                                let altitude_in_meter;
+                                                                                                if (track.altitude_feet != null)
+                                                                                                    altitude_in_meter = Math.round(track.altitude_feet * 0.3048);
+                                                                                                else
+                                                                                                    altitude_in_meter = Math.round(track.altitude * 100 * 0.3048);
+
+                                                                                                sql = 'insert into FLIGHTSTRACK("flightId", "timestamp", "latitude", "longitude", "altitude") VALUES ($1, $2, $3, $4, $5)';
+                                                                                                values = [flightIdInserted, new Date(track.timestamp * 1000), track.latitude, track.longitude, altitude_in_meter];
+                                                                                                client.query(sql, values, function (err, result) {
+                                                                                                    if (err)
+                                                                                                        console.log("Error while running query insert flightstrack " + sql, err);
+                                                                                                    callback_tracks();
+                                                                                                });
+                                                                                            } else {
+                                                                                                callback_tracks();
+                                                                                            }
+                                                                                        }, function (err) {
+                                                                                            if (err) {
+                                                                                                console.log("Error tracks " + err);
+                                                                                                callback_flights();
+                                                                                            } else {
+                                                                                                sql = 'update FLIGHTS set "firstLatitude"=$1, "firstLongitude"=$2, "midLatitude"=$3, "midLongitude"=$4, "lastLatitude"=$5, "lastLongitude"=$6 where "flightId"=$7';
+                                                                                                values = [body_json.GetFlightTrackResult.tracks[0].latitude,
+                                                                                                    body_json.GetFlightTrackResult.tracks[0].longitude,
+                                                                                                    body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].latitude,
+                                                                                                    body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].longitude,
+                                                                                                    body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].latitude,
+                                                                                                    body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].longitude,
+                                                                                                    flightIdInserted];
+                                                                                                client.query(sql, values, function (err, result) {
+                                                                                                    if (err)
+                                                                                                        console.log("Error while running query " + sql, err);
+
+                                                                                                    callback_flights();
+                                                                                                });
+                                                                                            }
+                                                                                        });
+                                                                                    } else
+                                                                                        callback_flights();
+                                                                                }
+                                                                            }).catch(err => {
                                                                             console.log("ERROR request FlightInfoStatus : " + err);
                                                                             callback_flights();
-                                                                        } else if (resp.statusCode >= 400) {
-                                                                            console.log("ERROR status code FlightInfoStatus : " + resp.statusCode);
-                                                                            callback_flights();
-                                                                        } else {
-                                                                            body_json = JSON.parse(body);
-                                                                            if ((body_json.GetFlightTrackResult != null) && (body_json.GetFlightTrackResult.tracks.length > 0)) {
-                                                                                async.forEach(body_json.GetFlightTrackResult.tracks, function (track, callback_tracks) { //The second argument (callback) is the "task callback" for a specific task
-                                                                                    if (track.timestamp != null && track.timestamp > 0 && track.latitude != null && track.longitude != null && track.altitude != null) {
-                                                                                        var altitude_in_meter;
-                                                                                        if (track.altitude_feet != null)
-                                                                                            altitude_in_meter = Math.round(track.altitude_feet * 0.3048);
-                                                                                        else
-                                                                                            altitude_in_meter = Math.round(track.altitude * 100 * 0.3048);
-
-                                                                                        sql = 'insert into FLIGHTSTRACK("flightId", "timestamp", "latitude", "longitude", "altitude") VALUES ($1, $2, $3, $4, $5)';
-                                                                                        values = [flightIdInserted, new Date(track.timestamp * 1000), track.latitude, track.longitude, altitude_in_meter];
-                                                                                        client.query(sql, values, function (err, result) {
-                                                                                            if (err)
-                                                                                                console.log("Error while running query insert flightstrack " + sql, err);
-                                                                                            callback_tracks();
-                                                                                        });
-                                                                                    } else {
-                                                                                        callback_tracks();
-                                                                                    }
-                                                                                }, function (err) {
-                                                                                    if (err) {
-                                                                                        console.log("Error tracks " + err);
-                                                                                        callback_flights();
-                                                                                    } else {
-                                                                                        sql = 'update FLIGHTS set "firstLatitude"=$1, "firstLongitude"=$2, "midLatitude"=$3, "midLongitude"=$4, "lastLatitude"=$5, "lastLongitude"=$6 where "flightId"=$7';
-                                                                                        values = [body_json.GetFlightTrackResult.tracks[0].latitude,
-                                                                                            body_json.GetFlightTrackResult.tracks[0].longitude,
-                                                                                            body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].latitude,
-                                                                                            body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].longitude,
-                                                                                            body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].latitude,
-                                                                                            body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].longitude,
-                                                                                            flightIdInserted];
-                                                                                        client.query(sql, values, function (err, result) {
-                                                                                            if (err)
-                                                                                                console.log("Error while running query " + sql, err);
-
-                                                                                            callback_flights();
-                                                                                        });
-
-                                                                                    }
-                                                                                });
-                                                                            } else
-                                                                                callback_flights();
-                                                                        }
+                                                                        });
                                                                     });
-                                                                });
-                                                            } else {
-                                                                callback_flights();
+                                                                } else {
+                                                                    callback_flights();
+                                                                }
                                                             }
-                                                        }
-                                                    });
-                                                } else {
-                                                    callback_flights();
-                                                }
-                                            }, function (err) {
-                                                if (err)
-                                                    console.log("Error " + err);
+                                                        });
+                                                    } else {
+                                                        callback_flights();
+                                                    }
+                                                }, function (err) {
+                                                    if (err)
+                                                        console.log("Error " + err);
+                                                    callback();
+                                                });
+                                            } else {
+                                                //console.log("No flight found in flightradar");
                                                 callback();
-                                            });
-                                        } else {
-                                            //console.log("No flight found in flightradar");
-                                            callback();
+                                            }
                                         }
-                                    }
-                                });
+                                    })
+                                    .catch(err => {
+                                        console.log("ERROR request FlightInfoStatus : " + err);
+                                        callback();
+                                    });
                             } else {
                                 callback();
                             }
@@ -171,8 +186,8 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
 
                 function (callback) {
                     //2. is there any registred flightradar flight, with same flightNumber and less 2 hours apart
-                    sql = 'select "flightId", "departureTime", "arrivalTime" FROM FLIGHTS WHERE "flightNumber"=$1 and "departureTime"<=$2 and "arrivalTime">=$3';
-                    values = [flightNumber, new Date(new Date(startTime).getTime() + 2 * hours), new Date(new Date(startTime).getTime() - 2 * hours)];
+                    let sql = 'select "flightId", "departureTime", "arrivalTime" FROM FLIGHTS WHERE "flightNumber"=$1 and "departureTime"<=$2 and "arrivalTime">=$3';
+                    let values = [flightNumber, new Date(new Date(startTime).getTime() + 2 * hours), new Date(new Date(startTime).getTime() - 2 * hours)];
                     client.query(sql, values, function (err, result) {
                         if (err) {
                             console.log("Error while running query " + sql, err);
@@ -181,28 +196,28 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                             if (result.rows.length == 0) {
                                 callback(null, false);
                             } else {
-                                var diff;
-                                for (var i = 0; i < result.rows.length; i++) {
-                                    var midTime = new Date(result.rows[i].departureTime.getTime() + ((result.rows[i].arrivalTime.getTime() - result.rows[i].departureTime.getTime()) / 2));
-                                    if ((i == 0) || Math.abs(midTime - new Date(startTime).getTime()) < diff) {
+                                let diff;
+                                for (let i = 0; i < result.rows.length; i++) {
+                                    const midTime = new Date(result.rows[i].departureTime.getTime() + ((result.rows[i].arrivalTime.getTime() - result.rows[i].departureTime.getTime()) / 2));
+                                    if ((i === 0) || Math.abs(midTime - new Date(startTime).getTime()) < diff) {
                                         diff = Math.abs(midTime - new Date(startTime).getTime());
                                         flightId = result.rows[i].flightId;
                                     }
                                 }
-                                sql = 'SELECT timestamp, latitude, longitude, altitude from FLIGHTSTRACK where "flightId"=$1 order by timestamp';
-                                values = [flightId];
+                                let sql = 'SELECT timestamp, latitude, longitude, altitude from FLIGHTSTRACK where "flightId"=$1 order by timestamp';
+                                let values = [flightId];
                                 client.query(sql, values, function (err, result) {
                                     if (err) {
                                         console.log("Error while running query " + sql, err);
                                         callback(null, true);
                                     } else {
-                                        var startTimeIndice = null;
-                                        var endTimeIndice = null;
-                                        for (var i = 0; i < result.rows.length; i++) {
+                                        let startTimeIndice = null;
+                                        let endTimeIndice = null;
+                                        for (let i = 0; i < result.rows.length; i++) {
                                             if (startTimeIndice == null && (new Date(startTime) <= result.rows[i].timestamp))
                                                 startTimeIndice = i;
 
-                                            if (endTimeIndice == null && (new Date(endTime) < result.rows[i].timestamp)) {
+                                            if ((new Date(endTime) < result.rows[i].timestamp)) {
                                                 endTimeIndice = i;
                                                 break;
                                             }
@@ -258,8 +273,8 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
 
                     if (flightFound == false) {
                         //2. if not found, is there any flights, with same flightNumber and less 20 hours total duration and less 12 hours apart
-                        sql = 'select "flightId", "startTimeMin", "startTimeMax", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS WHERE "flightNumber"=$1 and (    ("startTimeMin"<=$2 and "startTimeMax">=$2) or ("startTimeMin">$2  and "startTimeMin"<=$3 and "startTimeMax"<=$4) or ("startTimeMax"<$2  and "startTimeMax">=$5 and "startTimeMin">=$6))';
-                        values = [flightNumber, startTime, new Date(new Date(startTime).getTime() + 12 * hours), new Date(new Date(startTime).getTime() + 20 * hours), new Date(new Date(startTime).getTime() - 12 * hours), new Date(new Date(startTime).getTime() - 20 * hours)];
+                        let sql = 'select "flightId", "startTimeMin", "startTimeMax", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS WHERE "flightNumber"=$1 and (    ("startTimeMin"<=$2 and "startTimeMax">=$2) or ("startTimeMin">$2  and "startTimeMin"<=$3 and "startTimeMax"<=$4) or ("startTimeMax"<$2  and "startTimeMax">=$5 and "startTimeMin">=$6))';
+                        let values = [flightNumber, startTime, new Date(new Date(startTime).getTime() + 12 * hours), new Date(new Date(startTime).getTime() + 20 * hours), new Date(new Date(startTime).getTime() - 12 * hours), new Date(new Date(startTime).getTime() - 20 * hours)];
 
                         client.query(sql, values, function (err, result) {
                             if (err) {
@@ -267,8 +282,8 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                 callback();
                             } else {
                                 if (result.rows.length == 0) {
-                                    sql = 'insert into FLIGHTS("flightNumber", "startTimeMin", "startTimeMax", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude") VALUES ($1, $2, $2, $3, $4, $3, $4, $3, $4) RETURNING "flightId"';
-                                    values = [flightNumber, startTime, latitude, longitude];
+                                    let sql = 'insert into FLIGHTS("flightNumber", "startTimeMin", "startTimeMax", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude") VALUES ($1, $2, $2, $3, $4, $3, $4, $3, $4) RETURNING "flightId"';
+                                    let values = [flightNumber, startTime, latitude, longitude];
                                     client.query(sql, values, function (err, result) {
                                         if (err)
                                             console.log("Error while running query " + sql, err);
@@ -277,19 +292,19 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                         callback();
                                     });
                                 } else {
-                                    var diff;
-                                    var startTimeMin;
-                                    var startTimeMax;
-                                    var firstLatitude;
-                                    var firstLongitude;
-                                    var midLatitude;
-                                    var midLongitude;
-                                    var lastLatitude;
-                                    var lastLongitude;
+                                    let diff;
+                                    let startTimeMin;
+                                    let startTimeMax;
+                                    let firstLatitude;
+                                    let firstLongitude;
+                                    let midLatitude;
+                                    let midLongitude;
+                                    let lastLatitude;
+                                    let lastLongitude;
 
-                                    for (var i = 0; i < result.rows.length; i++) {
-                                        var startTimeMid = new Date(result.rows[i].startTimeMin.getTime() + ((result.rows[i].startTimeMax.getTime() - result.rows[i].startTimeMin.getTime()) / 2));
-                                        if ((i == 0) || Math.abs(startTimeMid - new Date(startTime).getTime()) < diff) {
+                                    for (let i = 0; i < result.rows.length; i++) {
+                                        const startTimeMid = new Date(result.rows[i].startTimeMin.getTime() + ((result.rows[i].startTimeMax.getTime() - result.rows[i].startTimeMin.getTime()) / 2));
+                                        if ((i === 0) || Math.abs(startTimeMid - new Date(startTime).getTime()) < diff) {
                                             diff = Math.abs(startTimeMid - new Date(startTime).getTime());
                                             flightId = result.rows[i].flightId;
                                             startTimeMin = result.rows[i].startTimeMin;
@@ -316,8 +331,8 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                     }
 
                                     //todo : we should update midLatitude/midLongitude maybe when a user retrieve measurements from a flights
-                                    sql = 'update FLIGHTS set "startTimeMin"=$1, "startTimeMax"=$2, "firstLatitude"=$3, "firstLongitude"=$4, "midLatitude"=$5, "midLongitude"=$6, "lastLatitude"=$7, "lastLongitude"=$8 where "flightId"=$9';
-                                    values = [startTimeMin, startTimeMax, firstLatitude, firstLongitude, midLatitude, midLongitude, lastLatitude, lastLongitude, flightId];
+                                    let sql = 'update FLIGHTS set "startTimeMin"=$1, "startTimeMax"=$2, "firstLatitude"=$3, "firstLongitude"=$4, "midLatitude"=$5, "midLongitude"=$6, "lastLatitude"=$7, "lastLongitude"=$8 where "flightId"=$9';
+                                    let values = [startTimeMin, startTimeMax, firstLatitude, firstLongitude, midLatitude, midLongitude, lastLatitude, lastLongitude, flightId];
                                     client.query(sql, values, function (err, result) {
                                         if (err)
                                             console.log("Error while running query " + sql, err);
@@ -379,10 +394,10 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
 // Code to run if we're in the master process
 if (cluster.isMaster) {
 
-    var cpuCount = require('os').cpus().length;
+    const cpuCount = require('os').cpus().length;
     console.log(new Date().toISOString() + " - ****** OpenRadiation : cpuCount = " + cpuCount);
     // Create a worker for each CPU
-    for (var i = 0; i < cpuCount; i += 1) {
+    for (let i = 0; i < cpuCount; i += 1) {
         cluster.fork();
     }
 
@@ -391,11 +406,8 @@ if (cluster.isMaster) {
         cluster.fork();
     });
 
-    var pg = require('pg');
-    var async = require('async');
-    var conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
-
-    var pool = new pg.Pool({
+    let conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
+    let pool = new pg.Pool({
         connectionString: conStr,
     })
 
@@ -404,7 +416,7 @@ if (cluster.isMaster) {
             if (err) {
                 console.log("Could not connect to PostgreSQL", err);
             } else {
-                var sql = 'SELECT "reportUuid","measurementEnvironment","flightNumber","startTime","endTime","latitude","longitude" from MEASUREMENTS WHERE "measurementEnvironment"=\'plane\' AND "flightNumber" is not null AND "flightId" is null';
+                const sql = 'SELECT "reportUuid","measurementEnvironment","flightNumber","startTime","endTime","latitude","longitude" from MEASUREMENTS WHERE "measurementEnvironment"=\'plane\' AND "flightNumber" is not null AND "flightId" is null';
                 client.query(sql, [], function (err, result) {
                     if (err) {
                         console.log("Error while running query " + sql, err);
@@ -414,8 +426,8 @@ if (cluster.isMaster) {
 
                             updateFlightInfos(client, measure.measurementEnvironment, measure.flightNumber, measure.startTime, measure.endTime, measure.latitude, measure.longitude, function (flightInfos) {
                                 //console.log(flightInfos);
-                                var sql = 'update MEASUREMENTS set "flightNumber"=$1, "flightId"=$2, "refinedLatitude"=$3, "refinedLongitude"=$4,"refinedAltitude"=$5,"refinedEndLatitude"=$6,"refinedEndLongitude"=$7, "refinedEndAltitude"=$8,"flightSearch"=$9 WHERE "reportUuid"=$10';
-                                var values = [flightInfos.flightNumber, flightInfos.flightId, flightInfos.refinedLatitude, flightInfos.refinedLongitude, flightInfos.refinedAltitude, flightInfos.refinedEndLatitude, flightInfos.refinedEndLongitude, flightInfos.refinedEndAltitude, flightInfos.flightSearch, measure.reportUuid];
+                                const sql = 'update MEASUREMENTS set "flightNumber"=$1, "flightId"=$2, "refinedLatitude"=$3, "refinedLongitude"=$4,"refinedAltitude"=$5,"refinedEndLatitude"=$6,"refinedEndLongitude"=$7, "refinedEndAltitude"=$8,"flightSearch"=$9 WHERE "reportUuid"=$10';
+                                const values = [flightInfos.flightNumber, flightInfos.flightId, flightInfos.refinedLatitude, flightInfos.refinedLongitude, flightInfos.refinedAltitude, flightInfos.refinedEndLatitude, flightInfos.refinedEndLongitude, flightInfos.refinedEndAltitude, flightInfos.flightSearch, measure.reportUuid];
                                 client.query(sql, values, function (err, result) {
                                     if (err)
                                         console.log("Error while running query " + sql, err);
@@ -438,31 +450,18 @@ if (cluster.isMaster) {
 
 } else { // Code to run if we're in a worker process
 
-    var pg = require('pg');
-    var conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
-    var pool = new pg.Pool({
+    let conStr = "postgres://" + properties.login + ":" + properties.password + "@" + properties.host + "/openradiation";
+    let pool = new pg.Pool({
         connectionString: conStr,
     })
-    var express = require('express');
-    var bodyParser = require('body-parser');
-    var multer = require('multer');
-    var async = require('async');
-    var fs = require('fs');
-    var PNG = require('node-png/lib/png').PNG;
-    var https = require('https');
-    var http = require('http');
-    var CryptoJS = require("crypto-js");
-    var SHA256 = require("crypto-js/sha256");
-    var SHA512 = require("crypto-js/sha512");
-    var itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
+    const itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-    var app = express();
+    const app = express();
     app.use(bodyParser.json({strict: true, limit: '2mb'})); // enclosedObject shouldn't exceeded 1mb, but total space is higher with the base64 encoding
     app.use(bodyParser.urlencoded({extended: true}));
-//app.use(multer({ dest: __dirname + '/uploads/'})); //multipart/form-data
 
-    var upload = multer({
+    const upload = multer({
         dest: __dirname + '/uploads/',
         storage: multer.memoryStorage(),
         limits: {files: 1, fileSize: 10 * 1000000}
@@ -479,11 +478,11 @@ if (cluster.isMaster) {
     });
 
 //2. load apiKeys every ten minutes
-    var apiKeys = [];
-    var mutableOpenRadiationMapApiKey = ""; //the mutable apikey for openradiation map : it is mutable while it is visible in map
+    let apiKeys = [];
+    let mutableOpenRadiationMapApiKey = ""; //the mutable apikey for openradiation map : it is mutable while it is visible in map
 
-    var apiKeyTestCounter = 0;
-    var apiKeyTestDate;
+    let apiKeyTestCounter = 0;
+    let apiKeyTestDate;
 
     getAPI = function () {
         //console.log(new Date().toISOString() + " - getAPI() : begin");
@@ -492,14 +491,14 @@ if (cluster.isMaster) {
                 done();
                 console.error("Could not connect to PostgreSQL", err);
             } else {
-                var sql = 'SELECT "apiKey","role" from APIKEYS';
+                const sql = 'SELECT "apiKey","role" from APIKEYS';
                 client.query(sql, [], function (err, result) {
                     done();
                     if (err)
                         console.error("Error while running query " + sql, err);
                     else {
                         apiKeys = result.rows;
-                        for (i = 0; i < apiKeys.length; i++) {
+                        for (let i = 0; i < apiKeys.length; i++) {
                             if (apiKeys[i].role == "mutable")
                                 mutableOpenRadiationMapApiKey = apiKeys[i].apiKey;
                         }
@@ -514,7 +513,7 @@ if (cluster.isMaster) {
     setInterval(getAPI, properties.getAPIInterval); //every ten minutes
 
 //3. load userId, userPwd every ten minutes
-    var users = [];
+    let users = [];
 
     getUsers = function () {
         //console.log(new Date().toISOString() + " - getUsers() : begin");
@@ -523,7 +522,7 @@ if (cluster.isMaster) {
                 done();
                 console.error("Could not connect to PostgreSQL", err);
             } else {
-                var sql = 'SELECT "userId","userPwd" from APIUSERS';
+                const sql = 'SELECT "userId","userPwd" from APIUSERS';
                 client.query(sql, [], function (err, result) {
                     done();
                     if (err)
@@ -548,7 +547,7 @@ if (cluster.isMaster) {
         //      mutable : only GET request, may change in database
         //      put     : GET or PUT/POST request
         //      admin   : GET or PUT/POST request + admin role requests are admit
-        for (i = 0; i < apiKeys.length; i++) {
+        for (let i = 0; i < apiKeys.length; i++) {
             if (apiKeys[i].apiKey == apiKey.toLowerCase()) //apiKey should be in lowercase in the database
             {
                 if (adminOnly && apiKeys[i].role != "admin") {
@@ -568,7 +567,7 @@ if (cluster.isMaster) {
 
                 //test : if apiKey = test is called more often
                 if (apiKeys[i].role == "test") {
-                    var maintenant = new Date();
+                    const maintenant = new Date();
                     if (apiKeyTestDate == null || (apiKeyTestDate.getTime() + properties.APIKeyTestInterval) < maintenant.getTime()) {
                         apiKeyTestCounter = 1;
                         apiKeyTestDate = maintenant;
@@ -592,7 +591,7 @@ if (cluster.isMaster) {
                         console.error("Could not connect to PostgreSQL", err);
                         return false;
                     } else {
-                        var sql;
+                        let sql;
                         if (isSubmitAPI)
                             sql = 'UPDATE APIKEYS SET "submitAccessCount" = "submitAccessCount" + 1 WHERE "apiKey"=$1';
                         else
@@ -617,11 +616,11 @@ if (cluster.isMaster) {
 //password_crypt impementation of the php drupal algorithm
 //see https://api.drupal.org/api/drupal/includes!password.inc/function/_password_crypt/7
 //to decrease computation time password are stored 10 to 12 minutes
-    var passwords = {};
+    const passwords = {};
     deletePasswords = function () {
         //console.log(new Date().toISOString() + " - deletePasswords() : begin");
-        for (var i in passwords) {
-            var now = new Date();
+        for (let i in passwords) {
+            const now = new Date();
             if (passwords[i].getTime() + 600000 < now.getTime())
                 delete passwords[i];
         }
@@ -630,9 +629,9 @@ if (cluster.isMaster) {
     setInterval(deletePasswords, 120000); //every 2 minutes
 
     function convertWordArrayToUint8Array(wordArray) {
-        var len = wordArray.words.length,
-            u8_array = new Uint8Array(len << 2),
-            offset = 0, word, i;
+        const len = wordArray.words.length,
+            u8_array = new Uint8Array(len << 2);
+        let offset = 0, word, i;
         for (i = 0; i < len; i++) {
             word = wordArray.words[i];
             u8_array[offset++] = word >> 24;
@@ -646,12 +645,12 @@ if (cluster.isMaster) {
 //base 64 encoding with drupal's method : this function is strictly the same than https://api.drupal.org/api/drupal/includes!password.inc/function/_password_base64_encode/7
     function _password_base64_encode(input) {
 
-        var count = input.length;
-        var output = '';
-        var i = 0;
+        const count = input.length;
+        let output = '';
+        let i = 0;
 
         do {
-            var value = input[i++];
+            let value = input[i++];
             output += itoa64[value & 0x3f];
             if (i < count) {
                 value |= input[i] << 8;
@@ -676,7 +675,7 @@ if (cluster.isMaster) {
 
     isPasswordValid = function (password, userPwd) {
 
-        var passwordKey = password + userPwd;
+        const passwordKey = password + userPwd;
         if (passwordKey in passwords) {
             passwords[passwordKey] = new Date();
             return true;
@@ -687,21 +686,22 @@ if (cluster.isMaster) {
             return false;
         }
 
-        var count_log2 = itoa64.indexOf(userPwd.substring(3, 4));
+        const count_log2 = itoa64.indexOf(userPwd.substring(3, 4));
         if (count_log2 < 0) {
             console.error("isPasswordValid detect an invalid userPwd");
             return false;
         }
 
-        var password_wordArray = CryptoJS.enc.Utf8.parse(password);
-        var salt = userPwd.substring(4, 12);
-        var hash = SHA512(salt + password);
-        var iterations = Math.pow(2, count_log2);
+        const password_wordArray = CryptoJS.enc.Utf8.parse(password);
+        const salt = userPwd.substring(4, 12);
+        let hash = SHA512(salt + password);
+        const iterations = Math.pow(2, count_log2);
 
-        for (var i = 0; i < iterations; i++) {
+        for (let i = 0; i < iterations; i++) {
             hash = SHA512(hash.concat(password_wordArray));
         }
-        var base64 = _password_base64_encode(convertWordArrayToUint8Array(hash));
+        const base64 = _password_base64_encode(convertWordArrayToUint8Array(hash));
+
         if (userPwd == userPwd.substring(0, 12) + base64.substr(0, 43)) {
             passwords[password + userPwd] = new Date();
             return true;
@@ -736,7 +736,7 @@ if (cluster.isMaster) {
                     }
                     break;
                 case "apparatusSensorType":
-                    var apparatusSensorTypeValues = ["geiger", "photodiode"];
+                    const apparatusSensorTypeValues = ["geiger", "photodiode"];
                     if (typeof (json[dataName]) != "string" || apparatusSensorTypeValues.indexOf(json[dataName]) == -1) {
                         res.status(400).json({
                             error: {
@@ -816,7 +816,7 @@ if (cluster.isMaster) {
                         res.status(400).json({error: {code: "102", message: dataName + " is not a reliable date"}});
                         return false;
                     }
-                    var now = new Date();
+                    const now = new Date();
                     if ((new Date(json[dataName])).getTime() > (now.getTime() + 86400000)) {
                         res.status(400).json({error: {code: "102", message: dataName + " is not a real date"}});
                         return false;
@@ -919,7 +919,7 @@ if (cluster.isMaster) {
                     }
                     break;
                 case "reportContext":
-                    var reportContextValues = ["emergency", "routine", "exercise", "test"];
+                    const reportContextValues = ["emergency", "routine", "exercise", "test"];
                     if (typeof (json[dataName]) != "string" || reportContextValues.indexOf(json[dataName]) == -1) {
                         res.status(400).json({
                             error: {
@@ -967,7 +967,7 @@ if (cluster.isMaster) {
                         });
                         return false;
                     }
-                    for (i = 0; i < json[dataName].length; i++) {
+                    for (let i = 0; i < json[dataName].length; i++) {
                         if (typeof (json[dataName][i]) != "string" || json[dataName][i].length > 100 || json[dataName][i].replace(/#/g, "") == "") {
                             res.status(400).json({
                                 error: {
@@ -977,7 +977,7 @@ if (cluster.isMaster) {
                             });
                             return false;
                         }
-                        for (j = 0; j < json[dataName].length; j++) {
+                        for (let j = 0; j < json[dataName].length; j++) {
                             if (j < i && json[dataName][i].toLowerCase().replace(/#/g, "") == json[dataName][j].toLowerCase().replace(/#/g, "")) {
                                 res.status(400).json({
                                     error: {
@@ -1055,7 +1055,7 @@ if (cluster.isMaster) {
                         });
                         return false;
                     }
-                    for (var i = 0; i < users.length; i++) {
+                    for (let i = 0; i < users.length; i++) {
                         if (users[i].userId == json["userId"]) {
                             if (isPasswordValid(json["userPwd"], users[i].userPwd)) //userPwd is encrypted with openradiation.org method and compared to stored encrypted password
                                 return true;
@@ -1065,9 +1065,8 @@ if (cluster.isMaster) {
                     }
                     res.status(400).json({error: {code: "102", message: "credentials userId / userPwd are not valid"}});
                     return false;
-                    break;
                 case "measurementEnvironment":
-                    var measurementEnvironmentValues = ["countryside", "city", "ontheroad", "inside", "plane"];
+                    const measurementEnvironmentValues = ["countryside", "city", "ontheroad", "inside", "plane"];
                     if (typeof (json[dataName]) != "string" || measurementEnvironmentValues.indexOf(json[dataName]) == -1) {
                         res.status(400).json({
                             error: {
@@ -1079,7 +1078,7 @@ if (cluster.isMaster) {
                     }
                     break;
                 case "qualification":
-                    var qualificationValues = ["groundlevel", "plane", "wrongmeasurement", "temporarysource"];
+                    const qualificationValues = ["groundlevel", "plane", "wrongmeasurement", "temporarysource"];
                     if (typeof (json[dataName]) != "string" || qualificationValues.indexOf(json[dataName]) == -1) {
                         res.status(400).json({
                             error: {
@@ -1160,7 +1159,7 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql;
+                            let sql;
                             if (req.query.response == null)
                                 sql = 'SELECT "value", "startTime", "latitude", "longitude", "reportUuid", "qualification", "atypical" FROM MEASUREMENTS WHERE "reportUuid"=$1';
                             else if (req.query.withEnclosedObject == null)
@@ -1178,7 +1177,7 @@ if (cluster.isMaster) {
                                   "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical" \
                                   FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid" LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId" WHERE MEASUREMENTS."reportUuid" = $1';
 
-                            var values = [req.params.reportUuid];
+                            const values = [req.params.reportUuid];
                             client.query(sql, values, function (err, result) {
                                 done();
                                 if (err) {
@@ -1193,11 +1192,11 @@ if (cluster.isMaster) {
                                             }
                                         });
                                     else {
-                                        var data = result.rows[0];
+                                        const data = result.rows[0];
 
                                         if (req.query.response != null) {
                                             data.tags = [];
-                                            for (i = 0; i < result.rows.length; i++) {
+                                            for (let i = 0; i < result.rows.length; i++) {
                                                 if (result.rows[i].tag != null)
                                                     data.tags.push(result.rows[i].tag)
                                             }
@@ -1206,7 +1205,7 @@ if (cluster.isMaster) {
                                         }
 
                                         delete data.tag;
-                                        for (i in data) {
+                                        for (let i in data) {
                                             if (data[i] == null)
                                                 delete data[i];
                                         }
@@ -1252,8 +1251,8 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql;
-                            var limit = properties.maxNumber;
+                            let sql;
+                            let limit = properties.maxNumber;
                             if (req.query.maxNumber != null && parseInt(req.query.maxNumber) < properties.maxNumber)
                                 limit = parseInt(req.query.maxNumber);
 
@@ -1277,8 +1276,8 @@ if (cluster.isMaster) {
                             else
                                 sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId",TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
 
-                            var where = '';
-                            var values = [];
+                            let where = '';
+                            const values = [];
                             if (req.query.minLatitude != null) {
                                 values.push(req.query.minLatitude);
                                 where += ' AND MEASUREMENTS."latitude" >= $' + values.length;
@@ -1332,9 +1331,9 @@ if (cluster.isMaster) {
                                 where += ' AND MEASUREMENTS."flightId" = $' + values.length;
                             }
                             if (req.query.dateOfCreation != null) {
-                                var date = new Date(req.query.dateOfCreation);
-                                var date1 = new Date(date.toDateString());
-                                var date2 = new Date(date1);
+                                const date = new Date(req.query.dateOfCreation);
+                                const date1 = new Date(date.toDateString());
+                                const date2 = new Date(date1);
                                 date2.setDate(date1.getDate() + 1);
                                 values.push(date1);
                                 where += ' AND MEASUREMENTS."dateAndTimeOfCreation" >= $' + values.length;
@@ -1359,24 +1358,24 @@ if (cluster.isMaster) {
                                     console.error("Error while running query " + sql + values, err);
                                     res.status(500).end();
                                 } else {
-                                    var data = [];
+                                    const data = [];
 
                                     //methode 1 : with where
                                     if (req.query.response == null || result.rows.length == 0) // no need to retrieve tags
                                     {
                                         done();
-                                        for (r = 0; r < result.rows.length; r++) {
+                                        for (let r = 0; r < result.rows.length; r++) {
                                             data.push(result.rows[r]);
 
-                                            for (i in data[data.length - 1]) {
+                                            for (let i in data[data.length - 1]) {
                                                 if (data[data.length - 1][i] == null)
                                                     delete data[data.length - 1][i];
                                             }
                                         }
                                         res.json({maxNumber: limit, data: data});
                                     } else { // here we do an other request to retrieve tags
-                                        var sql = 'select "reportUuid", "tag" FROM TAGS WHERE "reportUuid" IN (';
-                                        for (r = 0; r < result.rows.length; r++) {
+                                        let sql = 'select "reportUuid", "tag" FROM TAGS WHERE "reportUuid" IN (';
+                                        for (let r = 0; r < result.rows.length; r++) {
                                             if (r == 0)
                                                 sql += "'" + result.rows[r].reportUuid + "'";
                                             else
@@ -1389,19 +1388,19 @@ if (cluster.isMaster) {
                                                 console.error("Error while running query " + sql, err);
                                                 res.status(500).end();
                                             } else {
-                                                var tmp_tags = {};
-                                                for (t = 0; t < result2.rows.length; t++) {
+                                                const tmp_tags = {};
+                                                for (let t = 0; t < result2.rows.length; t++) {
                                                     if (tmp_tags[result2.rows[t].reportUuid] == null)
                                                         tmp_tags[result2.rows[t].reportUuid] = [];
                                                     tmp_tags[result2.rows[t].reportUuid].push(result2.rows[t].tag);
                                                 }
 
-                                                for (r = 0; r < result.rows.length; r++) {
+                                                for (let r = 0; r < result.rows.length; r++) {
                                                     data.push(result.rows[r]);
                                                     if (tmp_tags[result.rows[r].reportUuid] != null)
                                                         data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
 
-                                                    for (i in data[data.length - 1]) {
+                                                    for (let i in data[data.length - 1]) {
                                                         if (data[data.length - 1][i] == null)
                                                             delete data[data.length - 1][i];
                                                     }
@@ -1430,11 +1429,11 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = `select count("value")
+                            let sql = `select count("value")
                                        from measurements`;
 
-                            var where = '';
-                            var values = [];
+                            let where = '';
+                            const values = [];
 
                             if (req.query.userId != null) {
                                 values.push(req.query.userId);
@@ -1475,10 +1474,10 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = "";
-                            var intervals = ['0.025', '0.050', '0.075', '0.100'];
-                            var qualification = ['\'groundlevel\'', '\'plane\''];
-                            var labels = {};
+                            let sql = "";
+                            let intervals = ['0.025', '0.050', '0.075', '0.100'];
+                            let qualification = ['\'groundlevel\'', '\'plane\''];
+                            const labels = {};
 
                             if (req.body.intervals != null) {
                                 intervals = req.body.intervals;
@@ -1488,11 +1487,11 @@ if (cluster.isMaster) {
                                 qualification = req.body.qualification;
                             }
 
-                            var qualificationWhere = qualification.map(function (val, i) {
+                            const qualificationWhere = qualification.map(function (val, i) {
                                 return "\'" + val + "\'";
-                            })
+                            });
 
-                            var key = 'val_0';
+                            let key = 'val_0';
                             labels[key] = "0-" + intervals[0];
                             sql = 'select count(value) filter (where "value" <= ' + intervals[0] + ' and qualification IN (' + qualificationWhere + ')) as ' + key;
                             for (let i = 0; i < intervals.length - 1; i++) {
@@ -1505,7 +1504,7 @@ if (cluster.isMaster) {
                             sql = sql + ' from measurements;';
                             labels[key] = intervals[intervals.length - 1] + " et +";
 
-                            var values = [];
+                            const values = [];
                             client.query(sql, values, function (err, result) {
                                 if (err) {
                                     done();
@@ -1542,20 +1541,20 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = 'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS ORDER BY "flightId"';
-                            var values = [];
+                            const sql = 'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS ORDER BY "flightId"';
+                            const values = [];
                             client.query(sql, values, function (err, result) {
                                 if (err) {
                                     done();
                                     console.error("Error while running query " + sql + values, err);
                                     res.status(500).end();
                                 } else {
-                                    var data = [];
+                                    const data = [];
                                     done();
-                                    for (r = 0; r < result.rows.length; r++) {
+                                    for (let r = 0; r < result.rows.length; r++) {
                                         data.push(result.rows[r]);
 
-                                        for (i in data[data.length - 1]) {
+                                        for (let i in data[data.length - 1]) {
                                             if (data[data.length - 1][i] == null)
                                                 delete data[data.length - 1][i];
                                         }
@@ -1581,21 +1580,21 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = 'SELECT DISTINCT ON (MEASUREMENTS."userId") MEASUREMENTS."userId", MEASUREMENTS."latitude", MEASUREMENTS."longitude", "endTime", APIUSERS."userPwd" FROM MEASUREMENTS  LEFT JOIN APIUSERS ON APIUSERS."userId" = MEASUREMENTS."userId" WHERE "endTime" IS NOT NULL ORDER BY MEASUREMENTS."userId" ASC, "endTime" DESC';
+                            const sql = 'SELECT DISTINCT ON (MEASUREMENTS."userId") MEASUREMENTS."userId", MEASUREMENTS."latitude", MEASUREMENTS."longitude", "endTime", APIUSERS."userPwd" FROM MEASUREMENTS  LEFT JOIN APIUSERS ON APIUSERS."userId" = MEASUREMENTS."userId" WHERE "endTime" IS NOT NULL ORDER BY MEASUREMENTS."userId" ASC, "endTime" DESC';
 
-                            var values = [];
+                            const values = [];
                             client.query(sql, values, function (err, result) {
                                 if (err) {
                                     done();
                                     console.error("Error while running query " + sql + values, err);
                                     res.status(500).end();
                                 } else {
-                                    var data = [];
+                                    const data = [];
                                     done();
-                                    for (r = 0; r < result.rows.length; r++) {
+                                    for (let r = 0; r < result.rows.length; r++) {
                                         data.push(result.rows[r]);
 
-                                        for (i in data[data.length - 1]) {
+                                        for (let i in data[data.length - 1]) {
                                             if (data[data.length - 1][i] == null)
                                                 delete data[data.length - 1][i];
                                         }
@@ -1621,11 +1620,9 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-
-                            var sql = `select count(distinct "userId")
-                                       from measurements`;
-
-                            var values = [];
+                            const sql = `select count(distinct "userId")
+                                         from measurements`;
+                            const values = [];
                             client.query(sql, values, function (err, result) {
                                 if (err) {
                                     done();
@@ -1658,23 +1655,23 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = `SELECT "measurementEnvironment", count("value")
-                                       FROM MEASUREMENTS
-                                       GROUP BY "measurementEnvironment"`;
+                            const sql = `SELECT "measurementEnvironment", count("value")
+                                         FROM MEASUREMENTS
+                                         GROUP BY "measurementEnvironment"`;
 
-                            var values = [];
+                            const values = [];
                             client.query(sql, values, function (err, result) {
                                 if (err) {
                                     done();
                                     console.error("Error while running query " + sql + values, err);
                                     res.status(500).end();
                                 } else {
-                                    var data = [];
+                                    const data = [];
                                     done();
-                                    for (r = 0; r < result.rows.length; r++) {
+                                    for (let r = 0; r < result.rows.length; r++) {
                                         data.push(result.rows[r]);
 
-                                        for (i in data[data.length - 1]) {
+                                        for (let i in data[data.length - 1]) {
                                             if (data[data.length - 1][i] == null)
                                                 delete data[data.length - 1][i];
                                         }
@@ -1700,26 +1697,26 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = `SELECT DISTINCT
-                                       ON (MEASUREMENTS."userId") MEASUREMENTS."userId", "value", "longitude", "latitude"
-                                       FROM MEASUREMENTS LEFT JOIN APIUSERS
-                                       ON APIUSERS."userId" = MEASUREMENTS."userId"
-                                       WHERE "endTime" IS NOT NULL
-                                       ORDER BY MEASUREMENTS."userId" ASC, "startTime" DESC`;
+                            const sql = `SELECT DISTINCT
+                                         ON (MEASUREMENTS."userId") MEASUREMENTS."userId", "value", "longitude", "latitude"
+                                         FROM MEASUREMENTS LEFT JOIN APIUSERS
+                                         ON APIUSERS."userId" = MEASUREMENTS."userId"
+                                         WHERE "endTime" IS NOT NULL
+                                         ORDER BY MEASUREMENTS."userId" ASC, "startTime" DESC`;
 
-                            var values = [];
+                            const values = [];
                             client.query(sql, values, function (err, result) {
                                 if (err) {
                                     done();
                                     console.error("Error while running query " + sql + values, err);
                                     res.status(500).end();
                                 } else {
-                                    var data = [];
+                                    const data = [];
                                     done();
-                                    for (r = 0; r < result.rows.length; r++) {
+                                    for (let r = 0; r < result.rows.length; r++) {
                                         data.push(result.rows[r]);
 
-                                        for (i in data[data.length - 1]) {
+                                        for (let i in data[data.length - 1]) {
                                             if (data[data.length - 1][i] == null)
                                                 delete data[data.length - 1][i];
                                         }
@@ -1763,8 +1760,8 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql;
-                            var limit = 100;
+                            let sql;
+                            let limit = 100;
                             if (req.query.maxNumber != null && parseInt(req.query.maxNumber) < properties.maxNumber)
                                 limit = parseInt(req.query.maxNumber);
 
@@ -1788,8 +1785,8 @@ if (cluster.isMaster) {
                             else
                                 sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId",TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
 
-                            var where = '';
-                            var values = [];
+                            let where = '';
+                            const values = [];
 
 
                             if (req.query.maxStartTime != null) {
@@ -1810,9 +1807,9 @@ if (cluster.isMaster) {
                             }
 
                             if (req.query.dateOfMeasurement != null) {
-                                var date = new Date(req.query.dateOfMeasurement);
-                                var date1 = new Date(date.toDateString());
-                                var date2 = new Date(date1);
+                                const date = new Date(req.query.dateOfMeasurement);
+                                const date1 = new Date(date.toDateString());
+                                const date2 = new Date(date1);
                                 date2.setDate(date1.getDate() + 1);
                                 values.push(date1);
                                 where += ' AND MEASUREMENTS."startTime" >= $' + values.length;
@@ -1837,24 +1834,24 @@ if (cluster.isMaster) {
                                     console.error("Error while running query " + sql + values, err);
                                     res.status(500).end();
                                 } else {
-                                    var data = [];
+                                    const data = [];
 
                                     //methode 1 : with where
                                     if (req.query.response == null || result.rows.length == 0) // no need to retrieve tags
                                     {
                                         done();
-                                        for (r = 0; r < result.rows.length; r++) {
+                                        for (let r = 0; r < result.rows.length; r++) {
                                             data.push(result.rows[r]);
 
-                                            for (i in data[data.length - 1]) {
+                                            for (let i in data[data.length - 1]) {
                                                 if (data[data.length - 1][i] == null)
                                                     delete data[data.length - 1][i];
                                             }
                                         }
                                         res.json({maxNumber: limit, data: data});
                                     } else { // here we do an other request to retrieve tags
-                                        var sql = 'select "reportUuid", "tag" FROM TAGS WHERE "reportUuid" IN (';
-                                        for (r = 0; r < result.rows.length; r++) {
+                                        let sql = 'select "reportUuid", "tag" FROM TAGS WHERE "reportUuid" IN (';
+                                        for (let r = 0; r < result.rows.length; r++) {
                                             if (r == 0)
                                                 sql += "'" + result.rows[r].reportUuid + "'";
                                             else
@@ -1867,19 +1864,19 @@ if (cluster.isMaster) {
                                                 console.error("Error while running query " + sql, err);
                                                 res.status(500).end();
                                             } else {
-                                                var tmp_tags = {};
-                                                for (t = 0; t < result2.rows.length; t++) {
+                                                const tmp_tags = {};
+                                                for (let t = 0; t < result2.rows.length; t++) {
                                                     if (tmp_tags[result2.rows[t].reportUuid] == null)
                                                         tmp_tags[result2.rows[t].reportUuid] = [];
                                                     tmp_tags[result2.rows[t].reportUuid].push(result2.rows[t].tag);
                                                 }
 
-                                                for (r = 0; r < result.rows.length; r++) {
+                                                for (let r = 0; r < result.rows.length; r++) {
                                                     data.push(result.rows[r]);
                                                     if (tmp_tags[result.rows[r].reportUuid] != null)
                                                         data[data.length - 1].tags = tmp_tags[result.rows[r].reportUuid];
 
-                                                    for (i in data[data.length - 1]) {
+                                                    for (let i in data[data.length - 1]) {
                                                         if (data[data.length - 1][i] == null)
                                                             delete data[data.length - 1][i];
                                                     }
@@ -1965,15 +1962,15 @@ if (cluster.isMaster) {
 
                                 //updateFlightInfos(client, req.body.data.measurementEnvironment, req.body.data.flightNumber, req.body.data.startTime, req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, function(flightInfos) {
 
-                                var sql = 'INSERT INTO MEASUREMENTS ("apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime","endTime", \
+                                const sql = 'INSERT INTO MEASUREMENTS ("apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime","endTime", \
                                            "latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel","reportUuid","manualReporting", \
                                            "organisationReporting","reportContext","description","measurementHeight","enclosedObject","userId","measurementEnvironment","rain","flightNumber","seatNumber","windowSeat","storm", \
                                            "flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude","flightSearch", "dateAndTimeOfCreation", \
                                            "qualification","qualificationVotesNumber","reliability","atypical") VALUES \
                                            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51)';
 
-                                var manualReporting = req.body.data.manualReporting == null ? true : req.body.data.manualReporting;
-                                var reliability = 0;
+                                const manualReporting = req.body.data.manualReporting == null ? true : req.body.data.manualReporting;
+                                let reliability = 0;
                                 //+1 for each filled field
                                 if (req.body.data.apparatusId != null)
                                     reliability += 1;
@@ -2059,14 +2056,14 @@ if (cluster.isMaster) {
 
                                 // qualification is set to groundlevel by default and qualificationVotesNumber is set to 0
                                 // if measurementEnvironment is plane, qualification is set to plane
-                                var qualification = "groundlevel";
-                                var qualificationVotesNumber = 0;
+                                let qualification = "groundlevel";
+                                const qualificationVotesNumber = 0;
                                 if (req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane")
                                     qualification = "plane";
 
-                                var atypical = req.body.data.value < 0.2 ? false : true;
-                                var dateAndTimeOfCreation = new Date();
-                                var values = [req.body.data.apparatusId, req.body.data.apparatusVersion, req.body.data.apparatusSensorType, req.body.data.apparatusTubeType,
+                                const atypical = req.body.data.value >= 0.2;
+                                const dateAndTimeOfCreation = new Date();
+                                const values = [req.body.data.apparatusId, req.body.data.apparatusVersion, req.body.data.apparatusSensorType, req.body.data.apparatusTubeType,
                                     req.body.data.temperature, req.body.data.value, req.body.data.hitsNumber, req.body.data.calibrationFunction, new Date(req.body.data.startTime),
                                     req.body.data.endTime != null ? new Date(req.body.data.endTime) : req.body.data.endTime, req.body.data.latitude, req.body.data.longitude, req.body.data.accuracy,
                                     req.body.data.altitude, req.body.data.altitudeAccuracy, req.body.data.endLatitude, req.body.data.endLongitude, req.body.data.endAccuracy,
@@ -2096,8 +2093,8 @@ if (cluster.isMaster) {
                                     } else {
                                         if (req.body.data.tags != null) {
                                             async.forEach(req.body.data.tags, function (tag, callback) { //The second argument (callback) is the "task callback" for a specific task
-                                                var sql = 'INSERT INTO TAGS ("reportUuid", "tag") VALUES ($1, $2)';
-                                                var values = [req.body.data.reportUuid, tag.toLowerCase().replace(/#/g, "")];
+                                                const sql = 'INSERT INTO TAGS ("reportUuid", "tag") VALUES ($1, $2)';
+                                                const values = [req.body.data.reportUuid, tag.toLowerCase().replace(/#/g, "")];
                                                 client.query(sql, values, function (err, result) {
                                                     if (err) {
                                                         console.error("Error while running query " + sql + values, err);
@@ -2144,8 +2141,8 @@ if (cluster.isMaster) {
                         res.status(400).json({error: {code: "101", message: "data should be an array"}});
                     } else {
                         //1. check validity
-                        var isValid = true;
-                        for (i = 0; i < req.body.data.length; i++) {
+                        let isValid = true;
+                        for (let i = 0; i < req.body.data.length; i++) {
                             if (typeof (req.body.data[i].userId) != "string" || typeof (req.body.data[i].userPwd) != "string"
                                 || req.body.data[i].userId.length > 100 || req.body.data[i].userPwd.length > 100 || req.body.data[i].userId == "" || req.body.data[i].userPwd == "") {
                                 res.status(400).json({
@@ -2157,7 +2154,7 @@ if (cluster.isMaster) {
                                 isValid = false;
                                 break;
                             }
-                            for (j = 0; j < req.body.data.length; j++) {
+                            for (let j = 0; j < req.body.data.length; j++) {
                                 if (j < i && req.body.data[i].userId == req.body.data[j].userId) {
                                     res.status(400).json({
                                         error: {
@@ -2180,7 +2177,7 @@ if (cluster.isMaster) {
                                     console.error("Could not connect to PostgreSQL", err);
                                     res.status(500).end();
                                 } else {
-                                    var sql = 'DELETE FROM APIUSERS';
+                                    const sql = 'DELETE FROM APIUSERS';
                                     client.query(sql, [], function (err, result) {
                                         if (err) {
                                             done();
@@ -2188,8 +2185,8 @@ if (cluster.isMaster) {
                                             res.status(500).end();
                                         } else {
                                             async.forEach(req.body.data, function (user, callback) { //The second argument (callback) is the "task callback" for a specific task
-                                                var sql = 'INSERT INTO APIUSERS ("userId", "userPwd") VALUES ($1, $2)';
-                                                var values = [user.userId, user.userPwd];
+                                                const sql = 'INSERT INTO APIUSERS ("userId", "userPwd") VALUES ($1, $2)';
+                                                const values = [user.userId, user.userPwd];
                                                 client.query(sql, values, function (err, result) {
                                                     if (err) {
                                                         console.error("Error while running query " + sql + values, err);
@@ -2234,8 +2231,8 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = 'UPDATE MEASUREMENTS SET "qualification"=$1,"qualificationVotesNumber"=$2 WHERE "reportUuid"=$3';
-                            var values = [req.body.data.qualification, req.body.data.qualificationVotesNumber, req.params.reportUuid];
+                            const sql = 'UPDATE MEASUREMENTS SET "qualification"=$1,"qualificationVotesNumber"=$2 WHERE "reportUuid"=$3';
+                            const values = [req.body.data.qualification, req.body.data.qualificationVotesNumber, req.params.reportUuid];
                             client.query(sql, values, function (err, result) {
                                 done();
                                 if (err) {
@@ -2278,8 +2275,8 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            var sql = 'UPDATE TAGS SET "qualification"=$1,"qualificationVotesNumber"=$2 WHERE "reportUuid"=$3';
-                            var values = [req.body.data.qualification, req.body.data.qualificationVotesNumber, req.params.reportUuid];
+                            const sql = 'UPDATE TAGS SET "qualification"=$1,"qualificationVotesNumber"=$2 WHERE "reportUuid"=$3';
+                            const values = [req.body.data.qualification, req.body.data.qualificationVotesNumber, req.params.reportUuid];
                             client.query(sql, values, function (err, result) {
                                 done();
                                 if (err) {
@@ -2354,10 +2351,10 @@ if (cluster.isMaster) {
         app.post('/upload', upload.single('file'), function (req, res, next) {
             console.log(new Date().toISOString() + " - POST /upload : begin");
 
-            var message = "";
-            var tags = [];
-            var submittedTags = true;
-            var nbTags = 0;
+            let message = "";
+            const tags = [];
+            let submittedTags = true;
+            let nbTags = 0;
             while (submittedTags) {
                 nbTags += 1;
                 if (nbTags > 9 || req.body["tag" + nbTags] == null || typeof (req.body["tag" + nbTags]) != "string")
@@ -2395,7 +2392,7 @@ if (cluster.isMaster) {
                     result: "Password is mandatory"
                 });
             else {
-                var measurementEnvironmentValues = ["countryside", "city", "ontheroad", "inside", "plane"];
+                const measurementEnvironmentValues = ["countryside", "city", "ontheroad", "inside", "plane"];
                 if (req.body.measurementEnvironment == null || typeof (req.body.measurementEnvironment) != "string" || measurementEnvironmentValues.indexOf(req.body.measurementEnvironment) == -1)
                     res.render('uploadfile.ejs', {
                         lang: req.body.lang,
@@ -2475,11 +2472,11 @@ if (cluster.isMaster) {
                         result: "You have to choose a file"
                     });
                 else {
-                    file = req.file.buffer.toString("utf-8");
+                    let file = req.file.buffer.toString("utf-8");
                     const sha256 = SHA256(file).toString();
                     const md5 = MD5(file).toString();
                     console.log(req.file);
-                    lines = file.split(new RegExp('\r\n|\r|\n'));
+                    let lines = file.split(new RegExp('\r\n|\r|\n'));
 
                     if (lines.length > 100000)
                         res.render('uploadfile.ejs', {
@@ -2495,34 +2492,33 @@ if (cluster.isMaster) {
                             result: "Your file contains too many lines (more than 100000 lines)"
                         });
                     else {
-                        var measurementsLinesValid = 0;
-                        var measurementsTakenInAccount = 0;
-                        var measurementsOk = 0;
+                        let measurementsLinesValid = 0;
+                        let measurementsTakenInAccount = 0;
+                        let measurementsOk = 0;
 
-                        var errorMessage = "";
-                        var stopIt = false;
-                        var lastEndTimeSubmitted;
+                        let errorMessage = "";
+                        let stopIt = false;
 
-                        var firstMeasurement = true;
-                        var totalHitsNumber;
-                        var linesCount;
-                        var startTime;
-                        var latitude;
-                        var longitude;
-                        var accuracy;
-                        var altitude;
-                        var mm;
-                        var hh;
+                        let firstMeasurement = true;
+                        let totalHitsNumber;
+                        let linesCount;
+                        let startTime;
+                        let latitude;
+                        let longitude;
+                        let accuracy;
+                        let altitude;
+                        let mm;
+                        let hh;
 
                         //to avoid a maximum call stack size exceeded we cut the file in 1000 lines chunks
-                        var loops = []; // loops will contain the chunks number
-                        for (var i = 0; i <= Math.floor(lines.length / 1000); i++) {
+                        const loops = []; // loops will contain the chunks number
+                        for (let i = 0; i <= Math.floor(lines.length / 1000); i++) {
                             loops.push(i);
                         }
 
                         // for each chunk
                         async.forEachSeries(loops, function (index, callbackLoop) {
-                            var sublines = [];
+                            let subLines;
                             if ((index * 1000 + 1000) > lines.length)
                                 subLines = lines.slice(index * 1000, lines.length);
                             else
@@ -2535,7 +2531,7 @@ if (cluster.isMaster) {
                                     if (line.match(/^#/) || stopIt) {
                                         callback(); //log line are not treated
                                     } else {
-                                        var values = line.split(",");
+                                        const values = line.split(",");
 
                                         if (values.length == 15 && values[6] == "A" && values[12] == "A" && isNaN(values[3]) == false && (parseFloat(values[3]) == parseInt(values[3]))
                                             && (new Date(values[2]) != "Invalid Date") && isNaN(values[7]) == false && isNaN(values[9]) == false
@@ -2573,7 +2569,7 @@ if (cluster.isMaster) {
                                             } else if (linesCount == 12) {
                                                 measurementsTakenInAccount += 1;
 
-                                                var data = {};
+                                                const data = {};
                                                 data.apparatusId = "safecast_id " + values[1];
                                                 data.apparatusVersion = values[0];
                                                 data.apparatusSensorType = "geiger";
@@ -2622,10 +2618,7 @@ if (cluster.isMaster) {
                                                     data.flightNumber = req.body.flightNumber;
                                                 else {
                                                     data.measurementHeight = parseInt(req.body.measurementHeight);
-                                                    if (req.body.rain == "true")
-                                                        data.rain = true;
-                                                    else
-                                                        data.rain = false;
+                                                    data.rain = req.body.rain == "true";
                                                 }
                                                 data.tags = tags.slice();
                                                 data.tags.push("safecast");
@@ -2654,12 +2647,12 @@ if (cluster.isMaster) {
                                                 accuracy = parseFloat(values[13]);
                                                 altitude = parseInt(values[11]);
 
-                                                var json = {
+                                                const json = {
                                                     "apiKey": properties.submitFormAPIKey,
                                                     "data": data
-                                                }
+                                                };
 
-                                                var options = {
+                                                const options = {
                                                     host: properties.submitAPIHost,
                                                     port: properties.submitAPIPort,
                                                     path: '/measurements',
@@ -2671,8 +2664,8 @@ if (cluster.isMaster) {
                                                     }
                                                 };
 
-                                                var post_req = https.request(options, function (post_res) {
-                                                    var result = '';
+                                                const post_req = https.request(options, function (post_res) {
+                                                    let result = '';
                                                     post_res.setEncoding('utf8');
                                                     post_res.on('data', function (chunk) {
                                                         result += chunk;
@@ -2782,9 +2775,9 @@ if (cluster.isMaster) {
 
 //8. mapping
     if (properties.mappingFeature) {
-        var asinh = function (x) {
+        const asinh = function (x) {
             return Math.log(x + Math.sqrt(1 + x * x));
-        }
+        };
 
         app.get('/i/:z/:x/:y.png', function (req, res, next) {
             console.log(new Date().toISOString() + " - GET /i/" + req.params.z + "/" + req.params.x + "/" + req.params.y + ".png : begin");
@@ -2795,20 +2788,20 @@ if (cluster.isMaster) {
                 || parseInt(req.params.y) < 0 || parseInt(req.params.y) >= Math.pow(2, 2 * parseInt(req.params.z))) {
                 res.status(500).end();
             } else {
-                var x = parseInt(req.params.x);
-                var y = parseInt(req.params.y);
-                var z = parseInt(req.params.z);
+                const x = parseInt(req.params.x);
+                const y = parseInt(req.params.y);
+                const z = parseInt(req.params.z);
 
-                var pngFileName = __dirname + '/public/png/{z}_{x}_{y}.png'.replace('{z}_{x}_{y}', z + "_" + x + "_" + y);
+                const pngFileName = __dirname + '/public/png/{z}_{x}_{y}.png'.replace('{z}_{x}_{y}', z + "_" + x + "_" + y);
 
                 fs.access(pngFileName, (err) => {
                     if (err) {
-                        var btilex = x.toString(2);
-                        var btiley = y.toString(2);
-                        var quadkey = "";
-                        var cx, cy;
+                        const btilex = x.toString(2);
+                        const btiley = y.toString(2);
+                        let quadkey = "";
+                        let cx, cy;
 
-                        for (q = 0; q < z; q++) //from right to left
+                        for (let q = 0; q < z; q++) //from right to left
                         {
                             if (btilex.length > q)
                                 cx = parseInt(btilex.substr(btilex.length - q - 1, 1));
@@ -2824,8 +2817,8 @@ if (cluster.isMaster) {
 
                         //console.log("x, y, z, quadkey = " + x + ";" + y + ";" + z + ";" + quadkey);
 
-                        var sql = 'SELECT "tile", "opacity" FROM TILES WHERE "quadKey"=$1';
-                        var values = [quadkey];
+                        const sql = 'SELECT "tile", "opacity" FROM TILES WHERE "quadKey"=$1';
+                        const values = [quadkey];
 
                         pool.connect(function (err, client, done) {
                             if (err) {
@@ -2840,7 +2833,7 @@ if (cluster.isMaster) {
                                         res.status(500).end();
                                     } else {
                                         if (result.rowCount == 0) {
-                                            var transparentTileFileName = __dirname + '/public/transparent_tile.png';
+                                            const transparentTileFileName = __dirname + '/public/transparent_tile.png';
                                             if (z > 7)
                                                 res.status(200).end();
                                                 //res.writeHead(200, {'Content-Type': 'image/png' });
@@ -2857,30 +2850,30 @@ if (cluster.isMaster) {
                                                 //fs.copyFile(transparentTileFileName, pngFileName, (err) => { });
                                             }
                                         } else {
-                                            var png = new PNG({
+                                            const png = new PNG({
                                                 width: 256,
                                                 height: 256,
                                                 filterType: -1
                                             });
 
-                                            var tile = result.rows[0].tile;
-                                            var opacity = result.rows[0].opacity;
+                                            const tile = result.rows[0].tile;
+                                            const opacity = result.rows[0].opacity;
 
-                                            var value;
-                                            var opac;
+                                            let value;
+                                            let opac;
 
-                                            idx_value = 0;
-                                            idx_opacity = 0;
+                                            let idx_value = 0;
+                                            let idx_opacity = 0;
                                             // for each value stored from left to right, then top to bottom
-                                            for (var pix_x = 0; pix_x < 256; pix_x++) {
-                                                for (var pix_y = 0; pix_y < 256; pix_y++) {
+                                            for (let pix_x = 0; pix_x < 256; pix_x++) {
+                                                for (let pix_y = 0; pix_y < 256; pix_y++) {
                                                     value = parseInt(tile.substr(idx_value, 16), 2); // value is stored in nSv/h
                                                     opac = parseInt(opacity.substr(idx_opacity, 7), 2);
 
                                                     if (opac > 100)
                                                         opac = 100;
                                                     //idx in png is stored from top to bottom, then left to right
-                                                    var idx = (pix_x + pix_y * 256) << 2;
+                                                    const idx = (pix_x + pix_y * 256) << 2;
 
                                                     png.data[idx + 3] = Math.floor(255 * (opac / 100.0));
 
@@ -2898,7 +2891,6 @@ if (cluster.isMaster) {
                                                         png.data[idx + 1] = 84; //G
                                                         png.data[idx + 2] = 238; //B
                                                     } else if (value < 114) {
-                                                        72
                                                         png.data[idx] = 35; //R
                                                         png.data[idx + 1] = 172; //G
                                                         png.data[idx + 2] = 246; //B
@@ -2984,7 +2976,7 @@ if (cluster.isMaster) {
                                                     //if (z > 7) // 7 to limit the number of files, because at this zoom level, we have 4^7 image files
                                                     //  fs.unlinkSync(pngFileName);
                                                     res.writeHead(200, {'Content-Type': 'image/png'});
-                                                    var fileStream = fs.createReadStream(pngFileName);
+                                                    const fileStream = fs.createReadStream(pngFileName);
                                                     fileStream.pipe(res);
                                                 });
                                             }
@@ -2998,7 +2990,7 @@ if (cluster.isMaster) {
 
                         //var img = fs.readFileSync(pngFileName);
                         res.writeHead(200, {'Content-Type': 'image/png'});
-                        var fileStream = fs.createReadStream(pngFileName);
+                        const fileStream = fs.createReadStream(pngFileName);
                         fileStream.pipe(res);
                         //res.end(img, 'binary');
                     }
@@ -3009,7 +3001,7 @@ if (cluster.isMaster) {
 
         app.get('/:lang?/openradiation', function (req, res, next) {
             if (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en") {
-                var lang;
+                let lang;
                 if (req.params.lang == undefined)
                     lang = getLanguage(req);
                 else
@@ -3041,7 +3033,7 @@ if (cluster.isMaster) {
                 && (isNaN(req.params.latitude) == false)
                 && (isNaN(req.params.longitude) == false)
                 && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en")) {
-                var lang;
+                let lang;
                 if (req.params.lang == undefined)
                     lang = getLanguage(req);
                 else
@@ -3077,22 +3069,22 @@ if (cluster.isMaster) {
                 && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >= 0 && parseInt(req.params.rangeDateMin) <= 100)
                 && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >= 0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
                 && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en")) {
-                var tag;
+                let tag;
                 if (req.params.tag == "all")
                     tag = "";
                 else
                     tag = req.params.tag;
-                var userId;
+                let userId;
                 if (req.params.userId == "all")
                     userId = "";
                 else
                     userId = req.params.userId;
-                var lang;
+                let lang;
                 if (req.params.lang == undefined)
                     lang = getLanguage(req);
                 else
                     lang = req.params.lang;
-                var qualification;
+                let qualification;
                 qualification = req.params.qualification;
 
                 res.render('openradiation.ejs', {
@@ -3128,22 +3120,22 @@ if (cluster.isMaster) {
                 && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >= 0 && parseInt(req.params.rangeDateMin) <= 100)
                 && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >= 0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
                 && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en")) {
-                var tag;
+                let tag;
                 if (req.params.tag == "all")
                     tag = "";
                 else
                     tag = req.params.tag;
-                var userId;
+                let userId;
                 if (req.params.userId == "all")
                     userId = "";
                 else
                     userId = req.params.userId;
-                var lang;
+                let lang;
                 if (req.params.lang == undefined)
                     lang = getLanguage(req);
                 else
                     lang = req.params.lang;
-                var qualification;
+                let qualification;
                 qualification = req.params.qualification;
 
                 res.render('openradiation.ejs', {
@@ -3183,10 +3175,10 @@ if (cluster.isMaster) {
                 res.status(404).end();
         });
 
-        var privateKey = fs.readFileSync(__dirname + '/' + properties.certKeyFile, 'utf8');
-        var certificate = fs.readFileSync(__dirname + '/' + properties.certCrtFile, 'utf8');
-        var credentials = {key: privateKey, cert: certificate};
-        var httpsServer = https.createServer(credentials, app);
+        const privateKey = fs.readFileSync(__dirname + '/' + properties.certKeyFile, 'utf8');
+        const certificate = fs.readFileSync(__dirname + '/' + properties.certCrtFile, 'utf8');
+        const credentials = {key: privateKey, cert: certificate};
+        const httpsServer = https.createServer(credentials, app);
 
         httpsServer.timeout = 600000; // ten minutes before timeout (used when we post files, default is 120000)
 
@@ -3263,7 +3255,7 @@ if (cluster.isMaster) {
             }
         });
 
-        var httpServer = http.createServer(app);
+        const httpServer = http.createServer(app);
 
         httpServer.timeout = 600000; // ten minutes before timeout (used when we post files, default is 120000)
 
