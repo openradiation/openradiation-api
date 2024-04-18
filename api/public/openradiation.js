@@ -57,10 +57,8 @@ var translations_FR = {
       "Temporary source measurement" : "Mesure d'une source",
       "Temporary source measurements" : "Mesures d'une source",
       "Ground level measurement" : "Mesure au sol",    
-      "Ground level measurements" : "Mesures au sol",      
-      //"Standard measurements" : "Mesures standard",
-      "Non-standard measurement" : "Mesure atypique",  
-      //"Non-standard measurements" : "Mesures atypiques", 
+      "Ground level measurements" : "Mesures au sol",
+      "Non-standard measurement" : "Mesure atypique",
       "thumb" : "pouce",
       "More ..." : "Voir plus",
       "measurement found" : "mesure trouvée",
@@ -92,7 +90,7 @@ var translations_FR = {
     
 function translate(englishText)
 {
-    if (isLanguageFR == false)
+    if (isLanguageFR === false)
         return englishText;
     else
     {
@@ -383,16 +381,18 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     openradiation_filters.addTo(openradiation_map);
     
     //$("#atypical").val(atypical);
-    $( "#slider_rangevalue" ).on( "slidecreate", function( event, ui ) {
-        $( "#slider_rangevalue" ).slider("option", "values", [rangeValueMin, rangeValueMax]);
-        $( "#slider_minvalue").text(val2uSv($( "#slider_rangevalue" ).slider( "values", 0)));
-        $( "#slider_maxvalue").text(val2uSv($( "#slider_rangevalue" ).slider( "values", 1)));
+    const slider_rangevalue = $("#slider_rangevalue");
+    slider_rangevalue.on("slidecreate", function (event, ui) {
+        $("#slider_rangevalue").slider("option", "values", [rangeValueMin, rangeValueMax]);
+        $("#slider_minvalue").text(val2uSv(slider_rangevalue.slider("values", 0)));
+        $("#slider_maxvalue").text(val2uSv(slider_rangevalue.slider("values", 1)));
     });
-    
-    $( "#slider_rangedate" ).on( "slidecreate", function( event, ui ) {
-        $( "#slider_rangedate" ).slider("option", "values", [rangeDateMin, rangeDateMax]);
-        $( "#slider_mindate").text(val2date($( "#slider_rangedate" ).slider( "values", 0)));
-        $( "#slider_maxdate").text(val2date($( "#slider_rangedate" ).slider( "values", 1)));
+
+    const slider_rangedate = $("#slider_rangedate");
+    slider_rangedate.on("slidecreate", function (event, ui) {
+        slider_rangedate.slider("option", "values", [rangeDateMin, rangeDateMax]);
+        $("#slider_mindate").text(val2date(slider_rangedate.slider("values", 0)));
+        $("#slider_maxdate").text(val2date(slider_rangedate.slider("values", 1)));
     });
 
     //add a toggle
@@ -404,7 +404,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         div.innerHTML = '<strong id="nbresults"></strong>\
                 <div class="openradiation_icon icon_toggle-down toggle"></div>\
                 <span class="floatright"><a target="_self" href="/en/openradiation">EN</a> | <a target="_self" href="/fr/openradiation">FR</a> </span>';
-        if (isLanguageFR == false)
+        if (isLanguageFR === false)
             div.innerHTML += '<a class="floatright question" target="_blank" href="https://www.openradiation.org/en/map-and-its-limits">' + translate("Why don't I see all measurements ?") + '</a>';
         else
             div.innerHTML += '<a class="floatright question" target="_blank" href="https://www.openradiation.org/fr/la-carte-et-ses-limites">' + translate("Why don't I see all measurements ?") + '</a>';
@@ -513,8 +513,8 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                             case "groundlevel":
                                 htmlPopup += translate("Ground level measurement");
                                 break;
-                        };
-                        htmlPopup += " <img style=\"margin-bottom:-4px;\"src=\"/images/thumb.png\"/>+ " + res.data.qualificationVotesNumber;
+                        }
+                        htmlPopup += " <img style=\"margin-bottom:-4px;\" src=\"/images/thumb.png\"/>+ " + res.data.qualificationVotesNumber;
                         htmlPopup += "</span></div>"
                     }
                     
@@ -541,7 +541,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
             }); 
         }
     });
-};
+}
 
 var urlPrev = "null";
 var minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -10000, maxLongitudePrev = +10000;
@@ -616,7 +616,6 @@ function getUrl()
 
 function retrieve_items(urlTemp, fitBounds) {
 
-    //console.log("retrieve items : " + urlTemp);
     urlPrev = urlTemp;
     minLatitudePrev = openradiation_map.getBounds().getSouth();
     maxLatitudePrev = openradiation_map.getBounds().getNorth();
@@ -901,7 +900,7 @@ function openradiation_getItems(fitBounds)
         }
     } else
         console.log("no change");
-};
+}
 
 function val2uSv(val)
 {
@@ -921,27 +920,27 @@ function val2date(val)
     //var hour = Math.exp((40 - val) / 3) - 1; // this is the nb hour from now
     var hour = Math.exp((100 - val) / 9) - 1;
     
-    if (hour == 0)
+    if (hour === 0)
         return translate("now");
     else if (hour < 0.4)
         return Math.round(hour*60 / 10) * 10 + " " + translate("minutes");
     else if (hour < 20)
     {
-        if (Math.round(hour) == 1)
+        if (Math.round(hour) === 1)
             return "1 " + translate("hour");
         else
             return Math.round(hour) + " " + translate("hours");
     }
     else if (hour < 24*30)
     {
-        if (Math.round(hour / 24) == 1)
+        if (Math.round(hour / 24) === 1)
             return "1 " + translate("day");
         else
             return Math.round(hour / 24) + " " + translate("days");   
     }
     else if (hour < 24*30*9)
     {
-        if (Math.round(hour / 24 / 30) == 1)
+        if (Math.round(hour / 24 / 30) === 1)
             return "1 " + translate("month");
         else
             return Math.round(hour / 24 / 30) + " " + translate("months");
@@ -949,7 +948,7 @@ function val2date(val)
     else if (hour > 60000)
         return "- ∞";
     else {
-        if (Math.round(hour /24 / 365) == 1)
+        if (Math.round(hour /24 / 365) === 1)
             return "1 " + translate("year");
         else
             return Math.round(hour /24 / 365) + " " + translate("years");
