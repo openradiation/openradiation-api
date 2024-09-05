@@ -1820,7 +1820,6 @@ if (cluster.isMaster) {
                 } else {
                     console.log(req.body.data);
                 }
-                console.log(req.body.data);
                 if (verifyApiKey(res, req.body.apiKey, false, true)
                     && verifyData(res, req.body.data, false, "apparatusId")
                     && verifyData(res, req.body.data, false, "apparatusVersion")
