@@ -710,6 +710,12 @@ if (cluster.isMaster) {
         }
     }
 
+    logAndSendError = function(res, code, message) {
+        console.log(`Error ${code}: ${message}`);
+        res.status(400).json({ error: { code: code, message: message } });
+    }
+
+
 
     verifyData = function (res, json, isMandatory, dataName) {
 
@@ -717,7 +723,7 @@ if (cluster.isMaster) {
             json[dataName] = null;
 
         if (isMandatory && json[dataName] == null) {
-            res.status(400).json({error: {code: "101", message: dataName + " is mandatory but undefined"}});
+            logAndSendError(res, "101", `${dataName} is mandatory but undefined`);
             return false;
         }
 
@@ -725,46 +731,36 @@ if (cluster.isMaster) {
             switch (dataName) {
                 case "apparatusId":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
                 case "apparatusVersion":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
                 case "apparatusSensorType":
                     const apparatusSensorTypeValues = ["geiger", "photodiode"];
                     if (typeof (json[dataName]) != "string" || apparatusSensorTypeValues.indexOf(json[dataName]) == -1) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " should be in [geiger | photodiode]"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} should be in [geiger | photodiode]`);
                         return false;
                     }
                     break;
                 case "apparatusTubeType":
                     if (typeof (json["apparatusSensorType"]) != "string" || json["apparatusSensorType"] != "geiger") {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " can be defined only if apparatusSensorType is geiger"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} can be defined only if apparatusSensorType is geiger`);
                         return false;
                     }
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
                 case "temperature":
                     if (typeof (json[dataName]) != "number" || parseFloat(json[dataName]) != parseInt(json[dataName])) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not an integer"}});
+                        logAndSendError(res, "102", `${dataName} is not an integer`);
                         return false;
                     }
                     break;
@@ -775,29 +771,19 @@ if (cluster.isMaster) {
                 case "minLongitude":
                 case "maxLongitude":
                     if (typeof (json[dataName]) != "string" || isNaN(json[dataName])) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " is not a number " + json[dataName]
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} is not a number ${json[dataName]}`);
                         return false;
                     }
                     break;
                 case "value":
                     if (typeof (json[dataName]) != "number") {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " is not a number (" + typeof (json[dataName]) + ")"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} is not a number ${typeof (json[dataName])}`);
                         return false;
                     }
                     break;
                 case "hitsNumber":
                     if (typeof (json[dataName]) != "number" || parseFloat(json[dataName]) != parseInt(json[dataName])) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not an integer"}});
+                        logAndSendError(res, "102", `${dataName} is not an integer`);
                         return false;
                     }
                     break;
@@ -807,53 +793,38 @@ if (cluster.isMaster) {
                 case "maxStartTime":
                 case "endTime":
                     if (typeof (json[dataName]) != "string" || new Date(json[dataName]) == "Invalid Date") {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a date"}});
+                        logAndSendError(res, "102", `${dataName} is not a date`);
                         return false;
                     }
                     break;
                 case "startTime":
                     if (typeof (json[dataName]) != "string" || new Date(json[dataName]) == "Invalid Date") {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a reliable date"}});
+                        logAndSendError(res, "102", `${dataName} is not a reliable date`);
                         return false;
                     }
                     const now = new Date();
                     if ((new Date(json[dataName])).getTime() > (now.getTime() + 86400000)) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a real date"}});
+                        logAndSendError(res, "102", `${dataName} is not a real date`);
                         return false;
                     }
                     break;
                 case "latitude":
                 case "endLatitude":
-                    if (typeof (json[dataName]) != "number") {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a number"}});
-                        return false;
-                    }
-                    break;
                 case "longitude":
                 case "endLongitude":
-                    if (typeof (json[dataName]) != "number") {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a number"}});
-                        return false;
-                    }
-                    break;
                 case "accuracy":
                 case "endAccuracy":
+                case "altitudeAccuracy":
+                case "endAltitudeAccuracy":
                     if (typeof (json[dataName]) != "number") {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a number"}});
+                        logAndSendError(res, "102", `${dataName} is not a number`);
                         return false;
                     }
                     break;
                 case "altitude":
                 case "endAltitude":
                     if (typeof (json[dataName]) != "number" || parseFloat(json[dataName]) != parseInt(json[dataName])) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not an integer"}});
-                        return false;
-                    }
-                    break;
-                case "altitudeAccuracy":
-                case "endAltitudeAccuracy":
-                    if (typeof (json[dataName]) != "number") {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a number"}});
+                        logAndSendError(res, "102", `${dataName} is not an integer`);
                         return false;
                     }
                     break;
@@ -863,13 +834,13 @@ if (cluster.isMaster) {
                 case "deviceModel":
                 case "calibrationFunction":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
                 case "reportUuid": //sample 110e8400-e29b-11d4-a716-446655440000
                     if (typeof (json[dataName]) != "string" || json[dataName].length != 36 || /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/.test(json[dataName]) == false) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a UUID format"}});
+                        logAndSendError(res, "102", `${dataName} is not a UUID format`);
                         return false;
                     }
                     break;
@@ -877,182 +848,122 @@ if (cluster.isMaster) {
                 case "rain":
                 case "storm":
                     if (typeof (json[dataName]) != "boolean") {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a boolean"}});
+                        logAndSendError(res, "102", `${dataName} is not a boolean`);
                         return false;
                     }
                     break;
                 case "flightNumber":
                 case "seatNumber":
                     if (typeof (json["measurementEnvironment"]) != "string" || json["measurementEnvironment"] != "plane") {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " can be defined only if measurementEnvironment is plane"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} can be defined only if measurementEnvironment is plane`);
                         return false;
                     }
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 25) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
                 case "windowSeat":
                     if (typeof (json["measurementEnvironment"]) != "string" || json["measurementEnvironment"] != "plane") {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " can be defined only if measurementEnvironment is plane"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} can be defined only if measurementEnvironment is plane`);
                         return false;
                     }
                     if (typeof (json[dataName]) != "boolean") {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a boolean"}});
+                        logAndSendError(res, "102", `${dataName} is not a boolean`);
                         return false;
                     }
                     break;
                 case "organisationReporting":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
                 case "reportContext":
                     const reportContextValues = ["emergency", "routine", "exercise", "test"];
                     if (typeof (json[dataName]) != "string" || reportContextValues.indexOf(json[dataName]) == -1) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " should be in [emergency | routine | exercise | test]"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} should be in [emergency | routine | exercise | test]`);
                         return false;
                     }
                     break;
                 case "description":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 1000) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     if (json["userId"] == null) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " can be defined only if userId is defined"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} can be defined only if userId is defined`);
                         return false;
                     }
                     break;
                 case "measurementHeight":
                     if (typeof (json[dataName]) != "number" || parseFloat(json[dataName]) != parseInt(json[dataName])) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not an integer"}});
+                        logAndSendError(res, "102", `${dataName} is not an integer`);
                         return false;
                     }
                     break;
                 case "tag":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
                 case "tags":
                     if (!(json[dataName] instanceof Array) || json[dataName].length > 10) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " should be an array from ten elements max"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} should be an array from ten elements max`);
                         return false;
                     }
                     for (let i = 0; i < json[dataName].length; i++) {
                         if (typeof (json[dataName][i]) != "string" || json[dataName][i].length > 100 || json[dataName][i].replace(/#/g, "") == "") {
-                            res.status(400).json({
-                                error: {
-                                    code: "102",
-                                    message: dataName + " contains an element which is too long or is not a filled string"
-                                }
-                            });
+                            logAndSendError(res, "102", `${dataName} contains an element which is too long or is not a filled string`);
                             return false;
                         }
                         for (let j = 0; j < json[dataName].length; j++) {
                             if (j < i && json[dataName][i].toLowerCase().replace(/#/g, "") == json[dataName][j].toLowerCase().replace(/#/g, "")) {
-                                res.status(400).json({
-                                    error: {
-                                        code: "102",
-                                        message: dataName + " contains several elements with the same value"
-                                    }
-                                });
+                                logAndSendError(res, "102", `${dataName} contains several elements with the same value`);
                                 return false;
                             }
                         }
                     }
                     if (json["userId"] == null) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " can be defined only if userId is defined"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} can be defined only if userId is defined`);
                         return false;
                     }
                     break;
                 case "enclosedObject":
                     if (typeof (json[dataName]) != "string" || /data:image\/.*;base64,.*/.test(json[dataName].substr(0, 50)) == false) //data:image/<subtype>;base64,
                     {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " is not a data URI scheme with base64 encoded image"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} is not a data URI scheme with base64 encoded image`);
                         return false;
                     }
                     if (json["userId"] == null) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " can be defined only if userId is defined"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} can be defined only if userId is defined`);
                         return false;
                     }
                     break;
                 case "userId_request":
                     if (typeof (json["userId"]) != "string" || json["userId"].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
                 case "userId":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     if (json["userPwd"] == null) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " can be defined only if userPwd is defined"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} can be defined only if userPwd is defined`);
                         return false;
                     }
                     break;
                 case "userPwd":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a string"}});
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     if (json["userId"] == null) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " can be defined only if userId is defined"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} can be defined only if userId is defined`);
                         return false;
                     }
                     for (let i = 0; i < users.length; i++) {
@@ -1063,65 +974,55 @@ if (cluster.isMaster) {
                                 break;
                         }
                     }
-                    res.status(400).json({error: {code: "102", message: "credentials userId / userPwd are not valid"}});
+                    logAndSendError(res, "102", "credentials userId / userPwd are not valid");
                     return false;
                 case "measurementEnvironment":
                     const measurementEnvironmentValues = ["countryside", "city", "ontheroad", "inside", "plane"];
                     if (typeof (json[dataName]) != "string" || measurementEnvironmentValues.indexOf(json[dataName]) == -1) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " should be in [countryside | city | ontheroad | inside | plane]"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} should be in [countryside | city | ontheroad | inside | plane]`);
                         return false;
                     }
                     break;
                 case "qualification":
                     const qualificationValues = ["groundlevel", "plane", "wrongmeasurement", "temporarysource"];
                     if (typeof (json[dataName]) != "string" || qualificationValues.indexOf(json[dataName]) == -1) {
-                        res.status(400).json({
-                            error: {
-                                code: "102",
-                                message: dataName + " should be in [groundlevel | plane | wrongmeasurement | temporarysource]"
-                            }
-                        });
+                        logAndSendError(res, "102", `${dataName} should be in [groundlevel | plane | wrongmeasurement | temporarysource]`);
                         return false;
                     }
                     break;
                 case "qualificationVotesNumber":
                     if (typeof (json[dataName]) != "number" || parseFloat(json[dataName]) != parseInt(json[dataName]) || parseInt(json[dataName]) < 1) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a positive integer"}});
+                        logAndSendError(res, "102", `${dataName} is not a positive integer`);
                         return false;
                     }
                     break;
                 case "response":
                     if (typeof (json[dataName]) != "string" || json[dataName] != "complete") {
-                        res.status(400).json({error: {code: "102", message: dataName + " should be in [complete]"}});
+                        logAndSendError(res, "102", `${dataName} should be in [complete]`);
                         return false;
                     }
                     break;
                 case "withEnclosedObject":
                     if (typeof (json[dataName]) != "string" || json[dataName] != "no") {
-                        res.status(400).json({error: {code: "102", message: dataName + " should be in [no]"}});
+                        logAndSendError(res, "102", `${dataName} should be in [no]`);
                         return false;
                     }
                     break;
                 case "flightId":
                     if (typeof (json[dataName]) != "string" || isNaN(json[dataName]) || parseFloat(json[dataName]) != parseInt(json[dataName])) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not an integer"}});
+                        logAndSendError(res, "102", `${dataName} is not an integer`);
                         return false;
                     }
                     break;
                 case "maxNumber":
                     if (typeof (json[dataName]) != "string" || isNaN(json[dataName]) || parseFloat(json[dataName]) != parseInt(json[dataName]) || parseInt(json[dataName]) < 1) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a positive integer"}});
+                        logAndSendError(res, "102", `${dataName} is not a positive integer`);
                         return false;
                     }
                     break;
                 case "atypical":
                     if (typeof (json[dataName]) != "string" || (json[dataName] != "true" && json[dataName] != "false")) {
-                        res.status(400).json({error: {code: "102", message: dataName + " is not a boolean"}});
+                        logAndSendError(res, "102", `${dataName} is not a boolean`);
                         return false;
                     }
                     break;
@@ -1910,7 +1811,16 @@ if (cluster.isMaster) {
                 });
             } else {
                 console.log(req.body.apiKey);
-                //console.log(req.body.data);
+                var userPwd = req.body.data.userPwd;
+                if (req.body.data && req.body.data.userPwd) {
+                    var userPwd = req.body.data.userPwd;
+                    req.body.data.userPwd = '********';
+                    console.log(req.body.data);
+                    req.body.data.userPwd = userPwd;
+                } else {
+                    console.log(req.body.data);
+                }
+                console.log(req.body.data);
                 if (verifyApiKey(res, req.body.apiKey, false, true)
                     && verifyData(res, req.body.data, false, "apparatusId")
                     && verifyData(res, req.body.data, false, "apparatusVersion")
