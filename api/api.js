@@ -43,8 +43,14 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
 
         //0. if flight number is 'Af 038' we store 'AF38'
         flightNumber = flightNumber_.replace(/ /g, "");
-        if (flightNumber.length > 2 && (!isNaN(flightNumber.substr(2))))
-            flightNumber = flightNumber.substr(0, 2).toUpperCase() + parseFloat(flightNumber.substr(2));
+        let match = flightNumber.match(/^([A-Za-z]{2,3})(\d{1,4})$/);
+        if (match) {
+            let airlineCode = match[1].toUpperCase();
+            let flightDigits = parseInt(match[2], 10);
+            flightNumber = airlineCode + flightDigits;
+        } else {
+            console.error("Numéro de vol invalide");
+        }
 
         async.waterfall(
             [
