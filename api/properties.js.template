@@ -18,6 +18,9 @@ module.exports = {
     mappingFeature:true, //if the feature requestAPI is available
     submitFormFeature:true, //if the feature submitForm is available
     submitFormAPIKey:"********************************", //API key for submitting data
+    feedbackFeature: true, // if the feedback feature is available
+    feedbackApiPublicKey: "xxxx",
+    feedbackApiPrivateKey: " xxxx",
     measurementURL: "http://localhost/import-measure/{reportUuid}",
     mappingURL:"https://localhost:8080", //mapping URL
     submitAPIHost:"127.0.0.1", //submitAPI contacted via post forms
