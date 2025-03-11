@@ -49,7 +49,7 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
             let flightDigits = parseInt(match[2], 10);
             flightNumber = airlineCode + flightDigits;
         } else {
-            console.error("Numéro de vol invalide");
+            console.error("NumÃ©ro de vol invalide");
         }
 
         async.waterfall(
@@ -1030,6 +1030,20 @@ if (cluster.isMaster) {
                     if (typeof (json[dataName]) != "string" || (json[dataName] != "true" && json[dataName] != "false")) {
                         logAndSendError(res, "102", `${dataName} is not a boolean`);
                         return false;
+                    }
+                    break;
+                case "feedback" :
+                    let isValidMessage = true;
+                    let messages = req.body.data.Messages;
+                    isValidMessage &= (messages instanceof Array && messages.length != 1);
+                    let message = messages[0];
+                    isValidMessage &= message.From && message.From.Email;
+                    isValidMessage &= message.To && message.To.length >= 1 && message.To.lenght < 3;
+                    isValidMessage &= message.Subject;
+                    isValidMessage &= message.TextPart; 
+                    if (!isValidMessage) {
+                      res.status(400).json({ error: { code: "102", message: "Invalid feedback message" } });
+                      return false;
                     }
                     break;
                 default: {
@@ -3074,6 +3088,45 @@ if (cluster.isMaster) {
             } else
                 res.status(404).end();
         });
+    }
+
+//9. mailjet feedbacks
+    if (properties.feedbackFeature) {
+      app.post('/feedback', async function (req, res, next) {
+        console.log(new Date().toISOString() + " - POST /Feedback : begin");
+        if (typeof (req.body.apiKey) != "string" || typeof (req.body.data) != "object") {
+            console.dir(req.body);
+            console.log("You must send a JSON with a string apiKey and an object data");
+            res.status(400).json({
+                error: {
+                    code: "100",
+                    message: "You must send a JSON with a string apiKey and an object data"
+                }
+            });
+        } else {
+          if (verifyApiKey(res, req.body.apiKey, false, true)
+              && verifyData(res, req.body.data, false, "feedback")
+          ) {
+              try {
+                let response = await axios.post(
+                  "https://api.mailjet.com/v3.1/send",
+                  req.body.data,
+                  {
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: "Basic " + Buffer.from(properties.feedbackApiPublicKey + ":" + properties.feedbackApiPrivateKey).toString("base64"),
+                    }
+                  });
+                console.log("Mailjet feedback status : " + response.status + " " + response.statusText);
+                res.status(response.status).json({'status': response.statusText}).end();
+              } catch (error) {
+                console.error("Erreur 500 while sending feedback", error.code);
+                res.status(500).end();
+              }
+          }
+        }
+        console.log(new Date().toISOString() + " - POST /feedback : end");
+      });
     }
 
 // Apps server (http + https or http only)
