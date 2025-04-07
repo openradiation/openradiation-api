@@ -1492,7 +1492,7 @@ if (cluster.isMaster) {
         app.get('/users', function (req, res, next) {
             console.log(new Date().toISOString() + " - GET /users : begin");
             if (typeof (req.query.apiKey) != "string") {
-                res.status(400).json({error: {code: "100", message: "You must send the apiKey parameter"}});
+                res.status(400).json({ error: { code: "100", message: "You must send the apiKey parameter" } });
             } else {
                 if (verifyApiKey(res, req.query.apiKey, false, false)) {
                     pool.connect(function (err, client, done) {
@@ -1501,8 +1501,7 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            const sql = 'SELECT DISTINCT ON (MEASUREMENTS."userId") MEASUREMENTS."userId", MEASUREMENTS."latitude", MEASUREMENTS."longitude", "endTime", APIUSERS."userPwd" FROM MEASUREMENTS  LEFT JOIN APIUSERS ON APIUSERS."userId" = MEASUREMENTS."userId" WHERE "endTime" IS NOT NULL ORDER BY MEASUREMENTS."userId" ASC, "endTime" DESC';
-
+                            const sql = 'SELECT DISTINCT ON (MEASUREMENTS."userId") MEASUREMENTS."userId", MEASUREMENTS."latitude", MEASUREMENTS."longitude", "endTime" FROM MEASUREMENTS WHERE "endTime" IS NOT NULL ORDER BY MEASUREMENTS."userId" ASC, "endTime" DESC';
                             const values = [];
                             client.query(sql, values, function (err, result) {
                                 if (err) {
@@ -1514,13 +1513,12 @@ if (cluster.isMaster) {
                                     done();
                                     for (let r = 0; r < result.rows.length; r++) {
                                         data.push(result.rows[r]);
-
                                         for (let i in data[data.length - 1]) {
                                             if (data[data.length - 1][i] == null)
                                                 delete data[data.length - 1][i];
                                         }
                                     }
-                                    res.json({data: data});
+                                    res.json({ data: data });
                                 }
                             });
                         }
