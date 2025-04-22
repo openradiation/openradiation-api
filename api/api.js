@@ -3089,7 +3089,7 @@ if (cluster.isMaster) {
     }
 
 //9. mailjet feedbacks
-    if (properties.feedbackFeature) {
+    if (properties.submitApiFeature) {
       app.post('/feedback', async function (req, res, next) {
         console.log(new Date().toISOString() + " - POST /Feedback : begin");
         if (typeof (req.body.apiKey) != "string" || typeof (req.body.data) != "object") {
