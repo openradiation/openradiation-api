@@ -57,7 +57,11 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                 function (callback) {
                     //1. is there any similar measurements, i.e. same flightNumber and less 2 hours apart
                     let sql = 'select count(*) as count FROM MEASUREMENTS WHERE "flightNumber"=$1 and "flightSearch"=true and "startTime">$2 and "startTime"<$3';
-                    let values = [flightNumber, new Date(new Date(startTime).getTime() - 2 * hours), new Date(new Date(startTime).getTime() + 2 * hours)];
+                    let values = [
+                        flightNumber,
+                        new Date(new Date(startTime).getTime() - 2 * hours),
+                        new Date(new Date(startTime).getTime() + 2 * hours)
+                    ];
                     client.query(sql, values, function (err, result) {
                         if (err) {
                             console.log("Error while running query " + sql, err);
@@ -67,122 +71,109 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                 //no similar result, so we try to connect flightradar
                                 flightSearch = true;
 
+                                const aeroapi = axios.create({
+                                    baseURL: properties.flightURL,
+                                    headers: {'x-apikey': properties.flightApiKey}
+                                });
+
                                 const requestParams = {};
-                                requestParams.qs = {};
-                                requestParams.url = properties.flightURL + 'FlightInfoStatus';
+                                requestParams.qs = {
+                                    start: new Date(startTime - 4 * hours).toISOString(),
+                                    end: new Date(startTime + 4 * hours).toISOString(),
+                                };
+
                                 if (properties.flightProxy != null)
                                     requestParams.proxy = properties.flightProxy;
-                                requestParams.qs.ident = flightNumber;
 
-                                axios.get(requestParams.url, {params: requestParams.qs})
+                                aeroapi.get(`/flights/${flightNumber}`, {params: requestParams.qs})
                                     .then(resp => {
                                         if (resp.status >= 400) {
                                             console.log("ERROR status code FlightInfoStatus : " + resp.status);
-                                            callback();
-                                        } else {
-                                            let body_json = resp.data;
-                                            if ((body_json.FlightInfoStatusResult != null) && (body_json.FlightInfoStatusResult.flights.length > 0)) {
-                                                async.forEach(body_json.FlightInfoStatusResult.flights, function (flight, callback_flights) {
-                                                    if ((new Date(flight.actual_departure_time.epoch * 1000) < new Date(new Date(startTime).getTime() + 4 * hours))
-                                                        && (new Date(flight.actual_arrival_time.epoch * 1000) > new Date(new Date(startTime).getTime() - 4 * hours))) {
-                                                        const departureTime = new Date(flight.actual_departure_time.epoch * 1000);
-                                                        const arrivalTime = new Date(flight.actual_arrival_time.epoch * 1000);
+                                            return callback();
+                                        }
 
-                                                        sql = 'select count(*) as count from FLIGHTS WHERE "flightNumber"=$1 and "departureTime"=$2 and "arrivalTime"=$3';
-                                                        values = [flightNumber, departureTime, arrivalTime];
-                                                        client.query(sql, values, function (err, result) {
-                                                            if (err) {
-                                                                console.log("Error while running query " + sql, err);
-                                                                callback_flights();
-                                                            } else {
-                                                                if (result.rows[0].count == 0) {
-                                                                    sql = 'insert into FLIGHTS("flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType") VALUES ($1, $2, $3, $4, $5, $6) RETURNING "flightId"';
-                                                                    values = [flightNumber, departureTime, arrivalTime, flight.origin.alternate_ident, flight.destination.alternate_ident, flight.aircrafttype];
+                                        const flights = resp.data.flights || [];
+                                        async.forEach(flights, function (flight, callback_flights) {
+                                            const departureTime = new Date(flight.actual_off || flight.scheduled_off);
+                                            const arrivalTime = new Date(flight.actual_on || flight.scheduled_on);
+
+                                            sql = 'select count(*) as count from FLIGHTS WHERE "flightNumber"=$1 and "departureTime"=$2 and "arrivalTime"=$3';
+                                            values = [flightNumber, departureTime, arrivalTime];
+                                            client.query(sql, values, function (err, result) {
+                                                if (err) {
+                                                    console.log("Error while running query " + sql, err);
+                                                    return callback_flights();
+                                                }
+                                                if (Number(result.rows[0].count)) return callback_flights();
+
+                                                sql = 'insert into FLIGHTS("flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType") VALUES ($1, $2, $3, $4, $5, $6) RETURNING "flightId"';
+                                                values = [
+                                                    flightNumber,
+                                                    departureTime,
+                                                    arrivalTime,
+                                                    flight.origin?.code,
+                                                    flight.destination?.code,
+                                                    flight.aircrafttype
+                                                ];
+                                                client.query(sql, values, function (err, result) {
+                                                    if (err) {
+                                                        console.log("Error while running query " + sql, err);
+                                                    }
+                                                    const flightIdInserted = result.rows[0].flightId;
+
+                                                    aereoapi.get(`/flights/${flight.fa_flight_id}/track`)
+                                                        .then(respTrack => {
+                                                            const tracks = respTrack.data.positions || [];
+                                                            async.forEach(tracks, function (track, callback_tracks) { //The second argument (callback) is the "task callback" for a specific task
+                                                                if (!track.timestamp || !track.latitude || !track.longitude) {
+                                                                    return callback_tracks();
+                                                                }
+                                                                const altitude_in_meter = Math.round(track.altitude * 100 * 0.3048); //  hundred ft -> m
+
+                                                                sql = 'insert into FLIGHTSTRACK("flightId", "timestamp", "latitude", "longitude", "altitude") VALUES ($1, $2, $3, $4, $5)';
+                                                                values = [flightIdInserted, new Date(track.timestamp * 1000), track.latitude, track.longitude, altitude_in_meter];
+                                                                client.query(sql, values, function (err, result) {
+                                                                    if (err)
+                                                                        console.log("Error while running query insert flightstrack " + sql, err);
+                                                                    callback_tracks();
+                                                                });
+
+                                                            }, function (err) {
+                                                                if (err) {
+                                                                    console.log("Error tracks " + err);
+                                                                    callback_flights();
+                                                                } else {
+                                                                    sql = 'update FLIGHTS set "firstLatitude"=$1, "firstLongitude"=$2, "midLatitude"=$3, "midLongitude"=$4, "lastLatitude"=$5, "lastLongitude"=$6 where "flightId"=$7';
+                                                                    values = [body_json.GetFlightTrackResult.tracks[0].latitude,
+                                                                        body_json.GetFlightTrackResult.tracks[0].longitude,
+                                                                        body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].latitude,
+                                                                        body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].longitude,
+                                                                        body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].latitude,
+                                                                        body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].longitude,
+                                                                        flightIdInserted];
                                                                     client.query(sql, values, function (err, result) {
                                                                         if (err)
                                                                             console.log("Error while running query " + sql, err);
-                                                                        const flightIdInserted = result.rows[0].flightId;
-                                                                        requestParams.qs.ident = flight.faFlightID;
-                                                                        requestParams.url = properties.flightURL + 'GetFlightTrack';
 
-                                                                        axios.get(requestParams.url, {params: requestParams.qs})
-                                                                            .then(resp => {
-                                                                                if (resp.statusCode >= 400) {
-                                                                                    console.log("ERROR status code FlightInfoStatus : " + resp.statusCode);
-                                                                                    callback_flights();
-                                                                                } else {
-                                                                                    let body_json = resp.data;
-                                                                                    if ((body_json.GetFlightTrackResult != null) && (body_json.GetFlightTrackResult.tracks.length > 0)) {
-                                                                                        async.forEach(body_json.GetFlightTrackResult.tracks, function (track, callback_tracks) { //The second argument (callback) is the "task callback" for a specific task
-                                                                                            if (track.timestamp != null && track.timestamp > 0 && track.latitude != null && track.longitude != null && track.altitude != null) {
-                                                                                                let altitude_in_meter;
-                                                                                                if (track.altitude_feet != null)
-                                                                                                    altitude_in_meter = Math.round(track.altitude_feet * 0.3048);
-                                                                                                else
-                                                                                                    altitude_in_meter = Math.round(track.altitude * 100 * 0.3048);
-
-                                                                                                sql = 'insert into FLIGHTSTRACK("flightId", "timestamp", "latitude", "longitude", "altitude") VALUES ($1, $2, $3, $4, $5)';
-                                                                                                values = [flightIdInserted, new Date(track.timestamp * 1000), track.latitude, track.longitude, altitude_in_meter];
-                                                                                                client.query(sql, values, function (err, result) {
-                                                                                                    if (err)
-                                                                                                        console.log("Error while running query insert flightstrack " + sql, err);
-                                                                                                    callback_tracks();
-                                                                                                });
-                                                                                            } else {
-                                                                                                callback_tracks();
-                                                                                            }
-                                                                                        }, function (err) {
-                                                                                            if (err) {
-                                                                                                console.log("Error tracks " + err);
-                                                                                                callback_flights();
-                                                                                            } else {
-                                                                                                sql = 'update FLIGHTS set "firstLatitude"=$1, "firstLongitude"=$2, "midLatitude"=$3, "midLongitude"=$4, "lastLatitude"=$5, "lastLongitude"=$6 where "flightId"=$7';
-                                                                                                values = [body_json.GetFlightTrackResult.tracks[0].latitude,
-                                                                                                    body_json.GetFlightTrackResult.tracks[0].longitude,
-                                                                                                    body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].latitude,
-                                                                                                    body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].longitude,
-                                                                                                    body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].latitude,
-                                                                                                    body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].longitude,
-                                                                                                    flightIdInserted];
-                                                                                                client.query(sql, values, function (err, result) {
-                                                                                                    if (err)
-                                                                                                        console.log("Error while running query " + sql, err);
-
-                                                                                                    callback_flights();
-                                                                                                });
-                                                                                            }
-                                                                                        });
-                                                                                    } else
-                                                                                        callback_flights();
-                                                                                }
-                                                                            }).catch(err => {
-                                                                            console.log("ERROR request FlightInfoStatus : " + err);
-                                                                            callback_flights();
-                                                                        });
+                                                                        callback_flights();
                                                                     });
-                                                                } else {
-                                                                    callback_flights();
                                                                 }
-                                                            }
-                                                        });
-                                                    } else {
+                                                            });
+                                                        }).catch(err => {
+                                                        console.log("ERROR request FlightInfoStatus : " + err);
                                                         callback_flights();
-                                                    }
-                                                }, function (err) {
-                                                    if (err)
-                                                        console.log("Error " + err);
-                                                    callback();
+                                                    });
                                                 });
-                                            } else {
-                                                //console.log("No flight found in flightradar");
-                                                callback();
-                                            }
-                                        }
-                                    })
-                                    .catch(err => {
-                                        console.log("ERROR request FlightInfoStatus : " + err);
-                                        callback();
-                                    });
+                                            });
+                                        }, function (err) {
+                                            if (err)
+                                                console.log("Error " + err);
+                                            callback();
+                                        });
+                                    }).catch(err => {
+                                    console.log("ERROR request FlightInfoStatus : " + err);
+                                    callback();
+                                });
                             } else {
                                 callback();
                             }
@@ -716,11 +707,10 @@ if (cluster.isMaster) {
         }
     }
 
-    logAndSendError = function(res, code, message) {
+    logAndSendError = function (res, code, message) {
         console.log(`Error ${code}: ${message}`);
-        res.status(400).json({ error: { code: code, message: message } });
+        res.status(400).json({error: {code: code, message: message}});
     }
-
 
 
     verifyData = function (res, json, isMandatory, dataName) {
@@ -1040,10 +1030,10 @@ if (cluster.isMaster) {
                     isValidMessage &= message.From && message.From.Email;
                     isValidMessage &= message.To && message.To.length >= 1 && message.To.lenght < 3;
                     isValidMessage &= message.Subject;
-                    isValidMessage &= message.TextPart; 
+                    isValidMessage &= message.TextPart;
                     if (!isValidMessage) {
-                      res.status(400).json({ error: { code: "102", message: "Invalid feedback message" } });
-                      return false;
+                        res.status(400).json({error: {code: "102", message: "Invalid feedback message"}});
+                        return false;
                     }
                     break;
                 default: {
@@ -1492,7 +1482,7 @@ if (cluster.isMaster) {
         app.get('/users', function (req, res, next) {
             console.log(new Date().toISOString() + " - GET /users : begin");
             if (typeof (req.query.apiKey) != "string") {
-                res.status(400).json({ error: { code: "100", message: "You must send the apiKey parameter" } });
+                res.status(400).json({error: {code: "100", message: "You must send the apiKey parameter"}});
             } else {
                 if (verifyApiKey(res, req.query.apiKey, false, false)) {
                     pool.connect(function (err, client, done) {
@@ -1518,7 +1508,7 @@ if (cluster.isMaster) {
                                                 delete data[data.length - 1][i];
                                         }
                                     }
-                                    res.json({ data: data });
+                                    res.json({data: data});
                                 }
                             });
                         }
@@ -3090,41 +3080,41 @@ if (cluster.isMaster) {
 
 //9. mailjet feedbacks
     if (properties.submitApiFeature) {
-      app.post('/feedback', async function (req, res, next) {
-        console.log(new Date().toISOString() + " - POST /Feedback : begin");
-        if (typeof (req.body.apiKey) != "string" || typeof (req.body.data) != "object") {
-            console.dir(req.body);
-            console.log("You must send a JSON with a string apiKey and an object data");
-            res.status(400).json({
-                error: {
-                    code: "100",
-                    message: "You must send a JSON with a string apiKey and an object data"
-                }
-            });
-        } else {
-          if (verifyApiKey(res, req.body.apiKey, false, true)
-              && verifyData(res, req.body.data, false, "feedback")
-          ) {
-              try {
-                let response = await axios.post(
-                  "https://api.mailjet.com/v3.1/send",
-                  req.body.data,
-                  {
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: "Basic " + Buffer.from(properties.feedbackApiPublicKey + ":" + properties.feedbackApiPrivateKey).toString("base64"),
+        app.post('/feedback', async function (req, res, next) {
+            console.log(new Date().toISOString() + " - POST /Feedback : begin");
+            if (typeof (req.body.apiKey) != "string" || typeof (req.body.data) != "object") {
+                console.dir(req.body);
+                console.log("You must send a JSON with a string apiKey and an object data");
+                res.status(400).json({
+                    error: {
+                        code: "100",
+                        message: "You must send a JSON with a string apiKey and an object data"
                     }
-                  });
-                console.log("Mailjet feedback status : " + response.status + " " + response.statusText);
-                res.status(response.status).json({'status': response.statusText}).end();
-              } catch (error) {
-                console.error("Erreur 500 while sending feedback", error.code);
-                res.status(500).end();
-              }
-          }
-        }
-        console.log(new Date().toISOString() + " - POST /feedback : end");
-      });
+                });
+            } else {
+                if (verifyApiKey(res, req.body.apiKey, false, true)
+                    && verifyData(res, req.body.data, false, "feedback")
+                ) {
+                    try {
+                        let response = await axios.post(
+                            "https://api.mailjet.com/v3.1/send",
+                            req.body.data,
+                            {
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: "Basic " + Buffer.from(properties.feedbackApiPublicKey + ":" + properties.feedbackApiPrivateKey).toString("base64"),
+                                }
+                            });
+                        console.log("Mailjet feedback status : " + response.status + " " + response.statusText);
+                        res.status(response.status).json({'status': response.statusText}).end();
+                    } catch (error) {
+                        console.error("Erreur 500 while sending feedback", error.code);
+                        res.status(500).end();
+                    }
+                }
+            }
+            console.log(new Date().toISOString() + " - POST /feedback : end");
+        });
     }
 
 // Apps server (http + https or http only)
