@@ -450,9 +450,9 @@ if (cluster.isMaster) {
             }
         });
     }
-    //if (properties.submitApiFeature) {
-    //    setInterval(majFlights, properties.flightSearchInterval);
-    //}
+    if (properties.submitApiFeature) {
+        setInterval(majFlights, properties.flightSearchInterval);
+    }
 
 } else { // Code to run if we're in a worker process
 
