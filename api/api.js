@@ -19,13 +19,13 @@ const SHA256 = require("crypto-js/sha256");
 const SHA512 = require("crypto-js/sha512");
 const pg = require('pg');
 const axios = require('axios');
+const HttpsProxyAgent   = require('https-proxy-agent');
 
 
 // from measurementEnvironment, deviceUuid, flightNumber, startTime
 // return flight_id, alternate_latitude, alternate_longitude, alternate_altitude
 // update tables : flights, flightstrack
 updateFlightInfos = function (client, measurementEnvironment, flightNumber_, startTime, endTime, latitude, longitude, updateMeasurementFunc) {
-
     // variables to be returned
     let flightId = null;
     let refinedLatitude = null;
@@ -67,28 +67,30 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                             console.log("Error while running query " + sql, err);
                             callback();
                         } else {
-                            if (result.rows[0].count === 0) {
+                            if (Number(result.rows[0].count) === 0) {
                                 //no similar result, so we try to connect flightradar
                                 flightSearch = true;
 
-                                const aeroapi = axios.create({
-                                    baseURL: properties.flightURL,
-                                    headers: {'x-apikey': properties.flightApiKey}
-                                });
-
+                                const proxyUrl = properties.flightProxy || null;
+                                const axiosCfg = {
+                                    baseURL : properties.flightURL,
+                                    headers : { 'x-apikey': properties.flightApiKey }
+                                };
+                                if (proxyUrl) {
+                                    axiosCfg.httpsAgent = new HttpsProxyAgent(proxyUrl);
+                                    axiosCfg.proxy      = false;
+                                }
+                                const aeroapi = axios.create(axiosCfg);
                                 const requestParams = {};
                                 requestParams.qs = {
-                                    start: new Date(startTime - 4 * hours).toISOString(),
-                                    end: new Date(startTime + 4 * hours).toISOString(),
+                                    start: new Date(startTime.getTime() - 4 * hours).toISOString().split('.')[0] + 'Z',
+                                    end: new Date(startTime.getTime() + 4 * hours).toISOString().split('.')[0] + 'Z',
                                 };
-
-                                if (properties.flightProxy != null)
-                                    requestParams.proxy = properties.flightProxy;
 
                                 aeroapi.get(`/flights/${flightNumber}`, {params: requestParams.qs})
                                     .then(resp => {
                                         if (resp.status >= 400) {
-                                            console.log("ERROR status code FlightInfoStatus : " + resp.status);
+                                            console.log("ERROR status code FlightInfoStatus : " + resp);
                                             return callback();
                                         }
 
@@ -121,7 +123,7 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                                     }
                                                     const flightIdInserted = result.rows[0].flightId;
 
-                                                    aereoapi.get(`/flights/${flight.fa_flight_id}/track`)
+                                                    aeroapi.get(`/flights/${flight.fa_flight_id}/track`)
                                                         .then(respTrack => {
                                                             const tracks = respTrack.data.positions || [];
                                                             async.forEach(tracks, function (track, callback_tracks) { //The second argument (callback) is the "task callback" for a specific task
@@ -131,7 +133,7 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                                                 const altitude_in_meter = Math.round(track.altitude * 100 * 0.3048); //  hundred ft -> m
 
                                                                 sql = 'insert into FLIGHTSTRACK("flightId", "timestamp", "latitude", "longitude", "altitude") VALUES ($1, $2, $3, $4, $5)';
-                                                                values = [flightIdInserted, new Date(track.timestamp * 1000), track.latitude, track.longitude, altitude_in_meter];
+                                                                values = [flightIdInserted, new Date(track.timestamp), track.latitude, track.longitude, altitude_in_meter];
                                                                 client.query(sql, values, function (err, result) {
                                                                     if (err)
                                                                         console.log("Error while running query insert flightstrack " + sql, err);
@@ -144,12 +146,13 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                                                     callback_flights();
                                                                 } else {
                                                                     sql = 'update FLIGHTS set "firstLatitude"=$1, "firstLongitude"=$2, "midLatitude"=$3, "midLongitude"=$4, "lastLatitude"=$5, "lastLongitude"=$6 where "flightId"=$7';
-                                                                    values = [body_json.GetFlightTrackResult.tracks[0].latitude,
-                                                                        body_json.GetFlightTrackResult.tracks[0].longitude,
-                                                                        body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].latitude,
-                                                                        body_json.GetFlightTrackResult.tracks[Math.round(body_json.GetFlightTrackResult.tracks.length / 2)].longitude,
-                                                                        body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].latitude,
-                                                                        body_json.GetFlightTrackResult.tracks[body_json.GetFlightTrackResult.tracks.length - 1].longitude,
+                                                                    middle = Math.floor(tracks.length/2);
+                                                                    values = [tracks[0].latitude,
+                                                                        tracks[0].longitude,
+                                                                        tracks[middle].latitude,
+                                                                        tracks[middle].longitude,
+                                                                        tracks[tracks.length - 1].latitude,
+                                                                        tracks[tracks.length - 1].longitude,
                                                                         flightIdInserted];
                                                                     client.query(sql, values, function (err, result) {
                                                                         if (err)
@@ -420,9 +423,7 @@ if (cluster.isMaster) {
                         done();
                     } else {
                         async.forEachSeries(result.rows, function (measure, callbackLoop) {
-
                             updateFlightInfos(client, measure.measurementEnvironment, measure.flightNumber, measure.startTime, measure.endTime, measure.latitude, measure.longitude, function (flightInfos) {
-                                //console.log(flightInfos);
                                 const sql = 'update MEASUREMENTS set "flightNumber"=$1, "flightId"=$2, "refinedLatitude"=$3, "refinedLongitude"=$4,"refinedAltitude"=$5,"refinedEndLatitude"=$6,"refinedEndLongitude"=$7, "refinedEndAltitude"=$8,"flightSearch"=$9 WHERE "reportUuid"=$10';
                                 const values = [flightInfos.flightNumber, flightInfos.flightId, flightInfos.refinedLatitude, flightInfos.refinedLongitude, flightInfos.refinedAltitude, flightInfos.refinedEndLatitude, flightInfos.refinedEndLongitude, flightInfos.refinedEndAltitude, flightInfos.flightSearch, measure.reportUuid];
                                 client.query(sql, values, function (err, result) {
