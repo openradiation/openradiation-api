@@ -19,7 +19,7 @@ const SHA256 = require("crypto-js/sha256");
 const SHA512 = require("crypto-js/sha512");
 const pg = require('pg');
 const axios = require('axios');
-const HttpsProxyAgent   = require('https-proxy-agent');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 
 // from measurementEnvironment, deviceUuid, flightNumber, startTime
