@@ -41,15 +41,21 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
 
     if ((measurementEnvironment != null) && (measurementEnvironment === "plane") && flightNumber_ != null) {
 
+        console.log("Valeur initiale de flightNumber_ :", flightNumber_);
+
         //0. if flight number is 'Af 038' we store 'AF38'
         flightNumber = flightNumber_.replace(/ /g, "");
+        console.log("flightNumber après suppression des espaces :", flightNumber);
+
         let match = flightNumber.match(/^([A-Za-z]{2,3})(\d{1,4})$/);
         if (match) {
             let airlineCode = match[1].toUpperCase();
             let flightDigits = parseInt(match[2], 10);
             flightNumber = airlineCode + flightDigits;
+
+            console.log("flightNumber final après traitement :", flightNumber);
         } else {
-            console.error("Numéro de vol invalide");
+            console.error("Numéro de vol invalide :", flightNumber);
         }
 
         async.waterfall(
@@ -87,6 +93,8 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                     end: new Date(startTime.getTime() + 4 * hours).toISOString().split('.')[0] + 'Z',
                                 };
 
+                                console.log("Appel de l'API : /flights/" + flightNumber);
+
                                 aeroapi.get(`/flights/${flightNumber}`, {params: requestParams.qs})
                                     .then(resp => {
                                         if (resp.status >= 400) {
@@ -122,6 +130,8 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                                         console.log("Error while running query " + sql, err);
                                                     }
                                                     const flightIdInserted = result.rows[0].flightId;
+
+                                                    console.log("de l'API /flights/" + flight.fa_flight_id + "/track");
 
                                                     aeroapi.get(`/flights/${flight.fa_flight_id}/track`)
                                                         .then(respTrack => {
@@ -164,6 +174,7 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                                             });
                                                         }).catch(err => {
                                                         console.log("ERROR request FlightInfoStatus : " + err);
+                                                        console.error(err);
                                                         callback_flights();
                                                     });
                                                 });
@@ -171,10 +182,12 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                         }, function (err) {
                                             if (err)
                                                 console.log("Error " + err);
+                                                console.error(err);
                                             callback();
                                         });
                                     }).catch(err => {
                                     console.log("ERROR request FlightInfoStatus : " + err);
+                                    console.error(err);
                                     callback();
                                 });
                             } else {
