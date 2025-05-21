@@ -19,7 +19,7 @@ const SHA256 = require("crypto-js/sha256");
 const SHA512 = require("crypto-js/sha512");
 const pg = require('pg');
 const axios = require('axios');
-const { HttpsProxyAgent } = require('https-proxy-agent');
+const {HttpsProxyAgent} = require('https-proxy-agent');
 
 
 // from measurementEnvironment, deviceUuid, flightNumber, startTime
@@ -42,18 +42,14 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
     if ((measurementEnvironment != null) && (measurementEnvironment === "plane") && flightNumber_ != null) {
 
         console.log("Valeur initiale de flightNumber_ :", flightNumber_);
-
         //0. if flight number is 'Af 038' we store 'AF38'
         flightNumber = flightNumber_.replace(/ /g, "");
-        console.log("flightNumber après suppression des espaces :", flightNumber);
 
         let match = flightNumber.match(/^([A-Za-z]{2,3})(\d{1,4})$/);
         if (match) {
             let airlineCode = match[1].toUpperCase();
             let flightDigits = parseInt(match[2], 10);
             flightNumber = airlineCode + flightDigits;
-
-            console.log("flightNumber final après traitement :", flightNumber);
         } else {
             console.error("Numéro de vol invalide :", flightNumber);
         }
@@ -79,12 +75,12 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
 
                                 const proxyUrl = properties.flightProxy || null;
                                 const axiosCfg = {
-                                    baseURL : properties.flightURL,
-                                    headers : { 'x-apikey': properties.flightApiKey }
+                                    baseURL: properties.flightURL,
+                                    headers: {'x-apikey': properties.flightApiKey}
                                 };
                                 if (proxyUrl) {
                                     axiosCfg.httpsAgent = new HttpsProxyAgent(proxyUrl);
-                                    axiosCfg.proxy      = false;
+                                    axiosCfg.proxy = false;
                                 }
                                 const aeroapi = axios.create(axiosCfg);
                                 const requestParams = {};
@@ -156,7 +152,7 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                                                     callback_flights();
                                                                 } else {
                                                                     sql = 'update FLIGHTS set "firstLatitude"=$1, "firstLongitude"=$2, "midLatitude"=$3, "midLongitude"=$4, "lastLatitude"=$5, "lastLongitude"=$6 where "flightId"=$7';
-                                                                    middle = Math.floor(tracks.length/2);
+                                                                    middle = Math.floor(tracks.length / 2);
                                                                     values = [tracks[0].latitude,
                                                                         tracks[0].longitude,
                                                                         tracks[middle].latitude,
@@ -173,8 +169,7 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                                                 }
                                                             });
                                                         }).catch(err => {
-                                                        console.log("ERROR request FlightInfoStatus : " + err);
-                                                        console.error(err);
+                                                        console.error("ERROR request FlightInfoStatus : " + err);
                                                         callback_flights();
                                                     });
                                                 });
@@ -182,12 +177,11 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                         }, function (err) {
                                             if (err)
                                                 console.log("Error " + err);
-                                                console.error(err);
+                                            console.error(err);
                                             callback();
                                         });
                                     }).catch(err => {
-                                    console.log("ERROR request FlightInfoStatus : " + err);
-                                    console.error(err);
+                                    console.error("ERROR request FlightInfoStatus : " + err);
                                     callback();
                                 });
                             } else {
@@ -301,7 +295,6 @@ updateFlightInfos = function (client, measurementEnvironment, flightNumber_, sta
                                         if (err)
                                             console.log("Error while running query " + sql, err);
                                         //console.log("FLIGHT NO MATCH - inserting new flight with id = " + result.rows[0].flightId);
-                                        flightId = result.rows[0].flightId;
                                         callback();
                                     });
                                 } else {
@@ -429,7 +422,20 @@ if (cluster.isMaster) {
             if (err) {
                 console.log("Could not connect to PostgreSQL", err);
             } else {
-                const sql = 'SELECT "reportUuid","measurementEnvironment","flightNumber","startTime","endTime","latitude","longitude" from MEASUREMENTS WHERE "measurementEnvironment"=\'plane\' AND "flightNumber" is not null AND "flightId" is null';
+                const sql = `
+                    SELECT "reportUuid",
+                           "measurementEnvironment",
+                           "flightNumber",
+                           "startTime",
+                           "endTime",
+                           "latitude",
+                           "longitude"
+                    FROM MEASUREMENTS
+                    WHERE "measurementEnvironment" = 'plane'
+                      AND "flightNumber" IS NOT NULL
+                      AND "flightId" IS NULL
+                      AND "startTime" >= NOW() - INTERVAL '10 days'
+                `;
                 client.query(sql, [], function (err, result) {
                     if (err) {
                         console.log("Error while running query " + sql, err);
