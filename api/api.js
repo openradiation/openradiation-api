@@ -2470,7 +2470,9 @@ if (cluster.isMaster) {
                                     } else {
                                         const values = line.split(",");
 
-                                        if (values.length == 15 && values[6] == "A" && values[12] == "A" && isNaN(values[3]) == false && (parseFloat(values[3]) == parseInt(values[3]))
+                                        if (values.length == 15 && values[6] == "A" 
+                                            && (values[12] == "A" || (values[12] == "V" && req.body.measurementEnvironment === 'plane'))
+                                            && isNaN(values[3]) == false && (parseFloat(values[3]) == parseInt(values[3]))
                                             && (new Date(values[2]) != "Invalid Date") && isNaN(values[7]) == false && isNaN(values[9]) == false
                                             && (values[8] == "N" || values[8] == "S") && (values[10] == "E" || values[10] == "W")
                                             && isNaN(values[11]) == false && isNaN(values[13]) == false) {  // if line is valid i.e. well formatted, Radiation count validity flag = A and GPS validity = A
