@@ -824,7 +824,7 @@ function openradiation_getItems(fitBounds)
 
                     var allPointsGreaterThanZero = points.every(function(point) {
                         return point.every(function(coord) {
-                            return coord && coord > 0;
+                            return coord !== undefined;
                         });
                     });
 
