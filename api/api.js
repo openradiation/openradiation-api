@@ -1961,6 +1961,10 @@ if (cluster.isMaster) {
                                            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51)';
 
                                 const manualReporting = req.body.data.manualReporting == null ? true : req.body.data.manualReporting;
+                                const measurementEnvironment = req.body.data.measurementEnvironment;
+                                const correctedMeasurementEnvironment = (measurementEnvironment !== "plane" && req.body.data.altitude != null && req.body.data.altitude > 5000)
+                                    ? "plane"
+                                    : measurementEnvironment;
                                 let reliability = 0;
                                 //+1 for each filled field
                                 if (req.body.data.apparatusId != null)
@@ -2019,7 +2023,7 @@ if (cluster.isMaster) {
                                     reliability += 1;
                                 if (req.body.data.userPwd != null)
                                     reliability += 1;
-                                if (req.body.data.measurementEnvironment != null)
+                                if (correctedMeasurementEnvironment != null)
                                     reliability += 1;
                                 // + min(30,hitsNumber) if hitsNumber not null,
                                 if (req.body.data.hitsNumber != null) {
@@ -2035,10 +2039,10 @@ if (cluster.isMaster) {
                                 if (manualReporting == false)
                                     reliability += 20;
                                 //+20 if measurementEnvironment=countryside / +10 if measurementEnvironment=city or ontheroad
-                                if (req.body.data.measurementEnvironment != null) {
-                                    if (req.body.data.measurementEnvironment == "countryside")
+                                if (correctedMeasurementEnvironment != null) {
+                                    if (correctedMeasurementEnvironment == "countryside")
                                         reliability += 20;
-                                    else if (req.body.data.measurementEnvironment == "city" || req.body.data.measurementEnvironment == "ontheroad")
+                                    else if (correctedMeasurementEnvironment == "city" || correctedMeasurementEnvironment == "ontheroad")
                                         reliability += 10;
                                 }
                                 //+20 if measurementHeight=1
@@ -2049,7 +2053,7 @@ if (cluster.isMaster) {
                                 // if measurementEnvironment is plane, qualification is set to plane
                                 let qualification = "groundlevel";
                                 const qualificationVotesNumber = 0;
-                                if (req.body.data.measurementEnvironment != null && req.body.data.measurementEnvironment == "plane")
+                                if (correctedMeasurementEnvironment != null && correctedMeasurementEnvironment == "plane")
                                     qualification = "plane";
 
                                 const atypical = req.body.data.value >= 0.2;
@@ -2061,7 +2065,7 @@ if (cluster.isMaster) {
                                     req.body.data.endAltitude, req.body.data.endAltitudeAccuracy, req.body.data.deviceUuid, req.body.data.devicePlatform,
                                     req.body.data.deviceVersion, req.body.data.deviceModel, req.body.data.reportUuid, manualReporting,
                                     req.body.data.organisationReporting, req.body.data.reportContext, req.body.data.description, req.body.data.measurementHeight,
-                                    req.body.data.enclosedObject, req.body.data.userId, req.body.data.measurementEnvironment, req.body.data.rain, req.body.data.flightNumber, req.body.data.seatNumber, req.body.data.windowSeat, req.body.data.storm,
+                                    req.body.data.enclosedObject, req.body.data.userId, correctedMeasurementEnvironment, req.body.data.rain, req.body.data.flightNumber, req.body.data.seatNumber, req.body.data.windowSeat, req.body.data.storm,
                                     //flightInfos.flightId, flightInfos.refinedLatitude, flightInfos.refinedLongitude,flightInfos.refinedAltitude,flightInfos.refinedEndLatitude,flightInfos.refinedEndLongitude, flightInfos.refinedEndAltitude,flightInfos.flightSearch,
                                     null, null, null, null, null, null, null, null,
                                     dateAndTimeOfCreation, qualification, qualificationVotesNumber, reliability, atypical
