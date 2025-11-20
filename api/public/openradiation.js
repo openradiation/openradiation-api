@@ -59,8 +59,9 @@ var translations_FR = {
       "Wrong measurements" : "Mesures incorrectes",
       "Temporary source measurement" : "Mesure d'une source",
       "Temporary source measurements" : "Mesures d'une source",
-      "Ground level measurement" : "Mesure au sol",    
+      "Ground level measurement" : "Mesure au sol",
       "Ground level measurements" : "Mesures au sol",
+      "Flight number" : "Numéro de vol",
       "Non-standard measurement" : "Mesure atypique",
       "thumb" : "pouce",
       "More ..." : "Voir plus",
@@ -265,7 +266,7 @@ closeChartTime = function() {
 }   
         
     
-function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax, fitBounds)
+function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, flightNumber, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax, fitBounds)
 {
     // create a map in the "map" div, set the view to a given place and zoom
     openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true, minZoom:2, maxZoom:17 }).setView([latitude, longitude], zoom);
@@ -367,6 +368,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                             <div>\
                                 <input id="tag" class="input" type="text" placeholder="# ' + translate("Your tag") + '"/>  \
                                 <input id="userId" class="input" type="text" placeholder="' + translate("User") + '"/> \
+                                <input id="flightNumber" class="input flight_only" type="text" placeholder="' + translate("Flight number") + '" style="display:none;"/> \
                             </div>\
                          </div>\
                          <div class=\"download_file\">\
@@ -436,6 +438,8 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         $('#qualification').val(qualification);
         $("#tag").val(tag);
         $("#userId").val(userId);
+        $("#flightNumber").val(flightNumber);
+        toggleFlightNumberField();
        
         //if you want to locate the client
         openradiation_map.on('locationfound', function(e) {
@@ -555,6 +559,17 @@ var exhaustiveResultsPrev = false;
 
 //setInterval(function(){ openradiation_getItems(false); }, 5000);
 
+function toggleFlightNumberField() {
+    const isPlane = $('#qualification').val() === 'plane';
+    if (isPlane) {
+        $('#flightNumber').show();
+        $('#flightNumber').prop('disabled', false);
+    } else {
+        $('#flightNumber').hide();
+        $('#flightNumber').prop('disabled', true);
+    }
+}
+
 function getUrl()
 {
     //var urlTemp = "&minLatitude=" + openradiation_map.getBounds().getSouth() 
@@ -570,14 +585,19 @@ function getUrl()
     var userId = $("#userId").val();
     if (userId != "")
         urlTemp+= "&userId=" + encodeURIComponent(userId);
-        
+
+    var flightNumber = $("#flightNumber").val();
+
     var qualification = $("#qualification").val();
     if (qualification != "" && qualification != "all")
         urlTemp+= "&qualification=" + qualification;
-    
+
     if (qualification != "plane")
         flightId_selected = null;
-   
+
+    if (qualification === "plane" && flightNumber != "")
+        urlTemp+= "&flightNumber=" + encodeURIComponent(flightNumber.replace(/\s+/g, "").toUpperCase());
+
     if (flightId_selected != null)
         urlTemp+= "&flightId=" + flightId_selected;
     
@@ -993,6 +1013,12 @@ $(function() {
     
     $( "#qualification").change(function() {
        openradiation_getItems(false);
+       toggleFlightNumberField();
+    });
+
+    $( "#flightNumber").on('input', function() {
+       if ($('#qualification').val() === 'plane')
+           openradiation_getItems(false);
     });
 
     openradiation_map.on('moveend', function(e) {
@@ -1151,7 +1177,11 @@ $(function() {
             permalink_details += $("#userId").val() +"/";
         else
             permalink_details += "all/";
-        permalink_details += $("#qualification").val() + "/all/"; //all is form atypical 
+        if ($("#flightNumber").val() != "" && $("#qualification").val() === "plane")
+            permalink_details += $("#flightNumber").val() +"/";
+        else
+            permalink_details += "all/";
+        permalink_details += $("#qualification").val() + "/all/"; //all is form atypical
         permalink_details += $( "#slider_rangevalue" ).slider( "values", 0) + "/" + $( "#slider_rangevalue" ).slider( "values", 1) + "/";
         permalink_details += $( "#slider_rangedate" ).slider( "values", 0) + "/" + $( "#slider_rangedate" ).slider( "values", 1);
         
