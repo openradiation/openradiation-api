@@ -232,9 +232,39 @@ input:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
    opacity:  1;
 }
 input::-moz-placeholder { /* Mozilla Firefox 19+ */
-   color:    white !important; 
+   color:    white !important;
    opacity:  1;
 }
 input:-ms-input-placeholder { /* Internet Explorer 10+ */
-   color:    white !important; 
+   color:    white !important;
+}
+
+/* Leaflet marker clusters */
+.marker-cluster {
+    background-color: transparent;
+}
+
+.marker-cluster div {
+    background: #bfbfbf;
+    border: 2px solid #666;
+    border-radius: 20px;
+    height: 40px;
+    width: 40px;
+    text-align: center;
+    line-height: 36px;
+    font-weight: bold;
+    font-family: sans-serif;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+}
+
+.marker-cluster div span {
+    color: black;
+}
+
+.marker-cluster-gray {
+    border-radius: 20px;
+}
+
+.marker-cluster-count {
+    font-size: 14px;
 }

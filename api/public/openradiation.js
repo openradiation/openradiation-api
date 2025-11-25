@@ -38,6 +38,9 @@ var icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/imag
     icon_17 = new icon_c({iconUrl: '/images/icon_1x_17.png', iconRetinaUrl: '/images/icon_2x_17.png'}),
     icon_18 = new icon_c({iconUrl: '/images/icon_1x_18.png', iconRetinaUrl: '/images/icon_2x_18.png'}),
     icon_19 = new icon_c({iconUrl: '/images/icon_1x_19.png', iconRetinaUrl: '/images/icon_2x_19.png'});
+
+var measurementMarkers = {};
+var groundClusterGroup;
     
 var interpolation;
 
@@ -273,17 +276,20 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     //L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { // http
     if (isLanguageFR) {
         L.tileLayer('https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
-            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>' 
+            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> - <a href=\"\/\/openstreetmap.fr\">OSM France<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/les-donnees\">OpenRadiation</a>'
         }).addTo(openradiation_map);
     } else {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
-            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/en/\data\">OpenRadiation</a>' 
+            attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/en/\data\">OpenRadiation</a>'
         }).addTo(openradiation_map);
 
 
     }
+
+    groundClusterGroup = L.markerClusterGroup({ maxClusterRadius: 70, disableClusteringAtZoom: 16 });
+    openradiation_map.addLayer(groundClusterGroup);
     //add an interpolation map layer
-    interpolation = 
+    interpolation =
       new L.TileLayer('/i/{z}/{x}/{y}.png',
       {
         opacity: 0.6
@@ -670,16 +676,16 @@ function retrieve_items(urlTemp, fitBounds) {
         {
             openradiation_newitems.push(res.data[i].reportUuid);
         }
-        
-        //for each old item
-        var openradiation_olditems = [];
-        openradiation_map.eachLayer(function (layer) {               
-            if (layer.reportUuid != null)
-            {
-                if (openradiation_newitems.indexOf(layer.reportUuid) == -1)
-                    openradiation_map.removeLayer(layer);
-                else
-                    openradiation_olditems.push(layer.reportUuid);
+
+        Object.keys(measurementMarkers).forEach(function(reportUuid) {
+            if (openradiation_newitems.indexOf(reportUuid) === -1) {
+                var markerToRemove = measurementMarkers[reportUuid];
+                if (markerToRemove.isGroundClustered) {
+                    groundClusterGroup.removeLayer(markerToRemove);
+                } else {
+                    openradiation_map.removeLayer(markerToRemove);
+                }
+                delete measurementMarkers[reportUuid];
             }
         });
         
@@ -689,58 +695,68 @@ function retrieve_items(urlTemp, fitBounds) {
         {
             bounds.push([(res.data[i].refinedLatitude != undefined) ? res.data[i].refinedLatitude : res.data[i].latitude, (res.data[i].refinedLongitude != undefined) ? res.data[i].refinedLongitude : res.data[i].longitude]);
                     
-            if (openradiation_olditems.indexOf(res.data[i].reportUuid) == -1)
+            if (!measurementMarkers[res.data[i].reportUuid])
             {
                 var htmlPopup = "<div></div>";
                 var icon;
-                
+
                 var nSvValue = res.data[i].value * 1000;
                 //16 colours classes depending value in nSv/h
                 if (nSvValue < 45)
                     icon = icon_1;
-                else if (nSvValue < 72) 
+                else if (nSvValue < 72)
                     icon = icon_2;
                 else if (nSvValue < 114)
                     icon = icon_3;
-                else if (nSvValue < 181) 
+                else if (nSvValue < 181)
                     icon = icon_4;
-                else if (nSvValue < 287) 
+                else if (nSvValue < 287)
                     icon = icon_5;
-                else if (nSvValue < 454) 
+                else if (nSvValue < 454)
                     icon = icon_6;
-                else if (nSvValue < 720) 
+                else if (nSvValue < 720)
                     icon = icon_7;
-                else if (nSvValue < 1142) 
+                else if (nSvValue < 1142)
                     icon = icon_8;
-                else if (nSvValue < 1809) 
+                else if (nSvValue < 1809)
                     icon = icon_9;
-                else if (nSvValue < 2867) 
+                else if (nSvValue < 2867)
                     icon = icon_10;
                 else if (nSvValue < 4545)
                     icon = icon_11;
-                else if (nSvValue < 7203) 
+                else if (nSvValue < 7203)
                     icon = icon_12;
-                else if (nSvValue < 11416) 
+                else if (nSvValue < 11416)
                     icon = icon_13;
-                else if (nSvValue < 18092) 
+                else if (nSvValue < 18092)
                     icon = icon_14;
-                else if (nSvValue < 28675) 
+                else if (nSvValue < 28675)
                     icon = icon_15;
-                else if (nSvValue < 45446) 
+                else if (nSvValue < 45446)
                     icon = icon_16;
-                else if (nSvValue < 72027) 
+                else if (nSvValue < 72027)
                     icon = icon_17;
-                else if (nSvValue < 114155) 
+                else if (nSvValue < 114155)
                     icon = icon_18;
-                else 
+                else
                     icon = icon_19;
-          
-                var marker = L.marker([(res.data[i].refinedLatitude != undefined) ? res.data[i].refinedLatitude : res.data[i].latitude, (res.data[i].refinedLongitude != undefined) ? res.data[i].refinedLongitude : res.data[i].longitude],  {icon: icon}).addTo(openradiation_map)
+
+                var marker = L.marker([(res.data[i].refinedLatitude != undefined) ? res.data[i].refinedLatitude : res.data[i].latitude, (res.data[i].refinedLongitude != undefined) ? res.data[i].refinedLongitude : res.data[i].longitude],  {icon: icon})
                     .bindPopup(htmlPopup);
                 marker.reportUuid = res.data[i].reportUuid;
                 //for chart time
                 marker.value = res.data[i].value;
                 marker.startTime = new Date(res.data[i].startTime);
+                marker.isGroundClustered = (res.data[i].qualification === "groundlevel");
+
+                if (marker.isGroundClustered) {
+                    groundClusterGroup.addLayer(marker);
+                }
+                else {
+                    marker.addTo(openradiation_map);
+                }
+
+                measurementMarkers[res.data[i].reportUuid] = marker;
             }
         }
         
@@ -874,17 +890,19 @@ function openradiation_getItems(fitBounds)
     {
         var nb = 0;
         var not_included = false;
-        openradiation_map.eachLayer(function (layer) {
-            
-            if (layer.reportUuid != null) {
-                if (layer.getLatLng().lng < openradiation_map.getBounds().getWest()
-               || layer.getLatLng().lng > openradiation_map.getBounds().getEast()
-               || layer.getLatLng().lat < openradiation_map.getBounds().getSouth()
-               || layer.getLatLng().lat > openradiation_map.getBounds().getNorth())
-                    not_included = true;
-                else
-                    nb++;
-            }
+        Object.keys(measurementMarkers).forEach(function(reportUuid) {
+            var layer = measurementMarkers[reportUuid];
+            var latLng = layer.getLatLng();
+            if (!latLng)
+                return;
+
+            if (latLng.lng < openradiation_map.getBounds().getWest()
+               || latLng.lng > openradiation_map.getBounds().getEast()
+               || latLng.lat < openradiation_map.getBounds().getSouth()
+               || latLng.lat > openradiation_map.getBounds().getNorth())
+                not_included = true;
+            else
+                nb++;
         });
         if (exhaustiveResultsPrev == false && not_included == true)
             retrieve_items(urlTemp, fitBounds);
