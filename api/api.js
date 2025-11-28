@@ -1470,15 +1470,35 @@ if (cluster.isMaster) {
             if (typeof (req.query.apiKey) != "string") {
                 res.status(400).json({error: {code: "100", message: "You must send the apiKey parameter"}});
             } else {
-                if (verifyApiKey(res, req.query.apiKey, false, false)) {
+                if (verifyApiKey(res, req.query.apiKey, false, false)
+                    && verifyData(res, req.query, false, "flightNumber")) {
                     pool.connect(function (err, client, done) {
                         if (err) {
                             done();
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            const sql = 'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS ORDER BY "flightId"';
+                            let sql = 'SELECT f."flightId", \n' +
+                                'f."flightNumber", \n' +
+                                'f."departureTime", \n' +
+                                'f."arrivalTime", \n' +
+                                'f."airportOrigin",\n' +
+                                'f."airportDestination", \n' +
+                                'f."aircraftType", \n' +
+                                'f."firstLatitude", \n' +
+                                'f."firstLongitude", \n' +
+                                'f."midLatitude", \n' +
+                                'f."midLongitude", \n' +
+                                'f."lastLatitude", \n' +
+                                'f."lastLongitude" \n' +
+                                'FROM FLIGHTS f \n' +
+                                'JOIN MEASUREMENTS m ON m."flightId"=f."flightId"';
                             const values = [];
+                            if (req.query.flightNumber != null) {
+                                values.push(req.query.flightNumber);
+                                sql += ' WHERE f."flightNumber" = $1';
+                            }
+
                             client.query(sql, values, function (err, result) {
                                 if (err) {
                                     done();
@@ -2479,7 +2499,7 @@ if (cluster.isMaster) {
                                     } else {
                                         const values = line.split(",");
 
-                                        if (values.length == 15 && values[6] == "A" 
+                                        if (values.length == 15 && values[6] == "A"
                                             && (values[12] == "A" || (values[12] == "V" && req.body.measurementEnvironment === 'plane'))
                                             && isNaN(values[3]) == false && (parseFloat(values[3]) == parseInt(values[3]))
                                             && (new Date(values[2]) != "Invalid Date") && isNaN(values[7]) == false && isNaN(values[9]) == false

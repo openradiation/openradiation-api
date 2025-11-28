@@ -804,12 +804,70 @@ function retrieve_items(urlTemp, fitBounds) {
 function openradiation_getItems(fitBounds)
 {
     var urlTemp = getUrl();
-    
-    // if qualification change to plane from an other, we add geodesics
-    if (urlPrev.indexOf("qualification=plane") == -1 && $("#qualification").val() == "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
+
+    var shouldRetrieveData = false;
+
+    // we retrieve results if filters are differents
+    //     or one of the geographical bounds are outside the bounds of the last request (and we do not click on a flight)
+    //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds (and we do not click on a flight)
+    const needsBoundsCheck = $("#qualification").val() != "plane" || flightId_selected == null;
+    if (urlTemp != urlPrev)
+        shouldRetrieveData = true;
+    else if (needsBoundsCheck && (openradiation_map.getBounds().getSouth() < minLatitudePrev
+       || openradiation_map.getBounds().getNorth() > maxLatitudePrev
+       || openradiation_map.getBounds().getWest() < minLongitudePrev
+       || openradiation_map.getBounds().getEast() > maxLongitudePrev))
+        shouldRetrieveData = true;
+    else if (needsBoundsCheck && (openradiation_map.getBounds().getSouth() > minLatitudePrev
+       || openradiation_map.getBounds().getNorth() < maxLatitudePrev
+       || openradiation_map.getBounds().getWest() > minLongitudePrev
+       || openradiation_map.getBounds().getEast() < maxLongitudePrev))
+    {
+        var nb = 0;
+        var not_included = false;
+        Object.keys(measurementMarkers).forEach(function(reportUuid) {
+            var layer = measurementMarkers[reportUuid];
+            var latLng = layer.getLatLng();
+            if (!latLng)
+                return;
+
+            if (latLng.lng < openradiation_map.getBounds().getWest()
+               || latLng.lng > openradiation_map.getBounds().getEast()
+               || latLng.lat < openradiation_map.getBounds().getSouth()
+               || latLng.lat > openradiation_map.getBounds().getNorth())
+                not_included = true;
+            else
+                nb++;
+        });
+        if (exhaustiveResultsPrev == false && not_included == true)
+            shouldRetrieveData = true;
+        else {
+            if (exhaustiveResultsPrev) {
+                //updated results without research
+                if (nb < 2)
+                    $("#nbresults").text(nb + " " + translate("measurement found"));
+                else
+                    $("#nbresults").text(nb + " " + translate("measurements found"));
+            } else
+                console.log("measurements not updated (not exhaustive and all the items are in the new bounds)");
+        }
+    } else
+        console.log("no change");
+
+    const isPlaneQualification = $("#qualification").val() == "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1);
+
+    // if qualification change to plane from an other, or filters changed while in plane qualification, we refresh geodesics
+    if (isPlaneQualification && (urlPrev.indexOf("qualification=plane") == -1 || shouldRetrieveData)) {
+        openradiation_map.eachLayer(function (layer) {
+            if (layer.flightId != null) {
+                openradiation_map.removeLayer(layer);
+            }
+        });
+        let flightsUrl = '/flights?apiKey=' + apiKey + urlTemp;
+
         $.ajax({
             type: 'GET',
-            url: '/flights?apiKey=' + apiKey,
+            url: flightsUrl,
             timeout: 15000,
             success: function(res) {
                 for (i=0; i < res.data.length; i ++)
@@ -848,7 +906,7 @@ function openradiation_getItems(fitBounds)
                         "<tr>" +
                             "<td>" + translate("To:") + " </td>" +
                             "<td>" + res.data[i].airportDestination +
-                            "<td>" + " " + (res.data[i].arrivalTime != undefined ? formatISODate(res.data[i].arrivalTime) : "")  + "</td>" +
+                            "<td>" + " " + (res.data[i].arrivalTime != undefined ? formatISODate(res.data[i].arrivalTime) : "") + "</td>" +
                         "</tr>" +
                         "</table>";
                     }
@@ -876,68 +934,26 @@ function openradiation_getItems(fitBounds)
                         }
                         geodesic.addTo(openradiation_map);
                     }
-                }            
+                }
             },
             error: function(res, status, err) {
-                console.log(err + " : " + status); 
+                console.log(err + " : " + status);
             }
-        });          
+        });
     }
-    
+
     // if qualification change from plane to an other, we remove geodesics
-    if (urlPrev.indexOf("qualification=plane") > -1 && $("#qualification").val() != "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
+    if (urlPrev.indexOf('qualification=plane') > -1 && $("#qualification").val() != "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
         openradiation_map.eachLayer(function (layer) {
             if (layer.flightId != null) {
                 openradiation_map.removeLayer(layer);
             }
-        });   
+        });
     }
 
-    // we retrieve results if filters are differents
-    //     or one of the geographical bounds are outside the bounds of the last request (and we do not click on a flight)
-    //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds (and we do not click on a flight)
-    if (urlTemp != urlPrev)
+    if (shouldRetrieveData) {
         retrieve_items(urlTemp, fitBounds);
-    else if (($("#qualification").val() != "plane" || flightId_selected == null) && (openradiation_map.getBounds().getSouth() < minLatitudePrev 
-       || openradiation_map.getBounds().getNorth() > maxLatitudePrev
-       || openradiation_map.getBounds().getWest() < minLongitudePrev
-       || openradiation_map.getBounds().getEast() > maxLongitudePrev))
-        retrieve_items(urlTemp, fitBounds);
-    else if (($("#qualification").val() != "plane" || flightId_selected == null) && (openradiation_map.getBounds().getSouth() > minLatitudePrev
-       || openradiation_map.getBounds().getNorth() < maxLatitudePrev 
-       || openradiation_map.getBounds().getWest() > minLongitudePrev
-       || openradiation_map.getBounds().getEast() < maxLongitudePrev))
-    {
-        var nb = 0;
-        var not_included = false;
-        Object.keys(measurementMarkers).forEach(function(reportUuid) {
-            var layer = measurementMarkers[reportUuid];
-            var latLng = layer.getLatLng();
-            if (!latLng)
-                return;
-
-            if (latLng.lng < openradiation_map.getBounds().getWest()
-               || latLng.lng > openradiation_map.getBounds().getEast()
-               || latLng.lat < openradiation_map.getBounds().getSouth()
-               || latLng.lat > openradiation_map.getBounds().getNorth())
-                not_included = true;
-            else
-                nb++;
-        });
-        if (exhaustiveResultsPrev == false && not_included == true)
-            retrieve_items(urlTemp, fitBounds);
-        else {
-            if (exhaustiveResultsPrev) {
-                //updated results without research
-                if (nb < 2)
-                    $("#nbresults").text(nb + " " + translate("measurement found"));
-                else
-                    $("#nbresults").text(nb + " " + translate("measurements found"));
-            } else
-                console.log("measurements not updated (not exhaustive and all the items are in the new bounds)");
-        }
-    } else
-        console.log("no change");
+    }
 }
 
 function val2uSv(val)
