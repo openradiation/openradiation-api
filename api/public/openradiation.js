@@ -2,6 +2,9 @@
 var isLanguageFR = false;
 var flightId_selected = null;
 var flightId_geodesic = null;
+var flightsMinLatitudePrev = null, flightsMaxLatitudePrev = null, flightsMinLongitudePrev = null, flightsMaxLongitudePrev = null;
+var flightsFlightNumberPrev = null;
+var flightsMaxNumber = 200;
 
 //if (navigator.language.indexOf('fr') != -1)
 if (document.documentElement.lang == "fr")
@@ -570,6 +573,137 @@ function toggleFlightNumberField() {
     }
 }
 
+function normalizeFlightNumberInput(flightNumber) {
+    if (flightNumber == null)
+        return "";
+    return flightNumber.replace(/\s+/g, "").toUpperCase();
+}
+
+function clearFlightGeodesics() {
+    openradiation_map.eachLayer(function (layer) {
+        if (layer.flightId != null) {
+            openradiation_map.removeLayer(layer);
+        }
+    });
+    flightId_geodesic = null;
+}
+
+function loadFlightsIfNeeded() {
+    if ($("#qualification").val() !== "plane" || (window.navigator.userAgent.indexOf("MSIE") != -1 || window.navigator.userAgent.indexOf("Trident") != -1))
+        return;
+
+    const bounds = openradiation_map.getBounds();
+    const normalizedFlightNumber = normalizeFlightNumberInput($("#flightNumber").val());
+
+    const boundsChanged = flightsMinLatitudePrev === null
+        || bounds.getSouth() < flightsMinLatitudePrev
+        || bounds.getNorth() > flightsMaxLatitudePrev
+        || bounds.getWest() < flightsMinLongitudePrev
+        || bounds.getEast() > flightsMaxLongitudePrev;
+
+    const flightNumberChanged = flightsFlightNumberPrev !== normalizedFlightNumber;
+
+    if (!boundsChanged && !flightNumberChanged)
+        return;
+
+    clearFlightGeodesics();
+
+    flightsMinLatitudePrev = bounds.getSouth();
+    flightsMaxLatitudePrev = bounds.getNorth();
+    flightsMinLongitudePrev = bounds.getWest();
+    flightsMaxLongitudePrev = bounds.getEast();
+    flightsFlightNumberPrev = normalizedFlightNumber;
+
+    let url = '/flights?apiKey=' + apiKey
+        + '&minLatitude=' + flightsMinLatitudePrev
+        + '&maxLatitude=' + flightsMaxLatitudePrev
+        + '&minLongitude=' + flightsMinLongitudePrev
+        + '&maxLongitude=' + flightsMaxLongitudePrev
+        + '&maxNumber=' + flightsMaxNumber;
+
+    if (normalizedFlightNumber !== "")
+        url += '&flightNumber=' + encodeURIComponent(normalizedFlightNumber);
+
+    $.ajax({
+        type: 'GET',
+        url: url,
+        timeout: 15000,
+        success: function(res) {
+            for (i=0; i < res.data.length; i ++)
+            {
+                var points = [
+                    [res.data[i].firstLatitude, res.data[i].firstLongitude],
+                    [res.data[i].midLatitude, res.data[i].midLongitude],
+                    [res.data[i].lastLatitude, res.data[i].lastLongitude]
+                ];
+
+                let html =
+                    "<div style=\"background-color:#ffffff; width:200px; overflow:hidden; min-height:70px;\">" +
+                    "<div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\">" +
+                    "<strong>" + translate("Flight") + " " + res.data[i].flightNumber;
+
+                if(res.data[i].aircraftType != undefined) {
+                    html += " (" + res.data[i].aircraftType + ")";
+                    html += "</strong></div>";
+                } else {
+                    html += "</strong></div>";
+                }
+
+                html += "<div style=\"float:right;\"><img src=\"/images/icon-env-plane.png\"/></div>";
+
+                html += "<div style=\"margin-bottom:5px;\"><span class=\"value\">" + " " + translate("measurements") + "</span></div>";
+
+                if(res.data[i].airportOrigin != undefined && res.data[i].airportDestination != undefined) {
+                    html +=
+                    "<table class=\"comment\">" +
+                    "<tr>" +
+                        "<td>" + translate("From:") + " </td>" +
+                        "<td>" + res.data[i].airportOrigin +
+                        "<td>" + " " + (res.data[i].departureTime != undefined ? formatISODate(res.data[i].departureTime) : "") + "</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>" + translate("To:") + " </td>" +
+                        "<td>" + res.data[i].airportDestination +
+                        "<td>" + " " + (res.data[i].arrivalTime != undefined ? formatISODate(res.data[i].arrivalTime) : "") + "</td>" +
+                    "</tr>" +
+                    "</table>";
+                }
+
+                html += "</div>";
+                html +=   '<div onclick="drawPlotly()"><span class="openradiation_icon icon_timeline"></span> <span id="timechartlink">' +
+                    translate("See flight profile") + '</span></div>';
+                html += "</div>";
+
+                var allPointsGreaterThanZero = points.every(function(point) {
+                    return point.every(function(coord) {
+                        return coord !== undefined;
+                    });
+                });
+
+                if (allPointsGreaterThanZero) {
+                    var geodesic = L.geodesic([], {color: '#ffac33'}).bindPopup(html);
+                    geodesic.setLatLngs([points]);
+
+                    geodesic.flightId = res.data[i].flightId;
+                    if (res.data[i].airportOrigin != undefined && res.data[i].airportDestination != undefined) {
+                        geodesic.airportOrigin_location = [res.data[i].firstLatitude, res.data[i].firstLongitude];
+                        geodesic.airportDestination_location = [res.data[i].lastLatitude, res.data[i].lastLongitude];
+                    }
+                    if (flightId_selected === res.data[i].flightId) {
+                        flightId_geodesic = geodesic;
+                        geodesic.setStyle( { 'color' : '#ff4f33' });
+                    }
+
+                    geodesic.addTo(openradiation_map);
+                }
+            }
+        },
+        error: function(res, status, err) {
+            console.log(err + " : " + status);
+        }
+    });
+}
+
 function getUrl()
 {
     //var urlTemp = "&minLatitude=" + openradiation_map.getBounds().getSouth() 
@@ -596,7 +730,7 @@ function getUrl()
         flightId_selected = null;
 
     if (qualification === "plane" && flightNumber != "")
-        urlTemp+= "&flightNumber=" + encodeURIComponent(flightNumber.replace(/\s+/g, "").toUpperCase());
+        urlTemp+= "&flightNumber=" + encodeURIComponent(normalizeFlightNumberInput(flightNumber));
 
     if (flightId_selected != null)
         urlTemp+= "&flightId=" + flightId_selected;
@@ -651,7 +785,7 @@ function retrieve_items(urlTemp, fitBounds) {
     let url;
 
     if (urlTemp.indexOf("qualification=plane&flightId=") > -1)
-        url = '/measurements?apiKey=' + apiKey + urlTemp + "&response=complete";
+        url = '/measurements?apiKey=' + apiKey + urlTemp + "&response=complete&withEnclosedObject=no";
     else {
         url = '/measurements?apiKey=' + apiKey 
             + "&minLatitude=" + openradiation_map.getBounds().getSouth() 
@@ -804,22 +938,33 @@ function retrieve_items(urlTemp, fitBounds) {
 function openradiation_getItems(fitBounds)
 {
     var urlTemp = getUrl();
+    
+    // if qualification change to plane from an other, we add geodesics
+    if ($("#qualification").val() == "plane")
+        loadFlightsIfNeeded();
 
-    var shouldRetrieveData = false;
+    // if qualification change from plane to an other, we remove geodesics
+    if (urlPrev.indexOf("qualification=plane") > -1 && $("#qualification").val() != "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
+        clearFlightGeodesics();
+        flightsMinLatitudePrev = null;
+        flightsMaxLatitudePrev = null;
+        flightsMinLongitudePrev = null;
+        flightsMaxLongitudePrev = null;
+        flightsFlightNumberPrev = null;
+    }
 
     // we retrieve results if filters are differents
     //     or one of the geographical bounds are outside the bounds of the last request (and we do not click on a flight)
     //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds (and we do not click on a flight)
-    const needsBoundsCheck = $("#qualification").val() != "plane" || flightId_selected == null;
     if (urlTemp != urlPrev)
-        shouldRetrieveData = true;
-    else if (needsBoundsCheck && (openradiation_map.getBounds().getSouth() < minLatitudePrev
+        retrieve_items(urlTemp, fitBounds);
+    else if (($("#qualification").val() != "plane" || flightId_selected == null) && (openradiation_map.getBounds().getSouth() < minLatitudePrev 
        || openradiation_map.getBounds().getNorth() > maxLatitudePrev
        || openradiation_map.getBounds().getWest() < minLongitudePrev
        || openradiation_map.getBounds().getEast() > maxLongitudePrev))
-        shouldRetrieveData = true;
-    else if (needsBoundsCheck && (openradiation_map.getBounds().getSouth() > minLatitudePrev
-       || openradiation_map.getBounds().getNorth() < maxLatitudePrev
+        retrieve_items(urlTemp, fitBounds);
+    else if (($("#qualification").val() != "plane" || flightId_selected == null) && (openradiation_map.getBounds().getSouth() > minLatitudePrev
+       || openradiation_map.getBounds().getNorth() < maxLatitudePrev 
        || openradiation_map.getBounds().getWest() > minLongitudePrev
        || openradiation_map.getBounds().getEast() < maxLongitudePrev))
     {
@@ -840,7 +985,7 @@ function openradiation_getItems(fitBounds)
                 nb++;
         });
         if (exhaustiveResultsPrev == false && not_included == true)
-            shouldRetrieveData = true;
+            retrieve_items(urlTemp, fitBounds);
         else {
             if (exhaustiveResultsPrev) {
                 //updated results without research
@@ -853,107 +998,6 @@ function openradiation_getItems(fitBounds)
         }
     } else
         console.log("no change");
-
-    const isPlaneQualification = $("#qualification").val() == "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1);
-
-    // if qualification change to plane from an other, or filters changed while in plane qualification, we refresh geodesics
-    if (isPlaneQualification && (urlPrev.indexOf("qualification=plane") == -1 || shouldRetrieveData)) {
-        openradiation_map.eachLayer(function (layer) {
-            if (layer.flightId != null) {
-                openradiation_map.removeLayer(layer);
-            }
-        });
-        let flightsUrl = '/flights?apiKey=' + apiKey + urlTemp;
-
-        $.ajax({
-            type: 'GET',
-            url: flightsUrl,
-            timeout: 15000,
-            success: function(res) {
-                for (i=0; i < res.data.length; i ++)
-                {
-                    var points = [
-                        [res.data[i].firstLatitude, res.data[i].firstLongitude],
-                        [res.data[i].midLatitude, res.data[i].midLongitude],
-                        [res.data[i].lastLatitude, res.data[i].lastLongitude]
-                    ];
-
-                    let html =
-                        "<div style=\"background-color:#ffffff; width:200px; overflow:hidden; min-height:70px;\">" +
-                        "<div style=\"margin-bottom:4px; border-bottom:solid #F1F1F1 1px;\">" +
-                        "<strong>" + translate("Flight") + " " + res.data[i].flightNumber;
-
-                    if(res.data[i].aircraftType != undefined) {
-                        html += " (" + res.data[i].aircraftType + ")";
-                        html += "</strong></div>";
-                    } else {
-                        html += "</strong></div>";
-                    }
-
-                    //html += "<div style=\"margin:10px;\">";
-                    html += "<div style=\"float:right;\"><img src=\"/images/icon-env-plane.png\"/></div>";
-
-                    html += "<div style=\"margin-bottom:5px;\"><span class=\"value\">" + " " + translate("measurements") + "</span></div>";
-
-                    if(res.data[i].airportOrigin != undefined && res.data[i].airportDestination != undefined) {
-                        html +=
-                        "<table class=\"comment\">" +
-                        "<tr>" +
-                            "<td>" + translate("From:") + " </td>" +
-                            "<td>" + res.data[i].airportOrigin +
-                            "<td>" + " " + (res.data[i].departureTime != undefined ? formatISODate(res.data[i].departureTime) : "") + "</td>" +
-                        "</tr>" +
-                        "<tr>" +
-                            "<td>" + translate("To:") + " </td>" +
-                            "<td>" + res.data[i].airportDestination +
-                            "<td>" + " " + (res.data[i].arrivalTime != undefined ? formatISODate(res.data[i].arrivalTime) : "") + "</td>" +
-                        "</tr>" +
-                        "</table>";
-                    }
-
-                    html += "</div>";
-                    html +=   '<div onclick="drawPlotly()"><span class="openradiation_icon icon_timeline"></span> <span id="timechartlink">' +
-                        translate("See flight profile") + '</span></div>';
-                    html += "</div>";
-
-                    var allPointsGreaterThanZero = points.every(function(point) {
-                        return point.every(function(coord) {
-                            return coord !== undefined;
-                        });
-                    });
-
-                    if (allPointsGreaterThanZero) {
-                        //var polyline = L.polyline(latlngs, {color: 'orange' }).addTo(openradiation_map);
-                        var geodesic = L.geodesic([], {color: '#ffac33'}).bindPopup(html);
-                        geodesic.setLatLngs([points]);
-
-                        geodesic.flightId = res.data[i].flightId;
-                        if (res.data[i].airportOrigin != undefined && res.data[i].airportDestination != undefined) {
-                            geodesic.airportOrigin_location = [res.data[i].firstLatitude, res.data[i].firstLongitude];
-                            geodesic.airportDestination_location = [res.data[i].lastLatitude, res.data[i].lastLongitude];
-                        }
-                        geodesic.addTo(openradiation_map);
-                    }
-                }
-            },
-            error: function(res, status, err) {
-                console.log(err + " : " + status);
-            }
-        });
-    }
-
-    // if qualification change from plane to an other, we remove geodesics
-    if (urlPrev.indexOf('qualification=plane') > -1 && $("#qualification").val() != "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
-        openradiation_map.eachLayer(function (layer) {
-            if (layer.flightId != null) {
-                openradiation_map.removeLayer(layer);
-            }
-        });
-    }
-
-    if (shouldRetrieveData) {
-        retrieve_items(urlTemp, fitBounds);
-    }
 }
 
 function val2uSv(val)

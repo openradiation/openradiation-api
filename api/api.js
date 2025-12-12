@@ -1471,6 +1471,11 @@ if (cluster.isMaster) {
                 res.status(400).json({error: {code: "100", message: "You must send the apiKey parameter"}});
             } else {
                 if (verifyApiKey(res, req.query.apiKey, false, false)
+                    && verifyData(res, req.query, false, "minLatitude")
+                    && verifyData(res, req.query, false, "maxLatitude")
+                    && verifyData(res, req.query, false, "minLongitude")
+                    && verifyData(res, req.query, false, "maxLongitude")
+                    && verifyData(res, req.query, false, "maxNumber")
                     && verifyData(res, req.query, false, "flightNumber")) {
                     pool.connect(function (err, client, done) {
                         if (err) {
@@ -1478,25 +1483,45 @@ if (cluster.isMaster) {
                             console.error("Could not connect to PostgreSQL", err);
                             res.status(500).end();
                         } else {
-                            let sql = 'SELECT f."flightId", \n' +
-                                'f."flightNumber", \n' +
-                                'f."departureTime", \n' +
-                                'f."arrivalTime", \n' +
-                                'f."airportOrigin",\n' +
-                                'f."airportDestination", \n' +
-                                'f."aircraftType", \n' +
-                                'f."firstLatitude", \n' +
-                                'f."firstLongitude", \n' +
-                                'f."midLatitude", \n' +
-                                'f."midLongitude", \n' +
-                                'f."lastLatitude", \n' +
-                                'f."lastLongitude" \n' +
-                                'FROM FLIGHTS f \n' +
-                                'JOIN MEASUREMENTS m ON m."flightId"=f."flightId"';
+                            let sql = 'SELECT "flightId", "flightNumber", "departureTime", "arrivalTime", "airportOrigin", "airportDestination", "aircraftType", "firstLatitude", "firstLongitude", "midLatitude", "midLongitude", "lastLatitude", "lastLongitude" FROM FLIGHTS';
                             const values = [];
+                            let counter = 1;
+                            const where = [];
+                            const minLatitude = req.query.minLatitude != null ? parseFloat(req.query.minLatitude) : null;
+                            const maxLatitude = req.query.maxLatitude != null ? parseFloat(req.query.maxLatitude) : null;
+                            const minLongitude = req.query.minLongitude != null ? parseFloat(req.query.minLongitude) : null;
+                            const maxLongitude = req.query.maxLongitude != null ? parseFloat(req.query.maxLongitude) : null;
+                            const maxNumber = req.query.maxNumber != null ? parseInt(req.query.maxNumber, 10) : null;
+
+                            if (minLatitude != null && maxLatitude != null
+                                && minLongitude != null && maxLongitude != null) {
+                                const bboxClause = `(("firstLatitude" BETWEEN $${counter} AND $${counter + 1} AND "firstLongitude" BETWEEN $${counter + 2} AND $${counter + 3})
+                                    OR ("midLatitude" BETWEEN $${counter} AND $${counter + 1} AND "midLongitude" BETWEEN $${counter + 2} AND $${counter + 3})
+                                    OR ("lastLatitude" BETWEEN $${counter} AND $${counter + 1} AND "lastLongitude" BETWEEN $${counter + 2} AND $${counter + 3}))`;
+                                where.push(bboxClause);
+                                values.push(minLatitude);
+                                values.push(maxLatitude);
+                                values.push(minLongitude);
+                                values.push(maxLongitude);
+                                counter += 4;
+                            }
+
                             if (req.query.flightNumber != null) {
-                                values.push(req.query.flightNumber);
-                                sql += ' WHERE f."flightNumber" = $1';
+                                const flightNumber = req.query.flightNumber.replace(/\s+/g, "").toUpperCase();
+                                where.push('"flightNumber" = $' + counter);
+                                values.push(flightNumber);
+                                counter += 1;
+                            }
+
+                            if (where.length > 0) {
+                                sql += ' WHERE ' + where.join(' AND ');
+                            }
+
+                            sql += ' ORDER BY "flightId" DESC';
+
+                            if (maxNumber != null) {
+                                sql += ' LIMIT $' + counter;
+                                values.push(maxNumber);
                             }
 
                             client.query(sql, values, function (err, result) {
@@ -2499,7 +2524,7 @@ if (cluster.isMaster) {
                                     } else {
                                         const values = line.split(",");
 
-                                        if (values.length == 15 && values[6] == "A"
+                                        if (values.length == 15 && values[6] == "A" 
                                             && (values[12] == "A" || (values[12] == "V" && req.body.measurementEnvironment === 'plane'))
                                             && isNaN(values[3]) == false && (parseFloat(values[3]) == parseInt(values[3]))
                                             && (new Date(values[2]) != "Invalid Date") && isNaN(values[7]) == false && isNaN(values[9]) == false
