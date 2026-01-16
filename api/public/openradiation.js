@@ -44,7 +44,9 @@ var icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/imag
 
 var measurementMarkers = {};
 var groundClusterGroup;
-    
+var groundBubblesEnabled = true;
+var groundBubblesEnabledPrev = true;
+
 var interpolation;
 
 var translations_FR = {
@@ -64,6 +66,7 @@ var translations_FR = {
       "Temporary source measurements" : "Mesures d'une source",
       "Ground level measurement" : "Mesure au sol",
       "Ground level measurements" : "Mesures au sol",
+      "Ground level measurements (bubbles)" : "Mesures au sol (bulles)",
       "Flight number" : "Numéro de vol",
       "Non-standard measurement" : "Mesure atypique",
       "thumb" : "pouce",
@@ -337,7 +340,8 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         if (window.navigator.userAgent.indexOf("MSIE") > -1 || window.navigator.userAgent.indexOf("Trident") > -1)  // plane flights are not available on MSIE. And we have to add size=5 to the select otherwise it doesn't work
             div.innerHTML = '<div style="font-size:10px; text-align:center;"><span style="font-size:12px;">' + translate("You are using Internet Explorer, which does not provide full functionality. We advise you to use a modern browser.") + '</span><select id="qualification" name="qualification" size="5">\
                                     <option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
-                                    <option value="groundlevel">' + translate("Ground level measurements") + '</option> \
+                                    <option value="groundlevel">' + translate("Ground level measurements (bubbles)") + '</option> \
+                                    <option value="groundlevel_nobubbles">' + translate("Ground level measurements") + '</option> \
                                     <option value="plane">' + translate("In flight measurements") + '</option> \
                                     <option value="wrongmeasurement">' + translate("Wrong measurements") + '</option>\
                                     <option value="temporarysource">' + translate("Temporary source measurements") + '</option>\
@@ -346,7 +350,8 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         else
             div.innerHTML = '<div><select id="qualification" name="qualification">\
                                     <option value="all">' + translate("ALL MEASUREMENTS") + '</option> \
-                                    <option value="groundlevel">' + translate("Ground level measurements") + '</option> \
+                                    <option value="groundlevel">' + translate("Ground level measurements (bubbles)") + '</option> \
+                                    <option value="groundlevel_nobubbles">' + translate("Ground level measurements") + '</option> \
                                     <option value="plane">' + translate("In flight measurements") + '</option> \
                                     <option value="wrongmeasurement">' + translate("Wrong measurements") + '</option>\
                                     <option value="temporarysource">' + translate("Temporary source measurements") + '</option>\
@@ -573,7 +578,32 @@ var urlPrev = "null";
 var minLatitudePrev = -90, maxLatitudePrev = +90, minLongitudePrev = -10000, maxLongitudePrev = +10000;
 var exhaustiveResultsPrev = false;
 
-//setInterval(function(){ openradiation_getItems(false); }, 5000);
+function updateGroundBubbleVisibility() {
+    Object.keys(measurementMarkers).forEach(function(reportUuid) {
+        var marker = measurementMarkers[reportUuid];
+        if (!marker.isGroundMeasurement) {
+            return;
+        }
+
+        if (groundBubblesEnabled) {
+            if (!marker.isGroundClustered) {
+                openradiation_map.removeLayer(marker);
+                groundClusterGroup.addLayer(marker);
+                marker.isGroundClustered = true;
+            }
+            if (!marker.getPopup()) {
+                marker.bindPopup("<div></div>");
+            }
+        } else if (marker.getPopup()) {
+            if (marker.isGroundClustered) {
+                groundClusterGroup.removeLayer(marker);
+                marker.addTo(openradiation_map);
+                marker.isGroundClustered = false;
+            }
+            marker.unbindPopup();
+        }
+    });
+}
 
 function toggleFlightNumberField() {
     const isPlane = $('#qualification').val() === 'plane';
@@ -736,10 +766,15 @@ function getUrl()
     var flightNumber = $("#flightNumber").val();
 
     var qualification = $("#qualification").val();
-    if (qualification != "" && qualification != "all")
+
+    groundBubblesEnabled = qualification === "groundlevel";
+    if (qualification === "groundlevel_nobubbles")
+        qualification = "groundlevel";
+
+    if (qualification !== "" && qualification !== "all")
         urlTemp+= "&qualification=" + qualification;
 
-    if (qualification != "plane")
+    if (qualification !== "plane")
         flightId_selected = null;
 
     if (qualification === "plane" && flightNumber != "")
@@ -908,13 +943,18 @@ function retrieve_items(urlTemp, fitBounds) {
                 else
                     icon = icon_19;
 
-                var marker = L.marker([(res.data[i].refinedLatitude != undefined) ? res.data[i].refinedLatitude : res.data[i].latitude, (res.data[i].refinedLongitude != undefined) ? res.data[i].refinedLongitude : res.data[i].longitude],  {icon: icon})
-                    .bindPopup(htmlPopup);
+                var isGroundMeasurement = (res.data[i].qualification === "groundlevel");
+                var shouldClusterGround = isGroundMeasurement && groundBubblesEnabled;
+                var marker = L.marker([(res.data[i].refinedLatitude != undefined) ? res.data[i].refinedLatitude : res.data[i].latitude, (res.data[i].refinedLongitude != undefined) ? res.data[i].refinedLongitude : res.data[i].longitude],  {icon: icon});
+                if (!shouldClusterGround) {
+                    marker.bindPopup(htmlPopup);
+                }
                 marker.reportUuid = res.data[i].reportUuid;
                 //for chart time
                 marker.value = res.data[i].value;
                 marker.startTime = new Date(res.data[i].startTime);
-                marker.isGroundClustered = (res.data[i].qualification === "groundlevel");
+                marker.isGroundMeasurement = isGroundMeasurement;
+                marker.isGroundClustered = shouldClusterGround;
 
                 if (marker.isGroundClustered) {
                     groundClusterGroup.addLayer(marker);
@@ -951,7 +991,12 @@ function retrieve_items(urlTemp, fitBounds) {
 function openradiation_getItems(fitBounds)
 {
     var urlTemp = getUrl();
-    
+
+    if (groundBubblesEnabledPrev !== groundBubblesEnabled) {
+        updateGroundBubbleVisibility();
+        groundBubblesEnabledPrev = groundBubblesEnabled;
+    }
+
     // if qualification change to plane from an other, we add geodesics
     if ($("#qualification").val() == "plane")
         loadFlightsIfNeeded();
