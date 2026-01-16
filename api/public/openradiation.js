@@ -286,11 +286,24 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {// see http://wiki.openstreetmap.org/wiki/FR:Serveurs/tile.openstreetmap.fr
             attribution: '&copy; <a href=\"\/\/osm.org\/copyright\">OpenStreetMap<\/a> | &copy; <a href=\"\/\/www.openradiation.org\/en/\data\">OpenRadiation</a>'
         }).addTo(openradiation_map);
-
-
     }
 
-    groundClusterGroup = L.markerClusterGroup({ maxClusterRadius: 70, disableClusteringAtZoom: 16 });
+    groundClusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 70,
+        disableClusteringAtZoom: 16,
+        iconCreateFunction: function(cluster) {
+            var count = cluster.getChildCount();
+            var sizeClass = count < 5 ? 'cluster-xs' : count < 30 ? 'cluster-s' : count < 100 ? 'cluster-m' : count < 200 ? 'cluster-l' : 'cluster-xl';
+            var size = count < 5 ? 24 : count < 30 ? 32 : count < 100 ? 40 : count < 200 ? 48 : 56;
+
+            return L.divIcon({
+                html: '<div><span>' + count + '</span></div>',
+                className: 'marker-cluster ' + sizeClass,
+                iconSize: L.point(size, size)
+            });
+        }
+    });
+
     openradiation_map.addLayer(groundClusterGroup);
     //add an interpolation map layer
     interpolation =
