@@ -6,6 +6,12 @@ var flightsMinLatitudePrev = null, flightsMaxLatitudePrev = null, flightsMinLong
 var flightsFlightNumberPrev = null;
 var flightsMaxNumber = 200;
 
+var bubblesMaxData = 1000;
+var measuresMaxData = 1000;
+
+const bubblesDefault = 400;
+const measuresDefault = 200;
+
 //if (navigator.language.indexOf('fr') != -1)
 if (document.documentElement.lang == "fr")
     isLanguageFR = true; // true
@@ -54,6 +60,7 @@ var translations_FR = {
       "Permalink" : "Permalien",
       "Timeline" : "Profil temporel",
       "VALUE IN µSv/h" : "VALEUR EN μSv/h",
+      "Warning: a high number of measurements may slow down the display." : "Attention : un grand nombre de mesures peut ralentir l'affichage.",
       "Your tag" : "Votre tag",
       "User" : "Utilisateur",
       "CSV FILE" : "FICHIER CSV",     
@@ -373,7 +380,17 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
     openradiation_filters.onAdd = function(openradiation_map) {
         var div = L.DomUtil.create('div', 'openradiation_filters');
         L.DomEvent.disableClickPropagation(div);      
-        div.innerHTML = '<div class=\"slider_range\">\
+        div.innerHTML = '<div class=\"slider_data\">\
+                            <div>\
+                                <div id="slider_data"></div>\
+                                <div class="slider-labels-row">\
+                                    <span id="slider_min">1</span>\
+                                    <span id="slider_maxdata">472</span> <span id="slider_max">1000</span>\
+                                </div>\
+                                <div id="slider_warningtext">' + translate("Warning: a high number of measurements may slow down the display.") + '</div>\
+                            </div>\
+                        </div>\
+                        <div class=\"slider_range\">\
                             <div>\
                                 <div id=\"slider_rangevalue\"></div> \
                                 <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + translate("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
@@ -423,6 +440,11 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         $("#slider_mindate").text(val2date(slider_rangedate.slider("values", 0)));
         $("#slider_maxdate").text(val2date(slider_rangedate.slider("values", 1)));
     });
+
+    const slider_data = $("#slider_data");
+    slider_data.on("slidecreate", function (event, ui) {
+        $("#slider_maxdata").text(val2data(slider_data.slider("value")));
+    })
 
     //add a toggle
     let openradiation_toggle = L.control({
@@ -771,6 +793,8 @@ function getUrl()
     if (qualification === "groundlevel_nobubbles")
         qualification = "groundlevel";
 
+    urlTemp+= "&groundBubblesEnabled=" + groundBubblesEnabled;
+
     if (qualification !== "" && qualification !== "all")
         urlTemp+= "&qualification=" + qualification;
 
@@ -818,7 +842,46 @@ function getUrl()
         var maxStartTime = new Date(now.getTime() - (NbSecond * 1000) );
         urlTemp+= "&maxStartTime=" + maxStartTime.toISOString();
     }
+
+
+    var newMin = parseInt($("#slider_data").slider("option", "min"));
+    var newMax = parseInt($("#slider_data").slider("option", "max"));
+    var newValue = parseInt($("#slider_data").slider("value"));
+
+    if (groundBubblesEnabled) {
+        newMax = bubblesMaxData;
+    } else {
+        newMax = measuresMaxData;
+    }
+
+    if (groundBubblesEnabled == true && groundBubblesEnabled !== groundBubblesEnabledPrev){
+        newValue = bubblesDefault;
+    }
+    if(groundBubblesEnabled == false && groundBubblesEnabled !== groundBubblesEnabledPrev){
+        newValue = measuresDefault;
+    }
+
+ 
+    $("#slider_data").slider("option", {
+        min: newMin,
+        max: newMax,
+        value: newValue
+    });
+
+    $("#slider_min").text(newMin);
+    $("#slider_maxdata").text(newValue);
+    $("#slider_max").text(newMax);
+
+
+    var maxData = $('#slider_maxdata').text();
+    if (maxData != "") {
+
+        urlTemp+= "&maxNumber=" + maxData;
+        
+    }
+
     
+
     return urlTemp;
 }
 
@@ -1111,6 +1174,12 @@ function val2date(val)
     }
 }
 
+function val2data(val) 
+{
+    var value = parseInt(val);
+    return value;
+}
+
 $(function() {
     
     $(".toggle").click(function(){
@@ -1166,6 +1235,24 @@ $(function() {
             openradiation_getItems(false);
         }
     });
+
+
+    $( "#slider_data" ).slider({
+        range: "min",
+        min: 0,
+        max: bubblesMaxData,
+        value: bubblesDefault,
+        slide: function( event, ui ) {
+            $( "#slider_maxdata" ).text(val2data(ui.value));
+            $( "#slider_min" ).text(val2data(ui.min));
+            $( "#slider_max" ).text(val2data(ui.max));
+            openradiation_getItems(false);
+        }
+    });
+
+//    $('#slider_maxdata').val("$" + $( "slider_data" ).slider("value") )
+
+
     
     $( "#export" ).click(function() {
         

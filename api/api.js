@@ -1036,6 +1036,20 @@ if (cluster.isMaster) {
                         return false;
                     }
                     break;
+                case "measuresDefault":
+                    if (typeof (json[dataName]) != "string" || isNaN(json[dataName]) || parseFloat(json[dataName]) != parseInt(json[dataName]) || parseInt(json[dataName]) < 1) {
+                        logAndSendError(res, "102", `${dataName} is not a positive integer`);
+                        return false;
+                    }
+                    break;
+                case "bubblesDefault":
+                    if (typeof (json[dataName]) != "string" || isNaN(json[dataName]) || parseFloat(json[dataName]) != parseInt(json[dataName]) || parseInt(json[dataName]) < 1) {
+                        logAndSendError(res, "102", `${dataName} is not a positive integer`);
+                        return false;
+                    }
+                    break;
+                case "groundBubblesEnabled":
+                    break;
                 case "atypical":
                     if (typeof (json[dataName]) != "string" || (json[dataName] != "true" && json[dataName] != "false")) {
                         logAndSendError(res, "102", `${dataName} is not a boolean`);
@@ -1176,7 +1190,10 @@ if (cluster.isMaster) {
                     && verifyData(res, req.query, false, "flightNumber")
                     && verifyData(res, req.query, false, "response")
                     && verifyData(res, req.query, false, "withEnclosedObject")
-                    && verifyData(res, req.query, false, "maxNumber")) {
+                    && verifyData(res, req.query, false, "maxNumber")
+                    && verifyData(res, req.query, false, "measuresDefault")
+                    && verifyData(res, req.query, false, "bubblesDefault")
+                    && verifyData(res, req.query, false, "groundBubblesEnabled")) {
                     pool.connect(function (err, client, done) {
                         if (err) {
                             done();
@@ -1184,9 +1201,15 @@ if (cluster.isMaster) {
                             res.status(500).end();
                         } else {
                             let sql;
-                            let limit = properties.maxNumber;
-                            if (req.query.maxNumber != null && parseInt(req.query.maxNumber) < properties.maxNumber)
-                                limit = parseInt(req.query.maxNumber);
+
+                            let limit = properties.measuresDefault;
+                            if (req.query.groundBubblesEnabled === "true") {
+                                limit = properties.bubblesDefault;
+                            }
+
+                            if (req.query.maxNumber != null) {
+                                limit = parseInt(req.query.maxNumber)
+                            }
 
                             if (req.query.response == null)
                                 sql = 'SELECT "value", "startTime", "latitude", "longitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
@@ -3329,6 +3352,8 @@ if (cluster.isMaster) {
             console.log(new Date().toISOString() + " -    password             : [************]");
             console.log(new Date().toISOString() + " -    host                 : [" + properties.host + "]");
             console.log(new Date().toISOString() + " -    maxNumber            : [" + properties.maxNumber + "]");
+            console.log(new Date().toISOString() + " -    measuresDefault      : [" + properties.measuresDefault + "]");
+            console.log(new Date().toISOString() + " -    bubblesDefault       : [" + properties.bubblesDefault + "]");
             console.log(new Date().toISOString() + " -    getAPIInterval       : [" + properties.getAPIInterval + "]");
             console.log(new Date().toISOString() + " -    getUsersInterval     : [" + properties.getUsersInterval + "]");
             console.log(new Date().toISOString() + " -    APIKeyTestInterval   : [" + properties.APIKeyTestInterval + "]");
@@ -3406,6 +3431,8 @@ if (cluster.isMaster) {
             console.log(new Date().toISOString() + " -    password             : [************]");
             console.log(new Date().toISOString() + " -    host                 : [" + properties.host + "]");
             console.log(new Date().toISOString() + " -    maxNumber            : [" + properties.maxNumber + "]");
+            console.log(new Date().toISOString() + " -    measuresDefault      : [" + properties.measuresDefault + "]");
+            console.log(new Date().toISOString() + " -    bubblesDefault       : [" + properties.bubblesDefault + "]");
             console.log(new Date().toISOString() + " -    getAPIInterval       : [" + properties.getAPIInterval + "]");
             console.log(new Date().toISOString() + " -    getUsersInterval     : [" + properties.getUsersInterval + "]");
             console.log(new Date().toISOString() + " -    APIKeyTestInterval   : [" + properties.APIKeyTestInterval + "]");

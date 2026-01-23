@@ -151,9 +151,11 @@ strong, span { color:#2446AB; }
     .openradiation_filters > div.get_links { width:100%; margin-bottom:20px;}
 }
 
+#slider_data { border-style: none; margin-top: 20px; border-radius: 0px; background: #669fdb; width: 150px; height: 4px; margin-left: 40px; margin-bottom:5px; }
 #slider_rangedate {border-style:none; margin-top:10px; border-radius: 0px; background: black; width:150px; height:4px; margin-bottom:5px;}
 #slider_rangevalue  {border-style:none; margin-top:10px; border-radius: 0px; background: white url(images/time_slider.png) ; width:150px; height:10px; margin-bottom:5px;}
 #slider_text { position:absolute; display:block; margin-left:30px; color:black; font-weight:bold; font-size:80%; }
+#slider_warningtext{ position:absolute; display: block; margin-left: 20px; margin-top: 20px; color: #016ee3; font-weight:bold; font-size: 80%; width: 200px}
 #slider_minvalue { margin-top:3px; display:block; float:left; color:blue; font-weight:bold; font-size:90%;}
 #slider_maxvalue { margin-top:3px; display:block; float:right; color:red; font-weight:bold; font-size:90%;}
 #slider_mindate { margin-top:5px; display:block; float:left; color:black; font-weight:bold; font-size:90%;}
@@ -161,6 +163,7 @@ strong, span { color:#2446AB; }
 /*.ui-slider  .ui-slider-range { background:transparent; }*/
 #slider_rangevalue .ui-slider-range { background:transparent; }
 #slider_rangedate .ui-slider-range { background:transparent; }
+#slider_data .ui-slider-range { background: #016ee3; height: 100%;}
 
 /*.ui-slider .ui-slider-handle {*/
 #slider_rangevalue .ui-slider-handle {
@@ -187,6 +190,47 @@ strong, span { color:#2446AB; }
     cursor:pointer;
     cursor:-webkit-grab;
     cursor:-moz-grab;
+}
+
+
+
+#slider_data .ui-slider-handle {
+    width:16px; 
+    height:16px; 
+    background:#016ee3;
+    border-radius:8px;
+    position:absolute;
+    border-style:none;
+    top:-5px;
+    cursor:pointer;
+    cursor:-webkit-grab;
+    cursor:-moz-grab;
+    left: 0;
+}
+
+.slider-labels-row {
+    display: flex;
+    justify-content: space-between; /* Min à gauche, Max à droite */
+    align-items: center;
+    width: 150px;      /* Même largeur que le slider */
+    margin-left: 40px; /* Même marge que le slider */
+    margin-top: 10px;
+}
+
+#slider_min, #slider_maxdata, #slider_max {
+    display: inline-block;
+    float: none;       /* On annule le float */
+    margin: 0;         /* On reset les marges */
+    font-weight: bold;
+    font-size: 90%;
+    color: #007bff;
+}
+
+#slider_maxdata {
+    color: #016ee3;       /* Vous pouvez changer la couleur si besoin */
+    flex: 1;           /* Prend l'espace central */
+    text-align: center;
+    font-size: 95%;
 }
 
 /* CSS time chart */
