@@ -5,8 +5,10 @@ module.exports = {
     password: "******", //PgSQL
     host: "localhost", //PgSQL
     maxNumber: 400, //max number for the results of the requests
-    measuresDefault: 400; //default number of results for individual measurements
-    bubblesDefault: 15000; //default number of results for bubbles 
+    bubblesDefault: 15000, //default number of results for bubbles
+    measuresDefault: 400, //default number of results for individual measurements
+    bubblesMaxData: 30000, //maximum number of results for bubbles
+    measuresMaxData: 1000, //maximum number of results for individual measurements
     getAPIInterval: 300000, //API Table is reloaded every 5 minutes
     getUsersInterval: 300000, //Users Table is reloaded every 5 minutes
     APIKeyTestInterval: 60000, //APITest every 1 minute

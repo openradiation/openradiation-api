@@ -3039,7 +3039,12 @@ if (cluster.isMaster) {
                     rangeValueMin: 0,
                     rangeValueMax: 100,
                     rangeDateMin: 0,
-                    rangeDateMax: 100
+                    rangeDateMax: 100,
+                    bubblesDefault: properties.bubblesDefault,
+                    measuresDefault: properties.measuresDefault,
+                    bubblesMaxData: properties.bubblesMaxData,
+                    measuresMaxData: properties.measuresMaxData,
+                    dataValue: properties.bubblesDefault
                 });
             } else
                 res.status(404).end();
@@ -3072,20 +3077,26 @@ if (cluster.isMaster) {
                     rangeValueMin: 0,
                     rangeValueMax: 100,
                     rangeDateMin: 0,
-                    rangeDateMax: 100
+                    rangeDateMax: 100,
+                    bubblesDefault: properties.bubblesDefault,
+                    measuresDefault: properties.measuresDefault,
+                    bubblesMaxData: properties.bubblesMaxData,
+                    measuresMaxData: properties.measuresMaxData,
+                    dataValue: properties.bubblesDefault
                 });
             } else {
                 res.status(404).end();
             }
         });
 
-        app.get('/:lang?/openradiation/:tag/:userId/:flightNumber/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
+        app.get('/:lang?/openradiation/:tag/:userId/:flightNumber/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax/:dataValue', function (req, res, next) {
             if ((req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "wrongmeasurement" || req.params.qualification == "groundlevel" || req.params.qualification == "temporarysource")
                 && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
                 && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >= 0 && parseInt(req.params.rangeValueMin) <= 100)
                 && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >= 0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
                 && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >= 0 && parseInt(req.params.rangeDateMin) <= 100)
                 && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >= 0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
+                && (isNaN(req.params.dataValue) == false && parseFloat(req.params.dataValue) == parseInt(req.params.dataValue))
                 && (req.params.flightNumber == "all" || (typeof (req.params.flightNumber) == "string" && req.params.flightNumber.length <= 25))
                 && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en")) {
                 let tag;
@@ -3124,19 +3135,25 @@ if (cluster.isMaster) {
                     rangeValueMin: req.params.rangeValueMin,
                     rangeValueMax: req.params.rangeValueMax,
                     rangeDateMin: req.params.rangeDateMin,
-                    rangeDateMax: req.params.rangeDateMax
+                    rangeDateMax: req.params.rangeDateMax,
+                    bubblesDefault: properties.bubblesDefault,
+                    measuresDefault: properties.measuresDefault,
+                    bubblesMaxData: properties.bubblesMaxData,
+                    measuresMaxData: properties.measuresMaxData,
+                    dataValue: req.params.dataValue
                 });
             } else
                 res.status(404).end();
         });
 
-        app.get('/:lang?/openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
+        app.get('/:lang?/openradiation/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax/:dataValue', function (req, res, next) {
             if ((req.params.qualification == "all" || req.params.qualification == "plane" || req.params.qualification == "wrongmeasurement" || req.params.qualification == "groundlevel" || req.params.qualification == "temporarysource")
                 && (req.params.atypical == "all" || req.params.atypical == "true" || req.params.atypical == "false")
                 && (isNaN(req.params.rangeValueMin) == false && parseFloat(req.params.rangeValueMin) == parseInt(req.params.rangeValueMin) && parseInt(req.params.rangeValueMin) >= 0 && parseInt(req.params.rangeValueMin) <= 100)
                 && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >= 0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
                 && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >= 0 && parseInt(req.params.rangeDateMin) <= 100)
                 && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >= 0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
+                && (isNaN(req.params.dataValue) == false && parseFloat(req.params.dataValue) == parseInt(req.params.dataValue))
                 && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en")) {
                 let tag;
                 if (req.params.tag == "all")
@@ -3173,13 +3190,18 @@ if (cluster.isMaster) {
                     rangeValueMin: req.params.rangeValueMin,
                     rangeValueMax: req.params.rangeValueMax,
                     rangeDateMin: req.params.rangeDateMin,
-                    rangeDateMax: req.params.rangeDateMax
+                    rangeDateMax: req.params.rangeDateMax,
+                    bubblesDefault: properties.bubblesDefault,
+                    measuresDefault: properties.measuresDefault,
+                    bubblesMaxData: properties.bubblesMaxData,
+                    measuresMaxData: properties.measuresMaxData,
+                    dataValue: req.params.dataValue
                 });
             } else
                 res.status(404).end();
         });
 
-        app.get('/:lang?/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:flightNumber/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
+        app.get('/:lang?/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:flightNumber/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax/:dataValue', function (req, res, next) {
             if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >= 0 && parseInt(req.params.zoom) <= 18)
                 && (isNaN(req.params.latitude) == false)
                 && (isNaN(req.params.longitude) == false)
@@ -3189,6 +3211,7 @@ if (cluster.isMaster) {
                 && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >= 0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
                 && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >= 0 && parseInt(req.params.rangeDateMin) <= 100)
                 && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >= 0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
+                && (isNaN(req.params.dataValue) == false && parseFloat(req.params.dataValue) == parseInt(req.params.dataValue))
                 && (req.params.flightNumber == "all" || (typeof (req.params.flightNumber) == "string" && req.params.flightNumber.length <= 25))
                 && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en")) {
                 let tag;
@@ -3227,13 +3250,18 @@ if (cluster.isMaster) {
                     rangeValueMin: req.params.rangeValueMin,
                     rangeValueMax: req.params.rangeValueMax,
                     rangeDateMin: req.params.rangeDateMin,
-                    rangeDateMax: req.params.rangeDateMax
+                    rangeDateMax: req.params.rangeDateMax,
+                    bubblesDefault: properties.bubblesDefault,
+                    measuresDefault: properties.measuresDefault,
+                    bubblesMaxData: properties.bubblesMaxData,
+                    measuresMaxData: properties.measuresMaxData,
+                    dataValue: req.params.dataValue
                 });
             } else
                 res.status(404).end();
         });
 
-        app.get('/:lang?/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax', function (req, res, next) {
+        app.get('/:lang?/openradiation/:zoom/:latitude/:longitude/:tag/:userId/:qualification/:atypical/:rangeValueMin/:rangeValueMax/:rangeDateMin/:rangeDateMax/:dataValue', function (req, res, next) {
             if ((isNaN(req.params.zoom) == false && parseFloat(req.params.zoom) == parseInt(req.params.zoom) && parseInt(req.params.zoom) >= 0 && parseInt(req.params.zoom) <= 18)
                 && (isNaN(req.params.latitude) == false)
                 && (isNaN(req.params.longitude) == false)
@@ -3243,6 +3271,7 @@ if (cluster.isMaster) {
                 && (isNaN(req.params.rangeValueMax) == false && parseFloat(req.params.rangeValueMax) == parseInt(req.params.rangeValueMax) && parseInt(req.params.rangeValueMax) >= 0 && parseInt(req.params.rangeValueMax) <= 100 && parseInt(req.params.rangeValueMin) <= parseInt(req.params.rangeValueMax))
                 && (isNaN(req.params.rangeDateMin) == false && parseFloat(req.params.rangeDateMin) == parseInt(req.params.rangeDateMin) && parseInt(req.params.rangeDateMin) >= 0 && parseInt(req.params.rangeDateMin) <= 100)
                 && (isNaN(req.params.rangeDateMax) == false && parseFloat(req.params.rangeDateMax) == parseInt(req.params.rangeDateMax) && parseInt(req.params.rangeDateMax) >= 0 && parseInt(req.params.rangeDateMax) <= 100 && parseInt(req.params.rangeDateMin) <= parseInt(req.params.rangeDateMax))
+                && (isNaN(req.params.dataValue) == false && parseFloat(req.params.dataValue) == parseInt(req.params.dataValue))
                 && (req.params.lang == undefined || req.params.lang == "fr" || req.params.lang == "en")) {
                 let tag;
                 if (req.params.tag == "all")
@@ -3279,7 +3308,12 @@ if (cluster.isMaster) {
                     rangeValueMin: req.params.rangeValueMin,
                     rangeValueMax: req.params.rangeValueMax,
                     rangeDateMin: req.params.rangeDateMin,
-                    rangeDateMax: req.params.rangeDateMax
+                    rangeDateMax: req.params.rangeDateMax,
+                    bubblesDefault: properties.bubblesDefault,
+                    measuresDefault: properties.measuresDefault,
+                    bubblesMaxData: properties.bubblesMaxData,
+                    measuresMaxData: properties.measuresMaxData,
+                    dataValue: req.params.dataValue
                 });
             } else
                 res.status(404).end();
