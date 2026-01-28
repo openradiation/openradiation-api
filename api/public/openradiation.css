@@ -217,7 +217,7 @@ strong, span { color:#2446AB; }
     margin-top: 10px;
 }
 
-#slider_min, #slider_maxdata, #slider_max {
+#slider_min, #slider_datavalue, #slider_max {
     display: inline-block;
     float: none;       /* On annule le float */
     margin: 0;         /* On reset les marges */
@@ -226,7 +226,7 @@ strong, span { color:#2446AB; }
     color: #007bff;
 }
 
-#slider_maxdata {
+#slider_datavalue {
     color: #016ee3;       /* Vous pouvez changer la couleur si besoin */
     flex: 1;           /* Prend l'espace central */
     text-align: center;

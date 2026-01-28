@@ -6,12 +6,6 @@ var flightsMinLatitudePrev = null, flightsMaxLatitudePrev = null, flightsMinLong
 var flightsFlightNumberPrev = null;
 var flightsMaxNumber = 200;
 
-var bubblesMaxData = 1000;
-var measuresMaxData = 1000;
-
-const bubblesDefault = 400;
-const measuresDefault = 200;
-
 //if (navigator.language.indexOf('fr') != -1)
 if (document.documentElement.lang == "fr")
     isLanguageFR = true; // true
@@ -279,7 +273,7 @@ closeChartTime = function() {
 }   
         
     
-function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, flightNumber, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax, fitBounds)
+function openradiation_init(measurementURL, withLocate, zoom, latitude, longitude, tag, userId, flightNumber, qualification, atypical, rangeValueMin, rangeValueMax, rangeDateMin, rangeDateMax, bubblesDefault, measuresDefault, bubblesMaxData, measuresMaxData, fitBounds)
 {
     // create a map in the "map" div, set the view to a given place and zoom
     openradiation_map = L.map('openradiation_map', { zoomControl: false, attributionControl: true, minZoom:2, maxZoom:17 }).setView([latitude, longitude], zoom);
@@ -384,8 +378,8 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                             <div>\
                                 <div id="slider_data"></div>\
                                 <div class="slider-labels-row">\
-                                    <span id="slider_min">1</span>\
-                                    <span id="slider_maxdata">472</span> <span id="slider_max">1000</span>\
+                                    <span id=\"slider_min\"></span>\
+                                    <span id=\"slider_datavalue\"></span> <span id=\"slider_max\"></span>\
                                 </div>\
                                 <div id="slider_warningtext">' + translate("Warning: a high number of measurements may slow down the display.") + '</div>\
                             </div>\
@@ -441,10 +435,17 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         $("#slider_maxdate").text(val2date(slider_rangedate.slider("values", 1)));
     });
 
+    
+
     const slider_data = $("#slider_data");
     slider_data.on("slidecreate", function (event, ui) {
-        $("#slider_maxdata").text(val2data(slider_data.slider("value")));
+        $("#slider_datavalue").text(val2data(slider_data.slider("value")));
     })
+
+    $('body').data('bubblesDefault', bubblesDefault);
+    $('body').data('measuresDefault', measuresDefault);
+    $('body').data('bubblesMaxData', bubblesMaxData);
+    $('body').data('measuresMaxData', measuresMaxData);
 
     //add a toggle
     let openradiation_toggle = L.control({
@@ -483,7 +484,7 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
         $("#userId").val(userId);
         $("#flightNumber").val(flightNumber);
         toggleFlightNumberField();
-       
+
         //if you want to locate the client
         openradiation_map.on('locationfound', function(e) {
             console.log("location found");
@@ -616,13 +617,15 @@ function updateGroundBubbleVisibility() {
             if (!marker.getPopup()) {
                 marker.bindPopup("<div></div>");
             }
-        } else if (marker.getPopup()) {
+        } else {
             if (marker.isGroundClustered) {
                 groundClusterGroup.removeLayer(marker);
                 marker.addTo(openradiation_map);
                 marker.isGroundClustered = false;
             }
-            marker.unbindPopup();
+            if (marker.getPopup()) {
+                marker.unbindPopup();
+            }
         }
     });
 }
@@ -846,7 +849,12 @@ function getUrl()
 
     var newMin = parseInt($("#slider_data").slider("option", "min"));
     var newMax = parseInt($("#slider_data").slider("option", "max"));
-    var newValue = parseInt($("#slider_data").slider("value"));
+    var newValue = parseInt($("#slider_data").slider("option", "value"));
+
+    var bubblesDefault = $('body').data('bubblesDefault');
+    var measuresDefault = $('body').data('measuresDefault');
+    var bubblesMaxData = $('body').data('bubblesMaxData');
+    var measuresMaxData = $('body').data('measuresMaxData');
 
     if (groundBubblesEnabled) {
         newMax = bubblesMaxData;
@@ -869,14 +877,14 @@ function getUrl()
     });
 
     $("#slider_min").text(newMin);
-    $("#slider_maxdata").text(newValue);
+    $("#slider_datavalue").text(newValue);
     $("#slider_max").text(newMax);
 
 
-    var maxData = $('#slider_maxdata').text();
-    if (maxData != "") {
+    var dataValue = $('#slider_datavalue').text();
+    if (dataValue != "") {
 
-        urlTemp+= "&maxNumber=" + maxData;
+        urlTemp+= "&maxNumber=" + dataValue;
         
     }
 
@@ -1236,22 +1244,20 @@ $(function() {
         }
     });
 
-
+    var bubblesDefault = $('body').data('bubblesDefault');
+    var bubblesMaxData = $('body').data('bubblesMaxData');
     $( "#slider_data" ).slider({
         range: "min",
         min: 0,
         max: bubblesMaxData,
         value: bubblesDefault,
         slide: function( event, ui ) {
-            $( "#slider_maxdata" ).text(val2data(ui.value));
+            $( "#slider_datavalue" ).text(val2data(ui.value));
             $( "#slider_min" ).text(val2data(ui.min));
             $( "#slider_max" ).text(val2data(ui.max));
             openradiation_getItems(false);
         }
     });
-
-//    $('#slider_maxdata').val("$" + $( "slider_data" ).slider("value") )
-
 
     
     $( "#export" ).click(function() {
