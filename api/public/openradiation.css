@@ -238,3 +238,7 @@ input::-moz-placeholder { /* Mozilla Firefox 19+ */
 input:-ms-input-placeholder { /* Internet Explorer 10+ */
    color:    white !important; 
 }
+
+.popup_timeline {
+    cursor: pointer;
+}

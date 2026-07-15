@@ -1,5 +1,11 @@
 
 
+CREATE TABLE MONITORINGSTATIONS
+(
+    "id"                          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    "apparatusId"                 VARCHAR(100) NOT NULL
+);
+
 CREATE TABLE MEASUREMENTS
 (
     "apparatusId"                 VARCHAR(100),

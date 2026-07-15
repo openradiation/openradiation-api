@@ -918,6 +918,13 @@ if (cluster.isMaster) {
                         return false;
                     }
                     break;
+                case "type":
+                    const typeValues = ["static", "moving"];
+                    if (typeof (json[dataName]) != "string" || typeValues.indexOf(json[dataName]) == -1) {
+                        logAndSendError(res, "102", `${dataName} should be in [static | moving]`);
+                        return false;
+                    }
+                    break;
                 case "tag":
                     if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
                         logAndSendError(res, "102", `${dataName} is not a string`);
@@ -1039,6 +1046,12 @@ if (cluster.isMaster) {
                 case "atypical":
                     if (typeof (json[dataName]) != "string" || (json[dataName] != "true" && json[dataName] != "false")) {
                         logAndSendError(res, "102", `${dataName} is not a boolean`);
+                        return false;
+                    }
+                    break;
+                case "apparatusId":
+                    if (typeof (json[dataName]) != "string" || json[dataName].length > 100) {
+                        logAndSendError(res, "102", `${dataName} is not a string`);
                         return false;
                     }
                     break;
@@ -1170,13 +1183,17 @@ if (cluster.isMaster) {
                     && verifyData(res, req.query, false, "maxLongitude")
                     && verifyData(res, req.query, false, "userId_request")
                     && verifyData(res, req.query, false, "qualification")
+                    && verifyData(res, req.query, false, "apparatusId")
+                    && verifyData(res, req.query, false, "type")
                     && verifyData(res, req.query, false, "tag")
+                    && verifyData(res, req.query, false, "staticOnly")
+                    && verifyData(res, req.query, false, "excludeStatic")
                     && verifyData(res, req.query, false, "atypical")
                     && verifyData(res, req.query, false, "flightId")
                     && verifyData(res, req.query, false, "response")
                     && verifyData(res, req.query, false, "withEnclosedObject")
                     && verifyData(res, req.query, false, "maxNumber")) {
-                    pool.connect(function (err, client, done) {
+                    pool.connect(async function (err, client, done) {
                         if (err) {
                             done();
                             console.error("Could not connect to PostgreSQL", err);
@@ -1190,22 +1207,27 @@ if (cluster.isMaster) {
                             if (req.query.response == null)
                                 sql = 'SELECT "value", "startTime", "latitude", "longitude", MEASUREMENTS."reportUuid", "qualification", "atypical"';
                             else if (req.query.withEnclosedObject == null)
-                                sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
+                                sql = 'SELECT MEASUREMENTS."apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight", "enclosedObject", "userId", \
                                   "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
                                   "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
                             else
-                                sql = 'SELECT "apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
+                                sql = 'SELECT MEASUREMENTS."apparatusId","apparatusVersion","apparatusSensorType","apparatusTubeType","temperature","value","hitsNumber","calibrationFunction","startTime", \
                                   "endTime","latitude","longitude","accuracy","altitude","altitudeAccuracy","endLatitude","endLongitude","endAccuracy","endAltitude","endAltitudeAccuracy","deviceUuid","devicePlatform","deviceVersion","deviceModel", \
                                   MEASUREMENTS."reportUuid","manualReporting","organisationReporting","description","measurementHeight","userId", \
                                   "measurementEnvironment","rain",MEASUREMENTS."flightNumber","seatNumber","windowSeat","storm",MEASUREMENTS."flightId","refinedLatitude","refinedLongitude","refinedAltitude","refinedEndLatitude","refinedEndLongitude","refinedEndAltitude", \
                                   "departureTime","arrivalTime","airportOrigin","airportDestination","aircraftType","firstLatitude","firstLongitude","midLatitude","midLongitude","lastLatitude","lastLongitude","dateAndTimeOfCreation","qualification","qualificationVotesNumber","reliability","atypical"';
 
-                            if (req.query.tag == null)
-                                sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId"';
-                            else
-                                sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId",TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
+                            sql += ' FROM MEASUREMENTS LEFT JOIN FLIGHTS on MEASUREMENTS."flightId"=FLIGHTS."flightId"';
+
+                            if (req.query.type) {
+                                sql += ' LEFT JOIN MONITORINGSTATIONS ON MEASUREMENTS."apparatusId"=MONITORINGSTATIONS."apparatusId"';
+                            }
+
+                            if (req.query.tag != null) {
+                                sql += ' INNER JOIN TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
+                            }
 
                             let where = '';
                             const values = [];
@@ -1261,6 +1283,10 @@ if (cluster.isMaster) {
                                 values.push(req.query.flightId);
                                 where += ' AND MEASUREMENTS."flightId" = $' + values.length;
                             }
+                            if (req.query.apparatusId != null) {
+                                values.push(req.query.apparatusId);
+                                where += ' AND MEASUREMENTS."apparatusId" = $' + values.length;
+                            }
                             if (req.query.dateOfCreation != null) {
                                 const date = new Date(req.query.dateOfCreation);
                                 const date1 = new Date(date.toDateString());
@@ -1275,14 +1301,22 @@ if (cluster.isMaster) {
                             if (req.query.tag == null)
                                 where = where.replace('AND', 'WHERE');
 
-                            sql += where;
-                            sql += ' ORDER BY "startTime" desc, MEASUREMENTS."reportUuid"';
+                            if (req.query.type == 'static') {
+                                sql += where + ' AND MONITORINGSTATIONS."apparatusId" IS NOT NULL';
+                                sql += ' ORDER BY MEASUREMENTS."apparatusId", "startTime"';
+                                sql = sql.replace('SELECT', 'SELECT DISTINCT ON (MEASUREMENTS."apparatusId")')
+                            } else if (req.query.type == 'moving') {
+                                sql += where + ' AND MONITORINGSTATIONS."apparatusId" IS NULL';
+                                sql += ' ORDER BY "startTime" desc, MEASUREMENTS."reportUuid"';
+                            } else {
+                                sql += where + ' ORDER BY "startTime" desc, MEASUREMENTS."reportUuid"';
+                            }
 
-                            if (req.query.dateOfCreation == null && req.query.flightId == null)
+                            if (req.query.dateOfCreation == null && req.query.flightId == null) {
                                 sql += ' LIMIT ' + limit;
-                            else
+                            } else
                                 limit = -1;
-
+                                
                             client.query(sql, values, function (err, result) {
                                 if (err) {
                                     done();
