@@ -39,25 +39,7 @@ var icon_1 = new icon_c({iconUrl: '/images/icon_1x_1.png', iconRetinaUrl: '/imag
     icon_18 = new icon_c({iconUrl: '/images/icon_1x_18.png', iconRetinaUrl: '/images/icon_2x_18.png'}),
     icon_19 = new icon_c({iconUrl: '/images/icon_1x_19.png', iconRetinaUrl: '/images/icon_2x_19.png'});
 
-var icon_static_1 = new icon_c({iconUrl: '/images/icon_static_2x_1.png', iconRetinaUrl: '/images/icon_static_2x_1.png'}),
-    icon_static_2 = new icon_c({iconUrl: '/images/icon_static_2x_2.png', iconRetinaUrl: '/images/icon_static_2x_2.png'}),
-    icon_static_3 = new icon_c({iconUrl: '/images/icon_static_2x_3.png', iconRetinaUrl: '/images/icon_static_2x_3.png'}),
-    icon_static_4 = new icon_c({iconUrl: '/images/icon_static_2x_4.png', iconRetinaUrl: '/images/icon_static_2x_4.png'}),
-    icon_static_5 = new icon_c({iconUrl: '/images/icon_static_2x_5.png', iconRetinaUrl: '/images/icon_static_2x_5.png'}),
-    icon_static_6 = new icon_c({iconUrl: '/images/icon_static_2x_6.png', iconRetinaUrl: '/images/icon_static_2x_6.png'}),
-    icon_static_7 = new icon_c({iconUrl: '/images/icon_static_2x_7.png', iconRetinaUrl: '/images/icon_static_2x_7.png'}),
-    icon_static_8 = new icon_c({iconUrl: '/images/icon_static_2x_8.png', iconRetinaUrl: '/images/icon_static_2x_8.png'}),
-    icon_static_9 = new icon_c({iconUrl: '/images/icon_static_2x_9.png', iconRetinaUrl: '/images/icon_static_2x_9.png'}),
-    icon_static_10 = new icon_c({iconUrl: '/images/icon_static_2x_10.png', iconRetinaUrl: '/images/icon_static_2x_10.png'}),
-    icon_static_11 = new icon_c({iconUrl: '/images/icon_static_2x_11.png', iconRetinaUrl: '/images/icon_static_2x_11.png'}),
-    icon_static_12 = new icon_c({iconUrl: '/images/icon_static_2x_12.png', iconRetinaUrl: '/images/icon_static_2x_12.png'}),
-    icon_static_13 = new icon_c({iconUrl: '/images/icon_static_2x_13.png', iconRetinaUrl: '/images/icon_static_2x_13.png'}),
-    icon_static_14 = new icon_c({iconUrl: '/images/icon_static_2x_14.png', iconRetinaUrl: '/images/icon_static_2x_14.png'}),
-    icon_static_15 = new icon_c({iconUrl: '/images/icon_static_2x_15.png', iconRetinaUrl: '/images/icon_static_2x_15.png'}),
-    icon_static_16 = new icon_c({iconUrl: '/images/icon_static_2x_16.png', iconRetinaUrl: '/images/icon_static_2x_16.png'}),
-    icon_static_17 = new icon_c({iconUrl: '/images/icon_static_2x_17.png', iconRetinaUrl: '/images/icon_static_2x_17.png'}),
-    icon_static_18 = new icon_c({iconUrl: '/images/icon_static_2x_18.png', iconRetinaUrl: '/images/icon_static_2x_18.png'}),
-    icon_static_19 = new icon_c({iconUrl: '/images/icon_static_2x_19.png', iconRetinaUrl: '/images/icon_static_2x_19.png'});
+var icon_static = new icon_c({iconUrl: '/images/icon_static_2x.png', iconRetinaUrl: '/images/icon_static_2x.png'});
     
 var interpolation;
 
@@ -741,47 +723,51 @@ function retrieve_items(urlTemp, fitBounds) {
             {
                 var htmlPopup = "<div></div>";
                 var icon;
-                
-                var nSvValue = data[i].value * 1000;
-                //16 colours classes depending value in nSv/h
-                if (nSvValue < 45)
-                    icon = type == 'static' ? icon_static_1 : icon_1;
-                else if (nSvValue < 72) 
-                    icon = type == 'static' ? icon_static_2 : icon_2;
-                else if (nSvValue < 114)
-                    icon = type == 'static' ? icon_static_3 : icon_3;
-                else if (nSvValue < 181) 
-                    icon = type == 'static' ? icon_static_4 : icon_4;
-                else if (nSvValue < 287) 
-                    icon = type == 'static' ? icon_static_5 : icon_5;
-                else if (nSvValue < 454) 
-                    icon = type == 'static' ? icon_static_6 : icon_6;
-                else if (nSvValue < 720) 
-                    icon = type == 'static' ? icon_static_7 : icon_7;
-                else if (nSvValue < 1142) 
-                    icon = type == 'static' ? icon_static_8 : icon_8;
-                else if (nSvValue < 1809) 
-                    icon = type == 'static' ? icon_static_9 : icon_9;
-                else if (nSvValue < 2867) 
-                    icon = type == 'static' ? icon_static_10 : icon_10;
-                else if (nSvValue < 4545)
-                    icon = type == 'static' ? icon_static_11 : icon_11;
-                else if (nSvValue < 7203) 
-                    icon = type == 'static' ? icon_static_12 : icon_12;
-                else if (nSvValue < 11416) 
-                    icon = type == 'static' ? icon_static_13 : icon_13;
-                else if (nSvValue < 18092) 
-                    icon = type == 'static' ? icon_static_14 : icon_14;
-                else if (nSvValue < 28675) 
-                    icon = type == 'static' ? icon_static_15 : icon_15;
-                else if (nSvValue < 45446) 
-                    icon = type == 'static' ? icon_static_16 : icon_16;
-                else if (nSvValue < 72027) 
-                    icon = type == 'static' ? icon_static_17 : icon_17;
-                else if (nSvValue < 114155) 
-                    icon = type == 'static' ? icon_static_18 : icon_18;
-                else 
-                    icon = type == 'static' ? icon_static_19 : icon_19;
+
+                if (type === 'static') {
+                    icon = icon_static
+                } else {
+                    var nSvValue = data[i].value * 1000;
+                    //16 colours classes depending value in nSv/h
+                    if (nSvValue < 45)
+                        icon = icon_1;
+                    else if (nSvValue < 72) 
+                        icon = icon_2;
+                    else if (nSvValue < 114)
+                        icon = icon_3;
+                    else if (nSvValue < 181) 
+                        icon = icon_4;
+                    else if (nSvValue < 287) 
+                        icon = icon_5;
+                    else if (nSvValue < 454) 
+                        icon = icon_6;
+                    else if (nSvValue < 720) 
+                        icon = icon_7;
+                    else if (nSvValue < 1142) 
+                        icon = icon_8;
+                    else if (nSvValue < 1809) 
+                        icon = icon_9;
+                    else if (nSvValue < 2867) 
+                        icon = icon_10;
+                    else if (nSvValue < 4545)
+                        icon = icon_11;
+                    else if (nSvValue < 7203) 
+                        icon = icon_12;
+                    else if (nSvValue < 11416) 
+                        icon = icon_13;
+                    else if (nSvValue < 18092) 
+                        icon = icon_14;
+                    else if (nSvValue < 28675) 
+                        icon = icon_15;
+                    else if (nSvValue < 45446) 
+                        icon = icon_16;
+                    else if (nSvValue < 72027) 
+                        icon = icon_17;
+                    else if (nSvValue < 114155) 
+                        icon = icon_18;
+                    else 
+                        icon = icon_19;
+                }
         
                 var marker = L.marker([(data[i].refinedLatitude != undefined) ? data[i].refinedLatitude : data[i].latitude, (data[i].refinedLongitude != undefined) ? data[i].refinedLongitude : data[i].longitude],  {icon: icon}).addTo(openradiation_map)
                     .bindPopup(htmlPopup);
@@ -814,12 +800,70 @@ function retrieve_items(urlTemp, fitBounds) {
 function openradiation_getItems(fitBounds)
 {
     var urlTemp = getUrl();
-    
-    // if qualification change to plane from an other, we add geodesics
-    if (urlPrev.indexOf("qualification=plane") == -1 && $("#qualification").val() == "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
+
+    var shouldRetrieveData = false;
+
+    // we retrieve results if filters are differents
+    //     or one of the geographical bounds are outside the bounds of the last request (and we do not click on a flight)
+    //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds (and we do not click on a flight)
+    const needsBoundsCheck = $("#qualification").val() != "plane" || flightId_selected == null;
+    if (urlTemp != urlPrev)
+        shouldRetrieveData = true;
+    else if (needsBoundsCheck && (openradiation_map.getBounds().getSouth() < minLatitudePrev
+       || openradiation_map.getBounds().getNorth() > maxLatitudePrev
+       || openradiation_map.getBounds().getWest() < minLongitudePrev
+       || openradiation_map.getBounds().getEast() > maxLongitudePrev))
+        shouldRetrieveData = true;
+    else if (needsBoundsCheck && (openradiation_map.getBounds().getSouth() > minLatitudePrev
+       || openradiation_map.getBounds().getNorth() < maxLatitudePrev
+       || openradiation_map.getBounds().getWest() > minLongitudePrev
+       || openradiation_map.getBounds().getEast() < maxLongitudePrev))
+    {
+        var nb = 0;
+        var not_included = false;
+        Object.keys(measurementMarkers).forEach(function(reportUuid) {
+            var layer = measurementMarkers[reportUuid];
+            var latLng = layer.getLatLng();
+            if (!latLng)
+                return;
+
+            if (latLng.lng < openradiation_map.getBounds().getWest()
+               || latLng.lng > openradiation_map.getBounds().getEast()
+               || latLng.lat < openradiation_map.getBounds().getSouth()
+               || latLng.lat > openradiation_map.getBounds().getNorth())
+                not_included = true;
+            else
+                nb++;
+        });
+        if (exhaustiveResultsPrev == false && not_included == true)
+            shouldRetrieveData = true;
+        else {
+            if (exhaustiveResultsPrev) {
+                //updated results without research
+                if (nb < 2)
+                    $("#nbresults").text(nb + " " + translate("measurement found"));
+                else
+                    $("#nbresults").text(nb + " " + translate("measurements found"));
+            } else
+                console.log("measurements not updated (not exhaustive and all the items are in the new bounds)");
+        }
+    } else
+        console.log("no change");
+
+    const isPlaneQualification = $("#qualification").val() == "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1);
+
+    // if qualification change to plane from an other, or filters changed while in plane qualification, we refresh geodesics
+    if (isPlaneQualification && (urlPrev.indexOf("qualification=plane") == -1 || shouldRetrieveData)) {
+        openradiation_map.eachLayer(function (layer) {
+            if (layer.flightId != null) {
+                openradiation_map.removeLayer(layer);
+            }
+        });
+        let flightsUrl = '/flights?apiKey=' + apiKey + urlTemp;
+
         $.ajax({
             type: 'GET',
-            url: '/flights?apiKey=' + apiKey,
+            url: flightsUrl,
             timeout: 15000,
             success: function(res) {
                 for (i=0; i < res.data.length; i ++)
@@ -858,7 +902,7 @@ function openradiation_getItems(fitBounds)
                         "<tr>" +
                             "<td>" + translate("To:") + " </td>" +
                             "<td>" + res.data[i].airportDestination +
-                            "<td>" + " " + (res.data[i].arrivalTime != undefined ? formatISODate(res.data[i].arrivalTime) : "")  + "</td>" +
+                            "<td>" + " " + (res.data[i].arrivalTime != undefined ? formatISODate(res.data[i].arrivalTime) : "") + "</td>" +
                         "</tr>" +
                         "</table>";
                     }
@@ -886,66 +930,26 @@ function openradiation_getItems(fitBounds)
                         }
                         geodesic.addTo(openradiation_map);
                     }
-                }            
+                }
             },
             error: function(res, status, err) {
-                console.log(err + " : " + status); 
+                console.log(err + " : " + status);
             }
-        });          
+        });
     }
-    
+
     // if qualification change from plane to an other, we remove geodesics
-    if (urlPrev.indexOf("qualification=plane") > -1 && $("#qualification").val() != "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
+    if (urlPrev.indexOf('qualification=plane') > -1 && $("#qualification").val() != "plane" && (window.navigator.userAgent.indexOf("MSIE") == -1 && window.navigator.userAgent.indexOf("Trident") == -1)) {
         openradiation_map.eachLayer(function (layer) {
             if (layer.flightId != null) {
                 openradiation_map.removeLayer(layer);
             }
-        });   
+        });
     }
 
-    // we retrieve results if filters are differents
-    //     or one of the geographical bounds are outside the bounds of the last request (and we do not click on a flight)
-    //     or geographical bounds are included and results were not exhaustive, and some items are not included in the new bounds (and we do not click on a flight)
-    if (urlTemp != urlPrev)
+    if (shouldRetrieveData) {
         retrieve_items(urlTemp, fitBounds);
-    else if (($("#qualification").val() != "plane" || flightId_selected == null) && (openradiation_map.getBounds().getSouth() < minLatitudePrev 
-       || openradiation_map.getBounds().getNorth() > maxLatitudePrev
-       || openradiation_map.getBounds().getWest() < minLongitudePrev
-       || openradiation_map.getBounds().getEast() > maxLongitudePrev))
-        retrieve_items(urlTemp, fitBounds);
-    else if (($("#qualification").val() != "plane" || flightId_selected == null) && (openradiation_map.getBounds().getSouth() > minLatitudePrev
-       || openradiation_map.getBounds().getNorth() < maxLatitudePrev 
-       || openradiation_map.getBounds().getWest() > minLongitudePrev
-       || openradiation_map.getBounds().getEast() < maxLongitudePrev))
-    {
-        var nb = 0;
-        var not_included = false;
-        openradiation_map.eachLayer(function (layer) {
-            
-            if (layer.reportUuid != null) {
-                if (layer.getLatLng().lng < openradiation_map.getBounds().getWest()
-               || layer.getLatLng().lng > openradiation_map.getBounds().getEast()
-               || layer.getLatLng().lat < openradiation_map.getBounds().getSouth()
-               || layer.getLatLng().lat > openradiation_map.getBounds().getNorth())
-                    not_included = true;
-                else
-                    nb++;
-            }
-        });
-        if (exhaustiveResultsPrev == false && not_included == true)
-            retrieve_items(urlTemp, fitBounds);
-        else {
-            if (exhaustiveResultsPrev) {
-                //updated results without research
-                if (nb < 2)
-                    $("#nbresults").text(nb + " " + translate("measurement found"));
-                else
-                    $("#nbresults").text(nb + " " + translate("measurements found"));
-            } else
-                console.log("measurements not updated (not exhaustive and all the items are in the new bounds)");
-        }
-    } else
-        console.log("no change");
+    }
 }
 
 function val2uSv(val)
