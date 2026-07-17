@@ -1255,11 +1255,11 @@ if (cluster.isMaster) {
                                 values.push(new Date(req.query.maxStartTime));
                                 where += ' AND MEASUREMENTS."startTime" <= $' + values.length;
                             }
-                            if (req.query.minValue != null) {
+                            if (req.query.minValue != null && req.query.type != 'static') {
                                 values.push(req.query.minValue);
                                 where += ' AND MEASUREMENTS."value" >= $' + values.length;
                             }
-                            if (req.query.maxValue != null) {
+                            if (req.query.maxValue != null && req.query.type != 'static') {
                                 values.push(req.query.maxValue);
                                 where += ' AND MEASUREMENTS."value" <= $' + values.length;
                             }
