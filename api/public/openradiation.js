@@ -56,6 +56,8 @@ var translations_FR = {
       "In flight measurements" : "Mesures en vol",
       "Wrong measurement" : "Mesures incorrecte",
       "Wrong measurements" : "Mesures incorrectes",
+      "Individual measurement": "Mesure individuelle",
+      "Fixed pin": "Balise fixe",
       "Temporary source measurement" : "Mesure d'une source",
       "Temporary source measurements" : "Mesures d'une source",
       "Ground level measurement" : "Mesure au sol",    
@@ -354,6 +356,16 @@ function openradiation_init(measurementURL, withLocate, zoom, latitude, longitud
                             <div>\
                                 <div id=\"slider_rangevalue\"></div> \
                                 <div><span id=\"slider_minvalue\"></span><span id=\"slider_text\">' + translate("VALUE IN µSv/h") + '</span><span id=\"slider_maxvalue\"></span></div>\
+                            </div>\
+                            <div class=\"marker_caption\">\
+                                <div>\
+                                    <img src=\"/images/icon_2x_3.png\">\
+                                    <span>' + translate("Individual measurement") + '</span>\
+                                </div>\
+                                <div>\
+                                    <img src=\"/images/icon_static_2x.png\">\
+                                    <span>' + translate("Fixed pin") + '</span>\
+                                </div>\
                             </div>\
                          </div>\
                          <div class=\"slider_range\">\
