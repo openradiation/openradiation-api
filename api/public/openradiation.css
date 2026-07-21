@@ -242,3 +242,12 @@ input:-ms-input-placeholder { /* Internet Explorer 10+ */
 .popup_timeline {
     cursor: pointer;
 }
+
+.marker_caption {
+    margin-top: 30px;
+}
+
+.marker_caption img {
+    height: 22px;
+    margin-bottom: -3px;
+}
