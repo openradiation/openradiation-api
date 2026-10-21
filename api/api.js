@@ -1226,7 +1226,7 @@ if (cluster.isMaster) {
                             }
 
                             if (req.query.tag != null) {
-                                sql += ' INNER JOIN TAGS WHERE MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
+                                sql += ' INNER JOIN TAGS ON MEASUREMENTS."reportUuid" = TAGS."reportUuid"'; //FROM MEASUREMENTS LEFT JOIN TAGS on MEASUREMENTS."reportUuid" = TAGS."reportUuid"';
                             }
 
                             let where = '';
@@ -1298,8 +1298,8 @@ if (cluster.isMaster) {
                                 where += ' AND MEASUREMENTS."dateAndTimeOfCreation" < $' + values.length;
                             }
 
-                            if (req.query.tag == null)
-                                where = where.replace('AND', 'WHERE');
+                            // if (req.query.tag == null)
+                            where = where.replace('AND', 'WHERE');
 
                             if (req.query.type == 'static') {
                                 sql += where + ' AND MONITORINGSTATIONS."apparatusId" IS NOT NULL';
